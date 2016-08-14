@@ -13,7 +13,7 @@ __pycache__
 *.compiled.*
 *.compiled
 .dynamicConfiguration-*.json
--*.dll-manifest.json
+*.dll-manifest.json
 
 # Profiling data.
 *.profile
