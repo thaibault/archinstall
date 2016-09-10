@@ -1,0 +1,7 @@
+{
+    "name": "archInstall",
+    "documentationWebsite": {
+    "tagline": "Automate your installation process<!--deDE:Automatisiere deinen Installationsprozess-->",
+    "trackingCode": "UA-40191664-1",
+    "language": {"selection": ["enUS", "deDE"]}
+}
