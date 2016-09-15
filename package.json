@@ -14,5 +14,9 @@
     },
     "devDependencies": {
         "documentation-website": "latest"
-    }
+    },
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/thaibault/archInstall"
+      },
 }
