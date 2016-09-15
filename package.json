@@ -7,6 +7,8 @@
         "trackingCode": "UA-40192634-12",
         "languages": ["enUS", "deDE"]
     },
+    "files": ["packIntoArchiso.sh", "extensions"],
+    "main": "archInstall.sh",
     "scripts": {
         "updateDocumentation": "documentationWebsite --log-level info"
     },
