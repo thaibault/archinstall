@@ -19,6 +19,14 @@
         "type": "git",
         "url": "https://github.com/thaibault/archInstall"
       },
+  "keywords": [
+    "archLinux",
+    "arch",
+    "linux",
+    "install",
+    "automatism"
+  ],
+  "homepage": "http://torben.website/archInstall",
 
-  "homepage": "http://torben.website/archInstall"
+  "license": "CC-BY-3.0"
 }
