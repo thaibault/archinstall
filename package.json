@@ -1,9 +1,10 @@
 {
     "name": "archinstall",
     "version": "1.0.0",
+    "description": "automate your installation process",
     "documentationWebsite": {
         "name": "archInstall",
-        "tagline": "Automate your installation process<!--deDE:Automatisiere deinen Installationsprozess-->",
+        "tagline": "automate your installation process<!--deDE:Automatisiere deinen Installationsprozess-->",
         "trackingCode": "UA-40192634-12",
         "languages": ["enUS", "deDE"]
     },
