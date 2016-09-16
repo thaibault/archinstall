@@ -1,0 +1,33 @@
+{
+    "name": "archinstall",
+    "version": "1.0.0",
+    "documentationWebsite": {
+        "name": "archInstall",
+        "tagline": "Automate your installation process<!--deDE:Automatisiere deinen Installationsprozess-->",
+        "trackingCode": "UA-40192634-12",
+        "languages": ["enUS", "deDE"]
+    },
+    "files": ["packIntoArchiso.sh", "extensions"],
+    "main": "archInstall.sh",
+    "scripts": {
+        "updateDocumentation": "documentationWebsite --log-level info"
+    },
+    "devDependencies": {
+        "documentation-website": "latest"
+    },
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/thaibault/archInstall"
+      },
+  "keywords": [
+    "archLinux",
+    "arch",
+    "linux",
+    "install",
+    "automatism",
+    "automatic"
+  ],
+  "homepage": "http://torben.website/archInstall",
+
+  "license": "CC-BY-3.0"
+}

@@ -1209,7 +1209,7 @@ EOF
         return $?
     }
     function archInstallDetermineAutoPartitioning() {
-        # Determine weather we should perform our auto partitioning mechanism.
+        # Determine whether we should perform our auto partitioning mechanism.
         if [ ! "$_AUTO_PARTITIONING" ]; then
             while true; do
                 echo -n 'Do you want auto partioning? [yes|NO]: ' && \
