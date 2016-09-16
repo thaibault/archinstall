@@ -10,7 +10,7 @@
     "files": ["packIntoArchiso.sh", "extensions"],
     "main": "archInstall.sh",
     "scripts": {
-        "updateDocumentation": "documentationWebsite --log-level debug"
+        "updateDocumentation": "documentationWebsite --log-level info"
     },
     "devDependencies": {
         "documentation-website": "latest"
