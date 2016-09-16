@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html class="no-javascript"><!-- region head--><head>
+    <!-- region meta informations-->
+    <meta charset="utf-8">
+    <meta name="description" content="Automate your installation process">
+    <meta name="author" content="Torben Sickert">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta>
+    <!-- endregion-->
+    <title>archInstall</title>
+    <!-- region pre load resources-->
+    <script type="text/javascript">
+      window.document.documentElement.className =
+          window.document.documentElement.className.replace(
+              /(^|\s)no-javascript(\s|$)/, '$1javascript$2');
+    </script>
+    <!-- endregion-->
+  <meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="white"><meta name="application-name" content="documentation-website"><link rel="apple-touch-icon" sizes="57x57" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-icon-57x57.png"><link rel="apple-touch-icon" sizes="60x60" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-icon-60x60.png"><link rel="apple-touch-icon" sizes="72x72" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-icon-72x72.png"><link rel="apple-touch-icon" sizes="76x76" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-icon-76x76.png"><link rel="apple-touch-icon" sizes="114x114" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-icon-114x114.png"><link rel="apple-touch-icon" sizes="120x120" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-icon-120x120.png"><link rel="apple-touch-icon" sizes="144x144" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-icon-144x144.png"><link rel="apple-touch-icon" sizes="152x152" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-icon-152x152.png"><link rel="apple-touch-icon" sizes="180x180" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-icon-180x180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="documentation-website"><link rel="icon" type="image/png" sizes="228x228" href="image/favicons-389164dd698997e066749b4bed36012c/coast-228x228.png"><meta name="msapplication-TileColor" content="white"><meta name="msapplication-TileImage" content="mstile-144x144.png"><meta name="msapplication-config" content="browserconfig.xml"><link rel="icon" type="image/png" sizes="32x32" href="image/favicons-389164dd698997e066749b4bed36012c/favicon-32x32.png"><link rel="icon" type="image/png" sizes="192x192" href="image/favicons-389164dd698997e066749b4bed36012c/android-chrome-192x192.png"><link rel="icon" type="image/png" sizes="16x16" href="image/favicons-389164dd698997e066749b4bed36012c/favicon-16x16.png"><link rel="shortcut icon" href="image/favicons-389164dd698997e066749b4bed36012c/favicon.ico"><link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 480px) and (-webkit-device-pixel-ratio: 1)" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-startup-image-320x460.png"><link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 480px) and (-webkit-device-pixel-ratio: 2)" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-startup-image-640x920.png"><link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-startup-image-640x1096.png"><link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-startup-image-750x1294.png"><link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (orientation: landscape) and (-webkit-device-pixel-ratio: 3)" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-startup-image-1182x2208.png"><link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (orientation: portrait) and (-webkit-device-pixel-ratio: 3)" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-startup-image-1242x2148.png"><link rel="apple-touch-startup-image" media="(device-width: 768px) and (device-height: 1024px) and (orientation: landscape) and (-webkit-device-pixel-ratio: 1)" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-startup-image-748x1024.png"><link rel="apple-touch-startup-image" media="(device-width: 768px) and (device-height: 1024px) and (orientation: portrait) and (-webkit-device-pixel-ratio: 1)" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-startup-image-768x1004.png"><link rel="apple-touch-startup-image" media="(device-width: 768px) and (device-height: 1024px) and (orientation: landscape) and (-webkit-device-pixel-ratio: 2)" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-startup-image-1496x2048.png"><link rel="apple-touch-startup-image" media="(device-width: 768px) and (device-height: 1024px) and (orientation: portrait) and (-webkit-device-pixel-ratio: 2)" href="image/favicons-389164dd698997e066749b4bed36012c/apple-touch-startup-image-1536x2008.png"></head>
+  <!-- endregion-->
+  <!-- region body-->
+  <body class="documentation">
+    <div class="website-window-loading-cover tools-hidden-on-javascript-disabled">
+      <div></div>
+    </div>
+    <!-- region header-->
+    <header class="header-wrap outer">
+      <div class="inner"><a class="forkme-banner website-start-up-animation-number-1" href="https://github.com/thaibault/archInstall">View on GitHub
+          <!--deDE:GitHub-Projekt-->
+          <!--frFR:GitHub-Project--><i class="icon-github"></i></a>
+        <h1 class="project-title website-start-up-animation-number-2"><a href="http://torben.website/archInstall">archInstall</a></h1>
+        <h2 class="project-tagline website-start-up-animation-number-3">Automate your installation process<!--deDE:Automatisiere deinen Installationsprozess--><br>
+        </h2>
+        <div class="header-links">
+          <!--NOTE: This elements are shown in reverse order.--><a class="zip-source-download website-start-up-animation-number-8" href="https://github.com/thaibault/archInstall/zipball/master">src.zip</a><a class="zip-distribution-bundle-download website-start-up-animation-number-7" href="http://torben.website/archInstall/data/distributionBundle.zip">app.zip</a><i class="icon-download-arrow website-start-up-animation-number-6"></i><a class="tools-visible-on-javascript-enabled website-start-up-animation-number-5" href="#language-enUS">en</a><a class="tools-visible-on-javascript-enabled website-start-up-animation-number-4" href="#language-deDE">de</a>
+        </div>
+      </div>
+    </header>
+    <!-- endregion-->
+    <!-- region sections-->
+    <section class="main-content-wrap outer">
+      <!-- region main content-->
+      <div class="main-content inner"><!-- #!/usr/bin/env markdown
+-*- coding: utf-8 -*-
+
+region header
+
+Copyright Torben Sickert 16.12.2012
+
+License
+-------
+
+This library written by Torben Sickert stand under a creative commons naming
+3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
+
+endregion -->
+
+<!--|deDE:Einsatz-->
+
+<h2 id="use-case">Use case</h2>
+<p>This script provides a full unnatted way to install ArchLinux from any live
+environment. You can create your own linux distribution based on the rolling
+released ArchLinux. A rock solid decorator pattern allows to automate a fully
+unattended individual installation process.</p>
+<!--|deDE:Inhalt-->
+
+<h2 id="content">Content</h2>
+<!--Place for automatic generated table of contents.-->
+
+<div class="toc">
+<ul>
+<li><a href="#use-case">Use case</a></li>
+<li><a href="#content">Content</a></li>
+<li><a href="#quick-start">Quick-Start</a></li>
+<li><a href="#install-to-blockdevice">Install to blockdevice</a></li>
+<li><a href="#install-to-partition">Install to partition</a></li>
+<li><a href="#install-to-folder">Install to folder</a></li>
+<li><a href="#automatic-configuration">Automatic configuration</a></li>
+<li><a href="#decorator-pattern">Decorator Pattern</a></li>
+<li><a href="#application-interface">Application Interface</a></li>
+<li><a href="#options">Options</a></li>
+<li><a href="#install-offline">Install offline</a></li>
+<li><a href="#install-without-having-root-permissions">Install without having root permissions</a></li>
+<li><a href="#useful-tips-and-debugging-informations">Useful tips and debugging informations</a></li>
+<li><a href="#extensions">Extensions</a><ul>
+<li><a href="#makeramonlylinux">makeRamOnlyLinux</a><ul>
+<li><a href="#interface">Interface</a></li>
+<li><a href="#example">Example</a></li>
+</ul>
+</li>
+<li><a href="#makesquashlinux">makeSquashLinux</a><ul>
+<li><a href="#interface_1">Interface</a></li>
+<li><a href="#initramfs-parameter">Initramfs parameter</a></li>
+</ul>
+</li>
+<li><a href="#makeunitylinux">makeUnityLinux</a><ul>
+<li><a href="#interface_2">Interface</a></li>
+</ul>
+</li>
+<li><a href="#makexbmclinux">makeXBMCLinux</a><ul>
+<li><a href="#interface_3">Interface</a></li>
+<li><a href="#options_1">Options</a></li>
+<li><a href="#use-cases">Use cases</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<!--|deDE:Einstieg-->
+
+<h2 id="quick-start">Quick-Start</h2>
+<p>Simply load the newest version from:
+<!--deDE:
+    Um die neuste Version zu erhalten sollte man das Bash-Script runterladen:
+-->
+<a href="https://raw.githubusercontent.com/archInstall/archInstall/master/archInstall.sh">archInstall</a></p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; wget <span class="se">\</span>
+    https://raw.githubusercontent.com/archInstall/archInstall/master/archInstall.sh <span class="se">\</span>
+    -O archInstall.sh <span class="o">&amp;&amp;</span> chmod +x archInstall.sh
+</pre></div>
+
+
+<p>archInstall ist das zentrale Modul um eine Reihe von Aufgaben im Zuge der
+Vorbereitung, Installation, Konfiguration oder Manipulieren eines
+"Linux from Scratch" durchzuführen.</p>
+<p>Das Modul kann im einfachsten Fall (z.B. von einer beliebigen
+Life-Linux-Umgebung) gestartet werden. Zu beachten ist, dass die Installation
+von einem UEFI-System empfohlen wird, da dadurch entsprechende Boot-Einträge
+automatisch gesetzt werden können. Ein Bootloader wird nicht mit installiert
+und ist nicht notwendig, um das System zu booten.</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh
+</pre></div>
+
+
+<p>In diesem Fall werden alle benötigten Informationen zur Einrichtung
+(nur Hostname) des Systems vor Beginn des Installations Prozesses interaktiv
+abgefragt. Zu Beachten ist: ohne zusätzliche Parameter gibt das Modul keinen
+Feedback über den aktuellen Zustand des Installations Vorgangs. Mit:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --verbose
+</pre></div>
+
+
+<p>bekommt man einen etwas geschwätzigeren Installationsvorgang.
+Mit:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --verbose --debug
+</pre></div>
+
+
+<p>werden alle Ausgaben jeglicher verwendeten Subprogramme mit ausgegeben.</p>
+<p>Alle Parameter wie Installations haben Standardwerte. So wird im obigen Fall
+einfach in das aktuelle Verzeichnis ein Ordner mit dem Programmnamen erstellt
+und darin das Betriebssystem installiert (./archInstall/). ill man lieber eine
+unbeaufsichtigte Installation:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --host-name testSystem --auto-partitioning
+</pre></div>
+
+
+<!--|deDE:Installation auf Blockgeräte-->
+
+<h2 id="install-to-blockdevice">Install to blockdevice</h2>
+<p>Im typischen Fall will man von einer Life-CD booten um das System auf einer
+Festplatte oder Partition zu installieren. Hierbei müssen folgende Aufgaben
+erfüllt werden.</p>
+<ul>
+<li>Einrichtung einer Internet Verbindung (siehe auch Abschnitt "Offline Installation")</li>
+<li>Partitionierung der Ziel Festplatte</li>
+<li>Formatierung der Ziel Partitionen</li>
+<li>Aufbauen der Dateisystemstruktur</li>
+<li>Konfiguration des Betriebssystems</li>
+<li>Installation und Einrichtung eines Boot-Loaders</li>
+</ul>
+<p>Alle Aufgaben bis auf die Einrichtung der Internet Verbindung (wird in der
+Regel von der Host Umgebung geregelt) könne mit archInstall automatisiert
+durchgeführt werden. Will man z.B auf das Block Device "/dev/sdb" installieren
+und sich nicht selber um die Partitionierung kümmern und den kompletten
+verfügbaren Platz für das Haupt System verwenden (es soll also keine Swap- oder
+Daten Partition erstellt werden).
+sieht das z.B. so aus:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --output-system /dev/sdb --auto-partitioning
+</pre></div>
+
+
+<p>Auf diese Weise wird eine uefi Boot-Partition mit 512 MegaByte eingerichtet.
+Der restliche Platz wird für die Systempartition eingesetzt. Sind noch weitere
+Partitionen gewünscht kann man diese während der Installation durch weglassen
+des entsprechenden Parameters selber konfigurieren. Die erste Partition wird
+dann als Boot-Partition und die Zweite als Systempartition betrachtet. Weitere
+Partitionen werden ignoriert. Manuelle Partitionierung:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --output-system /dev/sdb
+</pre></div>
+
+
+<p>An dieser Stelle sei noch erwähnt, dass archInstall alle erstellten Partition
+automatisch mit Labels in der Partitionstabelle und auf der Partition selbst
+versieht. Um dieses Verhalten zu individualisieren einfach folgende Optionen
+nutzen:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --boot-partition-label uefiBoot <span class="se">\</span>
+    --system-partition-label system
+</pre></div>
+
+
+<!--|deDE:Installation auf eine Partition-->
+
+<h2 id="install-to-partition">Install to partition</h2>
+<p>Um z.B. aus einem Produktivsystem heraus eine alternative Linux Distribution
+auf eine weitere Partition zu installieren kann einfach folgender Befehl
+verwendet werden:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --output-system /dev/sdb2
+</pre></div>
+
+
+<p>Hier wird auf die zweite Partition des zweiten Block Devices installiert.
+archInstall versucht bei der Installation auf ein Blockdevice stets einen
+entsprechenden Uefi-Boot-Eintrag für den Kernel mit einem Standard Initramfs
+und einem Ausweich-Initiramfs zu konfigurieren. Die folgenden Parameter
+definieren dessen Label:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --output-system /dev/sdb2 --boot-entry-label archLinux <span class="se">\</span>
+    --fallback-boot-entry-label archLinuxFallback
+</pre></div>
+
+
+<!--|deDE:Installation in Ordner-->
+
+<h2 id="install-to-folder">Install to folder</h2>
+<p>Um archInstall für komplexere Szenarien zu verwenden oder nachträgliche
+Manipulationen vorzunehmen ist es sinnvoll zunächst in einen Ordner zu
+installieren. Siehe hierzu "archInstall with Decorator Pattern",
+"makeXBMCLinux", "makeRamOnlyLinux" oder "makeSquashLinux" bzw. das Projekt
+"archInstallWrapperTemplate".</p>
+<p>Dieser Befehl installiert ein vollständiges System in den eigenen Home-Ordner
+"test" (siehe auch Installation ohne root Rechte).</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --output-system ~/test
+</pre></div>
+
+
+<!--|deDE:Automatische Konfiguration-->
+
+<h2 id="automatic-configuration">Automatic configuration</h2>
+<p>archInstall konfiguriert das neu eingerichtete System vollautomatisch.
+Folgende Tasks wurden automatisiert:</p>
+<ul>
+<li>Tastaturlayout einstellen</li>
+<li>Einrichten der richtigen Zeit Zone</li>
+<li>Setzen des Hostnames</li>
+<li>Setzen des default root Passworts nach "root"</li>
+<li>Erstellen eines Benutzers bzw. Benutzerordner. Das Passwort wird initial wie
+  der Name des Benutzers gesetzt.</li>
+<li>dhcp Dienst für alle Netzwerk-Interfaces einrichten (siehe automatisches
+  Einrichten von Diensten)</li>
+<li>Installation der Basis Programme (siehe automatische Installation von
+  Programmen)</li>
+<li>Einrichten der Signaturen für den Paketmanager "Pacman", um vertrauenswürdige
+  Pakete erhalten zu können.</li>
+<li>Einrichten aller in der nähe liegenden Server um schnelle Packet Updates und
+  Paketinstallationen zu gewährleisten.</li>
+<li>Einrichten der richtigen Paketquellen abhängig von der aktuellen CPU
+  Architektur.</li>
+</ul>
+<p>Will man hierauf selber Einfluss nehmen, gibt es folgende Möglichkeiten:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --host-name <span class="nb">test</span> --user-names <span class="nb">test</span> <span class="se">\</span>
+    --cpu-architecture x86_64 --local-time /Europe/London <span class="se">\</span>
+    --keyboard-layout de-latin1 --country-with-mirrors Germany <span class="se">\</span>
+    --prevent-using-pacstrap --additional-packages python vim <span class="se">\</span>
+    --needed-services sshd dhcpcd apache
+</pre></div>
+
+
+<p>Um die einzelnen Konfigurationsparameter zu verstehen empfiehlt sich ein Blick
+auf:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --help
+</pre></div>
+
+
+<p>zu werfen.</p>
+<!--|deDE:Dekorator Muster-->
+
+<h2 id="decorator-pattern">Decorator Pattern</h2>
+<p>Um eigene Betriebssystem Modul zu entwerfen bietet archInstall eine
+Vielzahl von Schnittstellen um seine internen Mechanismen separate nach Außen
+zugänglich zu machen (siehe hierzu die Decorator Implementierung
+"installXBMCLinux", "makeRamOnlyLinux", "makeSquashLinux" oder
+"installArchLinxDecoratorTemplate") und unsere Guidelines zum Erstellen eines
+Wrappers.</p>
+<p>Im einfachsten Fall würde der Code der archInstall sinnvoll erweitert so
+aussehen:</p>
+<table class="codehilitetable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1"># Program description...</span>
+
+<span class="nb">source</span> <span class="s2">"</span><span class="k">$(</span>dirname <span class="s2">"</span><span class="k">$(</span>readlink --canonicalize <span class="s2">"</span><span class="nv">$0</span><span class="s2">"</span><span class="k">)</span><span class="s2">"</span><span class="k">)</span><span class="s2">"</span>archInstall.sh <span class="se">\</span>
+    --load-environment
+
+<span class="c1"># Do your own stuff cli logic here..</span>
+<span class="c1"># All your functions and variables are separated from the archInstall</span>
+<span class="c1"># scope.</span>
+
+<span class="c1"># Call the main Function of archInstall and overwrite or add</span>
+<span class="c1"># additional command line options.</span>
+archInstall <span class="s2">"</span><span class="nv">$@</span><span class="s2">"</span> --output-system initramfsTargetLocation
+
+<span class="c1"># Prepare result ...</span>
+</pre></div>
+</td></tr></tbody></table>
+
+<p>Beachte, dass trotz des laden von archInstall auf diese Weise keine Konflikte
+zwischen dem Wrapper-Scope und dem archInstall-Scope entstehen können. Die
+einzige globale Variable ist "archInstall" selbst.</p>
+<p>Will man nun von den internen Features von archInstall partizipieren geht
+das so:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; <span class="nb">source</span> archInstall.sh --load-environment
+</pre></div>
+
+
+<p>Jetzt haben wir den gesamten Scope auch im Decorator zur Verfügung. Alle
+Methoden sind mit dem Prefix "archInstall" ausgestattet, um Namens Konflikte
+und versehentlich überschreiben von Methoden zu vermeiden. Will man sich also
+einen Überblick über alle verfügbaren Methoden machen, einfach in der shell
+folgendes eintippen:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; <span class="nb">source</span> archInstall.sh --load-environment
+
+&gt;&gt;&gt; archInstall&lt;TAB&gt;&lt;TAB&gt;
+...
+</pre></div>
+
+
+<p>Siehe hierzu auch "archInstall API".</p>
+<!--|deDE:Applikations-Interface-->
+
+<h2 id="application-interface">Application Interface</h2>
+<p>Viele nützlich Umgebungsvariablen und Funktionen können mit</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; <span class="nb">source</span> archInstall.sh --load-environment
+</pre></div>
+
+
+<p>geladen werden. Um eine Übersicht zu erhalten sollte man sie die
+API-Dokumentation anschauen.</p>
+<!--|deDE:Optionen-->
+
+<h2 id="options">Options</h2>
+<p>archInstall stellt ein Alphabet voller Optionen zur Verfügung. Während bisher
+zum einfachen Verständnis immer sog. Long-Options verwendet wurden, gibt es für
+jede Option auch einen Shortcut.</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --user-names mustermann --host-name lfs
+</pre></div>
+
+
+<p>ist äquivalent zu:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh -u mustermann -n lfs
+</pre></div>
+
+
+<p>Alle Optionen bis auf "--host-name" und "--auto-partitioning" haben
+Standardwerte. Diese beiden werden sofern nicht von vorne herein angegeben
+interaktiv abgefragt. Alle Standardwert können mit Hilfe von:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh -h
+</pre></div>
+
+
+<p>oder</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --help
+</pre></div>
+
+
+<p>oder</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --keyboard-layout de-latin1 -h
+</pre></div>
+
+
+<p>eingesehen werden. Letzteres macht Sinn, da sich Standardwerte aufgrund schon
+ermittelten Informationen verändern können. So wird der Standardwert von
+"--key-map-configuration="KEYMAP=de-latin1\nFONT=Lat2-Terminus16\nFONT_MAP="
+nach Eingabe von</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --keyboard-layout us
+</pre></div>
+
+
+<p>zu: "--key-map-configuration="KEYMAP=us\nFONT=Lat2-Terminus16\nFONT_MAP=".</p>
+<p>Der Standardwert von "--cpu-architecture" entspricht beispielsweise immer der
+Architektur des aktuellen Systems, um Konfigurationsaufwand zu minimieren.</p>
+<p>Man kann Optionen die mehrere Werte annehmen auch mehrfach referenzieren.
+So hat:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --additional-packages ssh --additional-packages vim -f python
+</pre></div>
+
+
+<p>den gleichen Effekt wie:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --additional-packages ssh vim python
+</pre></div>
+
+
+<p>Dies ist im Decorator-Pattern nützlich. Bei einem Doppelt referenzierten Wert
+überschreiben spätere Werte zuvor Definierte. Folgendes:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --host-name A --host-name B
+</pre></div>
+
+
+<p>entspricht:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --host-name B
+</pre></div>
+
+
+<p>Auf diese Weise kann man getrost folgendes tun:</p>
+<table class="codehilitetable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
+
+<span class="nb">source</span> archInstall.sh
+
+<span class="nv">myTarget</span><span class="o">=</span><span class="s1">'/path/to/expected/result'</span>
+
+archInstall <span class="s2">"</span><span class="nv">$@</span><span class="s2">"</span> --output-system <span class="nv">$myTarget</span>
+
+<span class="c1"># Working with result in "$myTarget"</span>
+</pre></div>
+</td></tr></tbody></table>
+
+<p>Selbst wenn der Wert von "--output-system" über die CLI gesetzt wurde ist sie
+im Wrapper wieder überschrieben. Auf diese weise kann man exklusiven Zugriff
+auf Parameter im Wrapper vornehmen.</p>
+<!--|deDE:Offline Installieren-->
+
+<h2 id="install-offline">Install offline</h2>
+<p>archInstall erstellt bei jeder Installation automatisch einen Paket-Cache, um
+weitere Installationen zu beschleunigen. Ist dieser einmal erstellt oder wird
+dieser zusammen mit dem archInstall (z.b. auf einem usb-stick) ausgeliefert
+kann Offline installiert werden.</p>
+<p>Selbst wenn mit einem bereits vorhandenem pacstrap installiert wird, wird
+dieser temporär kopiert, gepatched und anschließend offlinefähig ausgeführt!</p>
+<p>Bei Offline Installation müssen natürlich alle zusätzlich ausgewählten
+Pakete im Package Cache vorhanden sein. Ist dies nicht der Fall wird
+archInstall versuchen diese nach zu laden und im Offline-Fall einen Fehler
+zurückgeben.</p>
+<!--|deDE:Installieren ohne root Rechte-->
+
+<h2 id="install-without-having-root-permissions">Install without having root permissions</h2>
+<p>Prinzipiell ist es sogar möglich auch ohne root Rechte ein System aufzusetzen.
+Hierbei werden jedoch folgende Einschnitte gemacht:</p>
+<ul>
+<li>Die Programm "fakeroot" und "fakechroot" müssen zusätzlich installiert sein.</li>
+<li>Ein bereits installiertes Pacstrap kann nicht eingesetzt werden</li>
+<li>Zusätzlich erstellten Benutzer kann während der Installation kein automatisch
+  erstellter Home-Ordner geliefert werden, da die Rechte oder root nicht
+  richtig gesetzt werden könnten.</li>
+<li>Es kann nur in "Ordner" (bzw. siehe nächsten Punkt) installiert werden.</li>
+<li>Das System wird in ein tar-Archiv ohne Speicherung entsprechender Datei
+  Rechte Attribute gepackt.</li>
+<li>Das Tar Archiv muss als "root" entpackt werden bevor das Ergebnis verwendet
+  oder fehlerfrei gebootet werden kann.</li>
+</ul>
+<!--|deDE:Nützliche Tipps und Fehlerbehebung-->
+
+<h2 id="useful-tips-and-debugging-informations">Useful tips and debugging informations</h2>
+<p>Während der Entwicklung haben sich eine Reihe von Optionen bewährt um Fehler
+bei der Entwicklung von Wrappern zu finden.</p>
+<p>Die Option "--prevent-using-pacstrap" oder "-p" verhindert ein bereits
+installierten Pacman für die Installation zu verwenden. Dies ist notwendig wenn
+man sein Pacman so konfiguriert hat, das z.B. Pakete wie der Kernel oder Pacman
+von manipulierten User Repositories abhängen. Mit "--prevent-using-pacstrap"
+wird eine neue Version von Pacman in einer Change-Root-Umgebung ausgeführt.</p>
+<p>"--prevent-using-native-arch-chroot" oder "-y" ist sinnvoll wenn man Indexing
+Dienste wie Ubuntu's "Zeitgeist" oder "Dropbox" verwendet, die das Unmounten
+von Mountpoints während der Installation verhindern, da sie auf diesen noch
+lesen/schreiben.</p>
+<p>Installiert man von einer Live-CD auf ein Block Device bootet das System nach
+erfolgreicher Installation automatisch in das neu generierte System. Will man
+noch etwas nachbessern oder Überprüfen, bietet sich die selbsterklärende Option
+"--no-reboot" bzw. "-r" an.</p>
+<p>Möchte man die Pakete "base-devel", "sudo" und "python" haben, geht das mit
+dem Shortcut: "--install-common-additional-packages" oder "-z".</p>
+<p>Will man eine beliebige Liste von Paketen integrieren:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --additional-packages ssh python2 vim
+</pre></div>
+
+
+<p>Sollen Dienste schon beim ersten Start automatisch gestartet werden:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --needed-services sshd dhcpcd
+</pre></div>
+
+
+<p>Um die Installation zu beschleunigen kann auf ein zentral verwalteten
+Paket Cache verwiesen werden:</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./archInstall.sh --package-cache-path /var/cache/pacman/pkg/
+</pre></div>
+
+
+<p>Will man im Wrapper eine archInstall Option verstecken, weil man diese z.B.
+selber setzten will, eignet sich folgender Pattern:</p>
+<table class="codehilitetable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18</pre></div></td><td class="code"><div class="codehilite"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
+
+cat <span class="s">&lt;&lt; EOF</span>
+<span class="s">Usage: $0 &lt;initramfsFilePath&gt; [options]</span>
+
+<span class="s">$__NAME__ installs an arch linux into an initramfs file.</span>
+
+<span class="s">Option descriptions:</span>
+
+<span class="s">$(archInstallPrintCommandLineOptionDescriptions "$@" | \</span>
+<span class="s">    sed '/^ *-[a-z] --output-system .*$/,/^$/d')</span>
+<span class="s">EOF</span>
+
+<span class="nv">myTarget</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>mktemp<span class="k">)</span><span class="s2">"</span>
+
+archInstall <span class="s2">"</span><span class="nv">$@</span><span class="s2">"</span> --output-system <span class="s2">"</span><span class="nv">$myTarget</span><span class="s2">"</span>
+
+<span class="c1"># ...</span>
+</pre></div>
+</td></tr></tbody></table>
+
+<!-- region vim modline
+
+vim: set tabstop=4 shiftwidth=4 expandtab:
+vim: foldmethod=marker foldmarker=region,endregion:
+
+endregion -->
+
+<!-- #!/usr/bin/env markdown
+-*- coding: utf-8 -*-
+
+region header
+
+Copyright Torben Sickert 16.12.2012
+
+License
+-------
+
+This library written by Torben Sickert stand under a creative commons naming
+3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
+
+endregion -->
+
+<!--|deDE:Erweiterungen-->
+
+<h2 id="extensions">Extensions</h2>
+<p>Eine Menge von Werkzeugen um diverse ArchLinux Setups für verschiedene
+Anwendungsfälle zu bauen.</p>
+<!-- region vim modline
+
+vim: set tabstop=4 shiftwidth=4 expandtab:
+vim: foldmethod=marker foldmarker=region,endregion:
+
+endregion -->
+
+<!-- -*- coding: utf-8 -*-
+
+region header
+
+Copyright Torben Sickert 16.12.2012
+
+License
+-------
+
+This library written by Torben Sickert stand under a creative commons naming
+3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
+
+endregion -->
+
+<h3 id="makeramonlylinux">makeRamOnlyLinux</h3>
+<p>makeRamOnlyLinux.sh generiert ein ArchLinux-System (oder ein beliebiges auf
+ArchLinux basierendes System, welches mit einem Script generiert werden kann,
+welches Interface und API von archInstall bereitstellt) und packt es in
+eine bootbare initramfs und stellt einen passenden Kernel dazu bereit.</p>
+<h4 id="interface">Interface</h4>
+<p>Das Skript benötigt als Argument den Namen der zu erstellenden Initramfs-Datei.
+Der passende Kernel wird an gleicher Stelle nur dem Suffix 'Kernel' erstellt.
+Alle Optionen von archInstall werden unterstützt, es gibt keine
+zusätzlichen Optionen. Neben der obligatorischen archInstall.sh benötigt
+dieses Skript packcpio.sh, welches im selben Ordner liegen muss.</p>
+<!--|deDE:Beispiel-->
+
+<h4 id="example">Example</h4>
+<p>Der folgende Befehl erzeugt ein Basis-ArchLinux-System in ein initramfs namens
+"baseArchLinux.img" und kopiert einen dazu kompatiblen Kernel nach
+"baseArchLinux.imgKernel".</p>
+<div class="codehilite"><pre><span></span>&gt;&gt;&gt; ./makeRamOnlyLinux baseArchLinux.img
+</pre></div>
+
+
+<!-- region vim modline
+
+vim: set tabstop=4 shiftwidth=4 expandtab:
+vim: foldmethod=marker foldmarker=region,endregion:
+
+endregion -->
+
+<!-- -*- coding: utf-8 -*-
+
+region header
+
+Copyright Torben Sickert 16.12.2012
+
+License
+-------
+
+This library written by Torben Sickert stand under a creative commons naming
+3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
+
+endregion -->
+
+<h3 id="makesquashlinux">makeSquashLinux</h3>
+<p>MakeSquashLinux generiert ein ArchLinux-System (oder ein beliebiges auf
+ArchLinux basierendes System, welches mit einem Script generiert werden kann,
+welches Interface und API von archInstall bereitstellt), patched die
+Konfiguration so, dass das booten aus dem Netzwerk ermöglicht wird und packt
+dieses als squash-Dateisystem. Zusätzlich wird eine Netzwerk-Boot-fähige
+initramfs erzeugt und ein für aufs gepatchter Kernel aus den Paket-Quellen
+kopiert.</p>
+<p>MakeSquashLinux kann nicht von Wrappern verwendet werden, welche nach dem
+generieren des Grundsystems weitere Anpassungen vornehmen möchten. Da der
+Download der squash-Datei ein paar Sekunden in Anspruch nimmt, wird beim
+booten per 'plymouth' ein splash-screen angezeigt.</p>
+<h4 id="interface_1">Interface</h4>
+<div class="codehilite"><pre><span></span>Usage: ./makeSquashLinux.sh &lt;squashfsFilePath&gt; &lt;kernelFilePath&gt; &lt;initramfsFilePath&gt; [options]
+
+makeSquashLinux installs an arch linux into a squashfs file.
+
+Option descriptions:
+    -W --wrapper &lt;file&gt;  Use wrapper in &lt;file&gt; to generate the root-Filesystem
+    -X --xbmc Use "../makeXBMCLinux/makeXBMCLinux.sh" as wrapper.
+</pre></div>
+
+
+<p>Wrapper sind hier Skripte, welche den Standard-Setup von archInstall durch
+weitere Konfiguration oder Programme ergänzen (makeSquashLinux ist also selbst
+auch ein Wrapper).</p>
+<p>Darüberhinaus können alle Optionen von archInstall verwendet werden. Als
+Pfade werden lokale Dateinamen und scp-kompatible Pfade akzeptiert.
+So ist es möglich die einzelnen Dateien auf verschiedenen Rechnern zu speichern
+(mit den intitramfs-Optionen ist es sogar möglich das root-squashfs aus einem
+mit dem Ort des Kernels oder tftp-Servers nicht verbundenen Netz zu laden).</p>
+<p>scp-Pfade haben die Form "user@ssh-server:/pfad/zu/datei"</p>
+<!--|deDE:Initramfs-Parameter-->
+
+<h4 id="initramfs-parameter">Initramfs parameter</h4>
+<p>Um über das Netzwerk booten zu können müssen dem initramfs auf der
+Kernel-Kommandozeile einige Informationen mitgegeben werden:</p>
+<ul>
+<li>
+<p>Art der Netzwerkverbindung: <code>ip=&lt;client-ip&gt;::&lt;gw-ip&gt;:&lt;netmask&gt;:&lt;hostname&gt;:&lt;device&gt;:&lt;autoconf&gt;</code>
+    Alle Parameter sind optional.
+    <code>&lt;client-ip&gt;</code>: Statische IP-Adresse, die angefordert werden soll.
+    <code>&lt;gw-ip&gt;</code>: IP-Adresse des Gateways.
+    <code>&lt;netmask&gt;</code>: Netsmaske. Wenn leer wird diese aus der client-ip generiert und/oder durch die Antwort von DHCP/BOOTP überschrieben.
+    <code>&lt;hostname&gt;</code>: Wenn leer wird die ASCI-codierte IP-Adresse verwendet. Kann durch DHCP-Antwort überschrieben werden.
+    <code>&lt;device&gt;</code>: Netzwerkkarte, die verwendet werden soll (ermöglicht absurde Use-Cases). Wenn leer wird die erste Karte verwendet, auf der eine Antwort kommt.
+    <code>&lt;autoconf&gt;</code>: Methode, die für den Verbindungsaufbau genutzt werden soll. Mögliche Parameter sind <code>rarp</code>, <code>bootp</code>, <code>dhcp</code>, <code>all</code> oder <code>static</code>. Wenn dieses Feld leer ist wird <code>all</code> verwendet, also alle Protokolle durchprobiert. Bei <code>static</code> kommt keines der Protokolle zum Einsatz und es wird eine Verbindung anhand der vorherigen Angaben hergestellt.
+    Beispiel:  <code>ip=::::::</code></p>
+</li>
+<li>
+<p>Ort des root-Dateisystems:
+    Der 'url'-Parameter überschreibt 'nfsroot', unabhängig von der Reihenfolge.</p>
+<ul>
+<li>Bei squashfs werden URLs mit den Protokollen http, https und ftp unterstützt (eine DNS-Auflösung findet nicht statt):
+<code>url="&lt;protocol&gt;://&lt;server-ip&gt;[:&lt;port&gt;]/&lt;path-to-file&gt;"</code>
+<code>&lt;protocol&gt;</code>: Es werden http, https und ftp unterstützt.
+<code>&lt;server-ip&gt;</code>: IP-Adresse des Hosts, auf dem die squashfs-Datei liegt.
+<code>[:&lt;port&gt;]</code>: Optional, Port auf dem der Host mit dem Angegebenen Protokoll erreicht werden kann.
+<code>&lt;path-to-file&gt;</code>: Pfad zur squashfs-Datei.</li>
+<li>Bei nfs:
+<code>nfsroot=[&lt;server-ip&gt;:]&lt;root-dir&gt;[,&lt;nfs-options&gt;]</code>
+Beispiel: <code>url="http://192.0.43.10/example.squashfs"</code></li>
+</ul>
+</li>
+</ul>
+<!-- region vim modline
+
+vim: set tabstop=4 shiftwidth=4 expandtab:
+vim: foldmethod=marker foldmarker=region,endregion:
+
+endregion -->
+
+<!-- -*- coding: utf-8 -*-
+
+region header
+
+Copyright Torben Sickert 16.12.2012
+
+License
+-------
+
+This library written by Torben Sickert stand under a creative commons naming
+3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
+
+endregion -->
+
+<h3 id="makeunitylinux">makeUnityLinux</h3>
+<p>Installiert ein Arch Linux mit lightdm als Display-Manager und Unity als
+Window-Manager/Arbeitsumgebung. Es werde auch andere Ubuntu-Typische Pakete,
+wie Libre-Office oder Thunderbird installiert.</p>
+<h4 id="interface_2">Interface</h4>
+<p>Das Interface ist mit dem von installArchLiunx.sh identisch, zusätzlich kann
+mit der Option</p>
+<div class="codehilite"><pre><span></span>-W --wrapper
+</pre></div>
+
+
+<p>ein anderes Skript mit zu archInstall.sh kompatiblem Interface zum
+erstellen des Grundsystems verwendet werden.</p>
+<!-- region vim modline
+
+vim: set tabstop=4 shiftwidth=4 expandtab:
+vim: foldmethod=marker foldmarker=region,endregion:
+
+endregion -->
+
+<!-- -*- coding: utf-8 -*-
+
+region header
+
+Copyright Torben Sickert 16.12.2012
+
+License
+-------
+
+This library written by Torben Sickert stand under a creative commons naming
+3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
+
+endregion -->
+
+<h3 id="makexbmclinux">makeXBMCLinux</h3>
+<p>makeXBMCLinux ist ein Wrapper-Skript für archInstall, welches das gleiche
+Interface unterstützt. Neben dem Grundsystem wird dabei eine XBMC-Umgebung
+installiert, welche beim booten automatisch startet.</p>
+<h4 id="interface_3">Interface</h4>
+<p>Alle Optionen von archInstall werden unterstützt, allerdings werden alle
+nötigen Angaben mit Standard-Werten belegt, das Skript läuft also immer ohne
+Nutzer-Interaktion durch. Wenn kein Output-System ('--output-system') angegeben
+wird, wird das System in einen Ordner im aktuellen Verzeichnis installiert (von
+wo man es dann z.B. per rsync an den Zielort kopieren kann). Das Skript kann
+z.B. von makeSquashLinux oder makeRamOnlyLinux eingebunden werden.</p>
+<!--|deDE:Optionen-->
+
+<h4 id="options_1">Options</h4>
+<ul>
+<li>
+<p>-R --ram-only <filename> Build an initramfs-file named 'filename'.</filename></p>
+</li>
+<li>
+<p>-M --media-files <media-folder> Give a folder with media-files to copy into
+                                  the system. This option doesn't work in
+                                  combination with "--ram-only". (Hint:
+                                  makeRamOnlyLinux.sh --wrapper
+                                  makeXBMCLinux.sh --media-files)</media-folder></p>
+</li>
+<li>
+<p>-W --wrapper <filename> Use wrapper in <filename> to generate the
+                          root-filesystem. This option doesn't work in
+                          combination with "--ram-only".</filename></filename></p>
+</li>
+</ul>
+<!--|deDE:Anwendungsfälle-->
+
+<h4 id="use-cases">Use cases</h4>
+<p>Netzwerkboot-fähiges squashfs samt kernel und initramfs mit XBMC-Frontend und
+Media-Dateien bauen:</p>
+<div class="codehilite"><pre><span></span>./makeSquashLinux.sh root.squash kernel initramfs --wrapper <span class="se">\</span>
+    ../makeXBMCLinux/makeXBMCLinux.sh --media-files ~/Musik/Justin_Bieber
+</pre></div>
+
+
+<p>XBMC auf der lokalen Partition (/dev/sdz1) installieren:</p>
+<div class="codehilite"><pre><span></span>./makeXBMCLinux/makeXBMCLinux.sh -o /dev/sdz1
+</pre></div>
+
+
+<p>XBMC auf der lokalen Festplatte (/dev/sdz) installieren:</p>
+<div class="codehilite"><pre><span></span>./makeXBMCLinux/makeXBMCLinux.sh -o /dev/sdz
+</pre></div>
+
+
+<!-- region vim modline
+
+vim: set tabstop=4 shiftwidth=4 expandtab:
+vim: foldmethod=marker foldmarker=region,endregion:
+
+endregion -->
+      </div>
+      <!-- endregion-->
+      <!-- region about this website-->
+      <div class="about-this-website inner">
+        <h2 id="about-this-website">About this website
+          <!--deDE:Impressum-->
+          <!--frFR:Mentions légales-->
+        </h2>
+        <p>Provider of
+          <!--deDE:Anbieter von-->
+          <!--frFR:Fournisseur de--> <a href="http://torben.website/archInstall">http://torben.website/archInstall</a>:<br>Torben Sickert<br>Christoph-Mang-Str. 14<br>79100 Freiburg<br>Phone:
+          <!--deDE:Tel.:-->
+          <!--frFR:Téléphone:--> <a href="tel:004917610248185">+49 (0) 176<span>/</span>10 248 185</a><br>Email:
+          <!--deDE:E-Mail:--> <a href="mailto:info@torben.website">info@torben.website</a><br>Website: 
+          <!--deDE:Webseite:-->
+          <!--frFR:Site:--> <a href="http://torben.website">http://torben.website</a><br><span class="glyphicon glyphicon-arrow-left arrow-left-home tools-visible-on-javascript-enabled"></span><a class="tools-visible-on-javascript-enabled" href="#home">home
+            <!--deDE:Startseite-->
+            <!--frFR:Maison--></a>
+        </p>
+                <h2>
+                Disclaimer
+                <!--deDE:Haftungsausschluss-->
+                <!--frFR:Désistement-->
+                </h2>
+                <h3>
+                Liability for content
+                <!--deDE:Haftung für Inhalte-->
+                <!--frFR:Responsabilité quant au contenu-->
+                </h3>
+                <p>
+                Die Inhalte unserer Seiten wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte können wir jedoch keine Gewähr übernehmen. Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt. Eine diesbezügliche Haftung ist jedoch erst ab dem Zeitpunkt der Kenntnis einer konkreten Rechtsverletzung möglich. Bei Bekannt werden von entsprechenden Rechtsverletzungen werden wir diese Inhalte umgehend entfernen.
+                </p><h3>
+                Liability for links
+                <!--deDE:Haftung für Links-->
+                <!--frFR:Responsabilité pour les liens-->
+                </h3>
+                <p>
+                Unser Angebot enthält Links zu externen Webseiten Dritter, auf deren Inhalte wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich. Die verlinkten Seiten wurden zum Zeitpunkt der Verlinkung auf mögliche Rechtsverstöße überprüft. Rechtswidrige Inhalte waren zum Zeitpunkt der Verlinkung nicht erkennbar. Eine permanente inhaltliche Kontrolle der verlinkten Seiten ist jedoch ohne konkrete Anhaltspunkte einer Rechtsverletzung nicht zumutbar. Bei Bekanntwerden von Rechtsverletzungen werden wir derartige Links umgehend entfernen.
+                </p><h3>
+                Copyright
+                <!--deDE:Urheberrecht-->
+                <!--frFR:Droit d'auteur-->
+                </h3>
+                <p>
+                Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers. Downloads und Kopien dieser Seite sind nur für den privaten, nicht kommerziellen Gebrauch gestattet. Soweit die Inhalte auf dieser Seite nicht vom Betreiber erstellt wurden, werden die Urheberrechte Dritter beachtet. Insbesondere werden Inhalte Dritter als solche gekennzeichnet. Sollten Sie trotzdem auf eine Urheberrechtsverletzung aufmerksam werden, bitten wir um einen entsprechenden Hinweis. Bei Bekanntwerden von Rechtsverletzungen werden wir derartige Inhalte umgehend entfernen.
+                </p><h3>
+                Privacy Policy
+                <!--deDE:Datenschutz-->
+                <!--frFR:Politique de confidentialité-->
+                </h3>
+                <p>
+                Die Nutzung unserer Webseite ist in der Regel ohne Angabe personenbezogener Daten möglich. Soweit auf unseren Seiten personenbezogene Daten (beispielsweise Name, Anschrift oder E-Mail-Adressen) erhoben werden, erfolgt dies, soweit möglich, stets auf freiwilliger Basis. Diese Daten werden ohne Ihre ausdrückliche Zustimmung nicht an Dritte weitergegeben. Wir darauf hin, dass die Datenübertragung im Internet (z.B. bei der Kommunikation per E-Mail) Sicherheitslücken aufweisen kann. Ein lückenloser Schutz der Daten vor dem Zugriff durch Dritte ist nicht möglich. Der Nutzung von im Rahmen der Impressumspflicht veröffentlichten Kontaktdaten durch Dritte zur Übersendung von nicht ausdrücklich angeforderter Werbung und Informationsmaterialien wird hiermit ausdrücklich widersprochen. Die Betreiber der Seiten behalten sich ausdrücklich rechtliche Schritte im Falle der unverlangten Zusendung von Werbeinformationen, etwa durch Spam-Mails, vor.
+                </p><h3>
+                Privacy Statement for using Google Analytics
+                <!--deDE:Datenschutzerklärung für die Nutzung von Google Analytics-->
+                <!--frFR:Déclaration de confidentialité de l'utilisation de Google Analytics-->
+                </h3>
+                <p>
+                Diese Website benutzt Google Analytics, einen Webanalysedienst der Google Inc. ("Google"). Google Analytics verwendet sog. "Cookies", Textdateien, die auf Ihrem Computer gespeichert werden und die eine Analyse der Benutzung der Website durch Sie ermöglichen. Die durch den Cookie erzeugten Informationen über Ihre Benutzung dieser Website werden in der Regel an einen Server von Google in den USA übertragen und dort gespeichert. Im Falle der Aktivierung der IP-Anonymisierung auf dieser Webseite wird Ihre IP-Adresse von Google jedoch innerhalb von Mitgliedstaaten der Europäischen Union oder in anderen Vertragsstaaten des Abkommens über den Europäischen Wirtschaftsraum zuvor gekürzt. Nur in Ausnahmefällen wird die volle IP-Adresse an einen Server von Google in den USA übertragen und dort gekürzt. Im Auftrag des Betreibers dieser Website wird Google diese Informationen benutzen, um Ihre Nutzung der Website auszuwerten, um Reports über die Websiteaktivitäten zusammenzustellen und um weitere mit der Websitenutzung und der Internetnutzung verbundene Dienstleistungen gegenüber dem Websitebetreiber zu erbringen. Die im Rahmen von Google Analytics von Ihrem Browser übermittelte IP-Adresse wird nicht mit anderen Daten von Google zusammengeführt. Sie können die Speicherung der Cookies durch eine entsprechende Einstellung Ihrer Browser-Software verhindern; wir weisen Sie jedoch darauf hin, dass Sie in diesem Fall gegebenenfalls nicht sämtliche Funktionen dieser Website vollumfänglich werden nutzen können. Sie können darüber hinaus die Erfassung der durch das Cookie erzeugten und auf Ihre Nutzung der Website bezogenen Daten (inkl. Ihrer IP-Adresse) an Google sowie die Verarbeitung dieser Daten durch Google verhindern, indem Sie das unter dem folgenden
+                <a href="http://tools.google.com/dlpage/gaoptout?hl=de">
+                Link
+                </a>
+                verfügbare Browser-Plugin herunterladen und installieren: .
+                </p><h3>
+                Copyright Statement
+                </h3>
+                <p>
+                Unless noted otherwise, all artwork on this website is protected property of the website author. Any use for commercial purpose, reproduction and publication requires the author's written permission. Commercial work created in cooperation or bound by contract with third parties are specifically marked. Respective copyrights apply.
+      </p></div>
+      <!-- endregion-->
+    </section>
+    <!-- endregion-->
+    <!-- region footer-->
+    <footer class="footer-wrap outer">
+      <div class="inner">
+        <p class="copyright website-start-up-animation-number-9">archInstall maintained by
+          <!--deDE:archInstall betrieben von-->
+          <!--frFR:archInstall exploité par--> <a href="http://torben.website">thaibault</a> · © 2013 Torben Sickert · <a href="#about-this-website">about this website
+            <!--deDE:Impressum-->
+            <!--frFR:Mentions légales--></a>
+        </p>
+      </div>
+    </footer>
+    <!-- endregion--><a href="#top">top
+      <!--deDE:nach oben-->
+      <!--frFR:ascendant--></a>
+  <script type="text/javascript" src="index.js?md5=254c08c2519ae5dc5da5"></script>
+  
+</body><!-- endregion--></html>
