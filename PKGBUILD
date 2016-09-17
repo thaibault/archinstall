@@ -11,12 +11,14 @@
 # endregion
 pkgname=arch-install
 pkgver=VERSION
-pkgrel=3
+pkgrel=4
 pkgdesc='automate your installation process'
 arch=('any')
 url='http://torben.website/archInstall'
 license=('CC-BY-3.0')
-depends=()
+depends=('bash' 'util-linux' 'coreutils' 'sed' 'wget' 'xz' 'tar' 'grep' 'which')
+optdepends=('pacman' 'efibootmgr' 'gptfdisk' 'btrfs-progs' 'dosfstools' \
+    'arch-install-scripts' 'fakeroot' 'fakechroot' 'os-prober' 'iproute2')
 provides=(arch-install)
 source=('https://raw.githubusercontent.com/thaibault/archInstall/master/archInstall.sh')
 md5sums=('SKIP')
