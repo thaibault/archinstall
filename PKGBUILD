@@ -11,7 +11,7 @@
 # endregion
 pkgname=arch-install
 pkgver=VERSION
-pkgrel=5
+pkgrel=6
 pkgdesc='automate your installation process'
 arch=('any')
 url='http://torben.website/archInstall'
@@ -35,6 +35,7 @@ optdepends=('pacman: if not provided a simple lite pacman version will be used t
             'fakechroot: to support install into a folder without root access'
             'os-prober: for automatic boot option creation for other found distributions'
             'iproute2: for automatic network configuration')
+makedepends=('coreutils')
 provides=(arch-install)
 source=('https://raw.githubusercontent.com/thaibault/archInstall/master/archInstall.sh')
 md5sums=('SKIP')
