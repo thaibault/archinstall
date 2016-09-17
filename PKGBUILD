@@ -10,19 +10,39 @@
 # 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
 pkgname=arch-install
-pkgver=1.0.0
-pkgrel=1
+pkgver=1.0.2
+pkgrel=13
 pkgdesc='automate your installation process'
 arch=('any')
 url='http://torben.website/archInstall'
 license=('CC-BY-3.0')
-depends=('pacman' 'yaourt')
-source=('https://raw.githubusercontent.com/thaibault/archInstall/master/archInstall.sh')
+depends=('bash'
+         'util-linux'
+         'coreutils'
+         'sed'
+         'wget'
+         'xz'
+         'tar'
+         'grep'
+         'which')
+optdepends=('pacman: if not provided a simple lite pacman version will be used to retrieve pacman first'
+            'efibootmgr: to autoconfigure first efi based boot'
+            'gptfdisk: for automatic partition creation'
+            'btrfs-progs: to automatically format btrfs as filesystem'
+            'dosfstools: for proper labeling boot partition'
+            'arch-install-scripts: to avoid using own implementation of "arch-chroot"'
+            'fakeroot: to support install into a folder without root access'
+            'fakechroot: to support install into a folder without root access'
+            'os-prober: for automatic boot option creation for other found distributions'
+            'iproute2: for automatic network configuration')
+provides=(arch-install)
+source=('archInstall.sh')
 md5sums=('SKIP')
+copyToAUR=true
 
 package() {
     install -D --mode 755 "${srcdir}/archInstall.sh" \
-        "${pkgdir}/usr/bin/archInstall"
+        "${pkgdir}/usr/bin/arch-install"
 }
 # region vim modline
 # vim: set tabstop=4 shiftwidth=4 expandtab:
