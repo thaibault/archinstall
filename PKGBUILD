@@ -10,19 +10,22 @@
 # 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
 pkgname=arch-install
-pkgver=1.0.0
+pkgver() {
+    echo "1.0.$(git rev-list --count HEAD)"
+}
 pkgrel=1
 pkgdesc='automate your installation process'
 arch=('any')
 url='http://torben.website/archInstall'
 license=('CC-BY-3.0')
 depends=('pacman' 'yaourt')
+provides=(arch-install)
 source=('https://raw.githubusercontent.com/thaibault/archInstall/master/archInstall.sh')
 md5sums=('SKIP')
 
 package() {
     install -D --mode 755 "${srcdir}/archInstall.sh" \
-        "${pkgdir}/usr/bin/archInstall"
+        "${pkgdir}/usr/bin/arch-install"
 }
 # region vim modline
 # vim: set tabstop=4 shiftwidth=4 expandtab:
