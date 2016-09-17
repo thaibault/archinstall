@@ -11,7 +11,7 @@
 # endregion
 pkgname=arch-install
 pkgver=VERSION
-pkgrel=8
+pkgrel=9
 pkgdesc='automate your installation process'
 arch=('any')
 url='http://torben.website/archInstall'
@@ -40,7 +40,8 @@ source=('https://raw.githubusercontent.com/thaibault/archInstall/master/archInst
 md5sums=('SKIP')
 
 pkgver() {
-    printf "1.0.$(git rev-list --count HEAD)"
+    cd archLinux
+    echo "1.0.r$(git rev-list --count HEAD)$(git rev-parse --short HEAD)"
 }
 
 package() {
