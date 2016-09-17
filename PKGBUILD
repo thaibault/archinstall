@@ -38,6 +38,7 @@ optdepends=('pacman: if not provided a simple lite pacman version will be used t
 provides=(arch-install)
 source=('archInstall.sh')
 md5sums=('SKIP')
+copyToAUR=true
 
 package() {
     install -D --mode 755 "${srcdir}/archInstall.sh" \
