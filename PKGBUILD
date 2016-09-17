@@ -11,12 +11,12 @@
 # endregion
 pkgname=arch-install
 pkgver=VERSION
-pkgrel=2
+pkgrel=3
 pkgdesc='automate your installation process'
 arch=('any')
 url='http://torben.website/archInstall'
 license=('CC-BY-3.0')
-depends=('pacman' 'yaourt')
+depends=()
 provides=(arch-install)
 source=('https://raw.githubusercontent.com/thaibault/archInstall/master/archInstall.sh')
 md5sums=('SKIP')
