@@ -10,8 +10,8 @@
 # 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
 pkgname=arch-install
-pkgver=1.0.1
-pkgrel=11
+pkgver=1.0.2
+pkgrel=12
 pkgdesc='automate your installation process'
 arch=('any')
 url='http://torben.website/archInstall'
@@ -38,10 +38,6 @@ optdepends=('pacman: if not provided a simple lite pacman version will be used t
 provides=(arch-install)
 source=('https://raw.githubusercontent.com/thaibault/archInstall/master/archInstall.sh')
 md5sums=('SKIP')
-
-pkgver() {
-    echo "1.0.r$(git rev-list --count HEAD)$(git rev-parse --short HEAD)"
-}
 
 package() {
     install -D --mode 755 "${srcdir}/archInstall.sh" \
