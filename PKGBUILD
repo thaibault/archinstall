@@ -11,7 +11,7 @@
 # endregion
 pkgname=arch-install
 pkgver=1.0.2
-pkgrel=13
+pkgrel=14
 pkgdesc='automate your installation process'
 arch=('any')
 url='http://torben.website/archInstall'
