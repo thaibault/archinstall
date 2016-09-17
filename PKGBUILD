@@ -11,14 +11,30 @@
 # endregion
 pkgname=arch-install
 pkgver=VERSION
-pkgrel=4
+pkgrel=5
 pkgdesc='automate your installation process'
 arch=('any')
 url='http://torben.website/archInstall'
 license=('CC-BY-3.0')
-depends=('bash' 'util-linux' 'coreutils' 'sed' 'wget' 'xz' 'tar' 'grep' 'which')
-optdepends=('pacman' 'efibootmgr' 'gptfdisk' 'btrfs-progs' 'dosfstools' \
-    'arch-install-scripts' 'fakeroot' 'fakechroot' 'os-prober' 'iproute2')
+depends=('bash'
+         'util-linux'
+         'coreutils'
+         'sed'
+         'wget'
+         'xz'
+         'tar'
+         'grep'
+         'which')
+optdepends=('pacman: if not provided a simple lite pacman version will be used to retrieve pacman first'
+            'efibootmgr: to autoconfigure first efi based boot'
+            'gptfdisk: for automatic partition creation'
+            'btrfs-progs: to automatically format btrfs as filesystem'
+            'dosfstools: for proper labeling boot partition'
+            'arch-install-scripts: to avoid using own implementation of "arch-chroot"'
+            'fakeroot: to support install into a folder without root access'
+            'fakechroot: to support install into a folder without root access'
+            'os-prober: for automatic boot option creation for other found distributions'
+            'iproute2: for automatic network configuration')
 provides=(arch-install)
 source=('https://raw.githubusercontent.com/thaibault/archInstall/master/archInstall.sh')
 md5sums=('SKIP')
