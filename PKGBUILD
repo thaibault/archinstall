@@ -10,9 +10,7 @@
 # 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
 pkgname=arch-install
-pkgver() {
-    echo "1.0.$(git rev-list --count HEAD)"
-}
+pkgver=VERSION
 pkgrel=1
 pkgdesc='automate your installation process'
 arch=('any')
@@ -22,6 +20,10 @@ depends=('pacman' 'yaourt')
 provides=(arch-install)
 source=('https://raw.githubusercontent.com/thaibault/archInstall/master/archInstall.sh')
 md5sums=('SKIP')
+
+pkgver() {
+    printf "1.0.$(git rev-list --count HEAD)"
+}
 
 package() {
     install -D --mode 755 "${srcdir}/archInstall.sh" \
