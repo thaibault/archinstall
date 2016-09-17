@@ -36,7 +36,7 @@ optdepends=('pacman: if not provided a simple lite pacman version will be used t
             'os-prober: for automatic boot option creation for other found distributions'
             'iproute2: for automatic network configuration')
 provides=(arch-install)
-source=('https://raw.githubusercontent.com/thaibault/archInstall/master/archInstall.sh')
+source=('archInstall.sh')
 md5sums=('SKIP')
 
 package() {
