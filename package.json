@@ -8,10 +8,11 @@
         "trackingCode": "UA-40192634-12",
         "languages": ["enUS", "deDE"]
     },
-    "files": ["packIntoArchiso.sh", "extensions"],
+    "files": ["packIntoArchiso.sh"],
     "main": "archInstall.sh",
     "scripts": {
-        "updateDocumentation": "documentationWebsite --log-level info"
+        "updateDocumentation": "documentationWebsite --log-level info",
+        "lint": "shellcheck archInstall.sh packIntoArchiso.sh"
     },
     "devDependencies": {
         "documentation-website": "latest"
