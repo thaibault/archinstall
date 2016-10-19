@@ -9,6 +9,10 @@ apiDocumentation/
 __pycache__
 *.py[cod]
 
+# Runtime data
+database
+log.txt
+
 # Temporary compile files
 *.compiled.*
 *.compiled
@@ -72,7 +76,7 @@ nosetests.xml
 # Temporary windows files
 *Thumbs.db
 
-# Node Modules
+# NPM's runtime files
 node_modules/
 .npm/
 .v8flags.*
