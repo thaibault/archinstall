@@ -16,6 +16,9 @@ log.txt
 # Temporary compile files
 *.compiled.*
 *.compiled
+!/api/**/*
+*Bundle.*
+!/data/**/*
 .dynamicConfiguration-*.json
 *.dll-manifest.json
 
