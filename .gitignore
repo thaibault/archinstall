@@ -9,9 +9,16 @@ apiDocumentation/
 __pycache__
 *.py[cod]
 
+# Runtime data
+database
+log.txt
+
 # Temporary compile files
 *.compiled.*
 *.compiled
+!/api/**/*
+*Bundle.*
+!/data/**/*
 .dynamicConfiguration-*.json
 *.dll-manifest.json
 
@@ -72,7 +79,9 @@ nosetests.xml
 # Temporary windows files
 *Thumbs.db
 
-# Node Modules
+# NPM/yarn's runtime files
+yarn-error.log
+yarn.lock
 node_modules/
 .npm/
 .v8flags.*
