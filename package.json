@@ -1,27 +1,15 @@
 {
-    "name": "archinstall",
-    "version": "1.0.0",
-    "description": "automate your installation process",
-    "documentationWebsite": {
-        "name": "archInstall",
-        "tagline": "automate your installation process<!--deDE:Automatisiere deinen Installationsprozess-->",
-        "trackingCode": "UA-40192634-12",
-        "languages": ["enUS", "deDE"]
-    },
-    "files": ["packIntoArchiso.sh"],
-    "main": "archInstall.sh",
-    "scripts": {
-        "update": "npm version patch && npm publish",
-        "updateDocumentation": "documentationWebsite --log-level info",
-        "lint": "shellcheck archInstall.sh packIntoArchiso.sh"
-    },
-    "devDependencies": {
-        "documentation-website": "latest"
-    },
-      "repository": {
-        "type": "git",
-        "url": "https://github.com/thaibault/archInstall"
-      },
+  "name": "archinstall",
+  "version": "1.0.0",
+  "license": "CC-BY-3.0",
+  "description": "automate your installation process",
+  "homepage": "http://torben.website/archInstall",
+  "documentationWebsite": {
+    "name": "archInstall",
+    "tagline": "automate your installation process<!--deDE:Automatisiere deinen Installationsprozess-->",
+    "trackingCode": "UA-40192634-12",
+    "languages": ["enUS", "deDE"]
+  },
   "keywords": [
     "archLinux",
     "arch",
@@ -30,7 +18,20 @@
     "automatism",
     "automatic"
   ],
-  "homepage": "http://torben.website/archInstall",
-
-  "license": "CC-BY-3.0"
+  "files": [
+    "packIntoArchiso.sh"
+  ],
+  "main": "archInstall.sh",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thaibault/archInstall"
+  },
+  "scripts": {
+    "update": "npm version patch && npm publish",
+    "updateDocumentation": "documentationWebsite --log-level info",
+    "lint": "shellcheck archInstall.sh packIntoArchiso.sh"
+  },
+  "devDependencies": {
+    "documentation-website": "latest"
+  }
 }
