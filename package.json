@@ -5,10 +5,10 @@
   "description": "automate your installation process",
   "homepage": "http://torben.website/archInstall",
   "documentationWebsite": {
+    "languages": ["enUS", "deDE"],
     "name": "archInstall",
     "tagline": "automate your installation process<!--deDE:Automatisiere deinen Installationsprozess-->",
-    "trackingCode": "UA-40192634-12",
-    "languages": ["enUS", "deDE"]
+    "trackingCode": "UA-40192634-12"
   },
   "keywords": [
     "archLinux",
