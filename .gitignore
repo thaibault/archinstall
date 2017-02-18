@@ -2,16 +2,17 @@
 
 # Generated documentations
 documentation/build
-api
 apiDocumentation/
 
 # Generated runtime bytecode files.
 __pycache__
 *.py[cod]
+***/*.ngfactory.ts
 
 # Runtime data
 database
 log.txt
+.local
 
 # Temporary compile files
 *.compiled.*
@@ -78,6 +79,9 @@ nosetests.xml
 
 # Temporary windows files
 *Thumbs.db
+
+# Temporary git files
+.git-rewrite
 
 # NPM/yarn's runtime files
 yarn-error.log
