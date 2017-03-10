@@ -50,7 +50,7 @@ Vorbereitung, Installation, Konfiguration oder Manipulieren eines
 "Linux from Scratch" durchzuführen.
 
 Das Modul kann im einfachsten Fall (z.B. von einer beliebigen
-Life-Linux-Umgebung) gestartet werden. Zu beachten ist, dass die Installation
+Live-Linux-Umgebung) gestartet werden. Zu beachten ist, dass die Installation
 von einem UEFI-System empfohlen wird, da dadurch entsprechende Boot-Einträge
 automatisch gesetzt werden können. Ein Bootloader wird nicht mit installiert
 und ist nicht notwendig, um das System zu booten.
@@ -90,7 +90,7 @@ unbeaufsichtigte Installation:
 Install to blockdevice
 ----------------------
 
-Im typischen Fall will man von einer Life-CD booten um das System auf einer
+Im typischen Fall will man von einer Live-CD booten um das System auf einer
 Festplatte oder Partition zu installieren. Hierbei müssen folgende Aufgaben
 erfüllt werden.
 
