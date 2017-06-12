@@ -27,9 +27,9 @@
     "url": "https://github.com/thaibault/archInstall"
   },
   "scripts": {
+    "lint": "shellcheck archInstall.sh packIntoArchiso.sh",
     "update": "npm version patch && npm publish",
-    "updateDocumentation": "documentationWebsite --log-level info",
-    "lint": "shellcheck archInstall.sh packIntoArchiso.sh"
+    "update:documentation": "documentationWebsite --log-level info"
   },
   "devDependencies": {
     "documentation-website": "latest"
