@@ -11,6 +11,9 @@ This library written by Torben Sickert stand under a creative commons naming
 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
 
 endregion -->
+
+[![Build Status](https://travis-ci.org/thaibault/archInstall.svg?branch=master)](https://travis-ci.org/thaibault/archInstall)
+
 <!--|deDE:Einsatz-->
 Use case
 --------
