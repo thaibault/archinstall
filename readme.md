@@ -1,6 +1,5 @@
 <!-- #!/usr/bin/env markdown
 -*- coding: utf-8 -*-
-
 region header
 
 Copyright Torben Sickert 16.12.2012
@@ -12,7 +11,6 @@ This library written by Torben Sickert stand under a creative commons naming
 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
 
 endregion -->
-
 <!--|deDE:Einsatz-->
 Use case
 --------
@@ -50,7 +48,7 @@ Vorbereitung, Installation, Konfiguration oder Manipulieren eines
 "Linux from Scratch" durchzuführen.
 
 Das Modul kann im einfachsten Fall (z.B. von einer beliebigen
-Life-Linux-Umgebung) gestartet werden. Zu beachten ist, dass die Installation
+Live-Linux-Umgebung) gestartet werden. Zu beachten ist, dass die Installation
 von einem UEFI-System empfohlen wird, da dadurch entsprechende Boot-Einträge
 automatisch gesetzt werden können. Ein Bootloader wird nicht mit installiert
 und ist nicht notwendig, um das System zu booten.
@@ -90,7 +88,7 @@ unbeaufsichtigte Installation:
 Install to blockdevice
 ----------------------
 
-Im typischen Fall will man von einer Life-CD booten um das System auf einer
+Im typischen Fall will man von einer Live-CD booten um das System auf einer
 Festplatte oder Partition zu installieren. Hierbei müssen folgende Aufgaben
 erfüllt werden.
 
@@ -483,10 +481,7 @@ selber setzten will, eignet sich folgender Pattern:
     archInstall "$@" --output-system "$myTarget"
 
     # ...
-
 <!-- region vim modline
-
 vim: set tabstop=4 shiftwidth=4 expandtab:
 vim: foldmethod=marker foldmarker=region,endregion:
-
 endregion -->

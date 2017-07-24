@@ -5,7 +5,10 @@
   "description": "automate your installation process",
   "homepage": "http://torben.website/archInstall",
   "documentationWebsite": {
-    "languages": ["enUS", "deDE"],
+    "languages": [
+      "enUS",
+      "deDE"
+    ],
     "name": "archInstall",
     "tagline": "automate your installation process<!--deDE:Automatisiere deinen Installationsprozess-->",
     "trackingCode": "UA-40192634-12"
@@ -27,11 +30,12 @@
     "url": "https://github.com/thaibault/archInstall"
   },
   "scripts": {
+    "lint": "hash shellcheck && shellcheck archInstall.sh packIntoArchiso.sh || echo Please install \"shellcheck\". && true",
+    "test": "npm run lint && ./archInstall.sh --help",
     "update": "npm version patch && npm publish",
-    "updateDocumentation": "documentationWebsite --log-level info",
-    "lint": "shellcheck archInstall.sh packIntoArchiso.sh"
+    "update:documentation": "documentationWebsite --log-level info"
   },
   "devDependencies": {
-    "documentation-website": "latest"
+    "documentation-website": "^1.0.61"
   }
 }
