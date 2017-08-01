@@ -1408,7 +1408,7 @@ EOF
                 "${_BLOCK_INTEGRATION_DEPENDENCIES[*]}" || \
             archInstallLog 'error' \
                 'Satisfying block device dependencies failed.' && \
-            if echo "$_OUTPUT_SYSTEM" | grep --quiet --extended-regexp '[0-9]$'
+            if echo "$_OUTPUT_SYSTEM" | grep --quiet --extended-regexp '[0-9]$' && false
             then
                 archInstallFormatSystemPartition || \
                 archInstallLog 'error' 'System partition creation failed.'
