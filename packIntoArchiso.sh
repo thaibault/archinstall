@@ -51,7 +51,7 @@ __NAME__='packIntoArchiso'
 
 # endregion
 
-function packIntoArchiso() {
+packIntoArchiso() {
     # Provides the main module scope.
 
 # region configuration
@@ -89,13 +89,13 @@ function packIntoArchiso() {
 
     # region command line interface
 
-    function printUsageMessage() {
+    printUsageMessage() {
         # Prints a description about how to use this program.
     cat << EOF
 $__NAME__ Packs the current packIntoArchiso.bash script into the archiso image.
 EOF
     }
-    function printUsageExamples() {
+    printUsageExamples() {
         # Prints a description about how to use this program by providing
         # examples.
         cat << EOF
@@ -109,7 +109,7 @@ EOF
     >>> $0 --help
 EOF
     }
-    function printCommandLineOptionDescription() {
+    printCommandLineOptionDescription() {
         # Prints descriptions about each available command line option.
         # NOTE: "-k" and "--key-map-configuration" isn't needed in the future.
         cat << EOF
@@ -130,7 +130,7 @@ EOF
         (default: "$_KEY_MAP_CONFIGURATION_FILE_CONTENT").
 EOF
     }
-    function printHelpMessage() {
+    printHelpMessage() {
         # Provides a help message for this module.
         echo -e "\nUsage: $0 /path/to/archiso/file.iso /path/to/newly/packed/archiso/file.iso [options]\n"
         printUsageMessage "$@"
@@ -140,7 +140,7 @@ EOF
         printCommandLineOptionDescription "$@"
         echo
     }
-    function commandLineInterface() {
+    commandLineInterface() {
         # Provides the command line interface and interactive questions.
         while true; do
             case "$1" in
@@ -202,7 +202,7 @@ EOF
             return 1
         fi
     }
-    function log() {
+    log() {
         # Handles logging messages. Returns non zero and exit on log level
         # error to support chaining the message into toolchain.
         local loggingType='info' && \
@@ -227,7 +227,7 @@ EOF
 
     # region tools
 
-    function remasterISO() {
+    remasterISO() {
         # Remasters given iso into new iso. If new systemd programs are used
         # (if first argument is "true") they could have problems in change root
         # environment without and exclusive dbus connection.
@@ -311,7 +311,7 @@ EOF
         umount "$_MOUNPOINT_PATH" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
         return $?
     }
-    function tidyUp() {
+    tidyUp() {
         # Removes temporary created files.
         log "Remove temporary created location \"$_MOUNPOINT_PATH\"." &&
         rm --recursive --force "$_MOUNPOINT_PATH" 1>"$_STANDARD_OUTPUT" \

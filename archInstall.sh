@@ -91,7 +91,7 @@ __NAME__='archInstall'
 
 # endregion
 
-function archInstall() {
+archInstall() {
     # Provides the main module scope.
 
     # region properties
@@ -199,7 +199,7 @@ function archInstall() {
 
     ## region command line interface
 
-    function archInstallPrintUsageMessage() {
+    archInstallPrintUsageMessage() {
         # Prints a description about how to use this program.
     cat << EOF
 $__NAME__ installs a linux from scratch by the arch way. You will end up in
@@ -212,7 +212,7 @@ be, which means you can relax after providing all needed informations in
 the beginning till your new system is ready to boot.
 EOF
     }
-    function archInstallPrintUsageExamples() {
+    archInstallPrintUsageExamples() {
         # Prints a description about how to use this program by providing examples.
         cat << EOF
     # Start install progress command on first found blockdevice:
@@ -225,7 +225,7 @@ EOF
     >>> $0 --output-system /dev/sda1 --verbose -f vim net-tools
 EOF
     }
-    function archInstallPrintCommandLineOptionDescription() {
+    archInstallPrintCommandLineOptionDescription() {
         # Prints descriptions about each available command line option.
         # NOTE; All letters are used for short options.
         # NOTE: "-k" and "--key-map-configuration" isn't needed in the future.
@@ -321,7 +321,7 @@ EOF
         packages (default: "$_PACKAGE_CACHE_PATH").
 EOF
     }
-    function archInstallPrintHelpMessage() {
+    archInstallPrintHelpMessage() {
         # Provides a help message for this module.
         echo -e "\nUsage: $0 [options]\n"
         archInstallPrintUsageMessage "$@"
@@ -331,7 +331,7 @@ EOF
         archInstallPrintCommandLineOptionDescription "$@"
         echo
     }
-    function archInstallCommandLineInterface() {
+    archInstallCommandLineInterface() {
         # Provides the command line interface and interactive questions.
         while true; do
             case "$1" in
@@ -509,7 +509,7 @@ EOF
         fi
         return 0
     }
-    function archInstallLog() {
+    archInstallLog() {
         # Handles logging messages. Returns non zero and exit on log level
         # error to support chaining the message into toolchain.
         #
@@ -545,7 +545,7 @@ EOF
 
     ## region install arch linux steps.
 
-    function archInstallWithPacstrap() {
+    archInstallWithPacstrap() {
         # Installs arch linux via pacstrap.
         archInstallLoadCache
         archInstallLog \
@@ -576,7 +576,7 @@ EOF
             'Caching current downloaded packages and generated database failed.')
         return $returnCode
     }
-    function archInstallGenericLinuxSteps() {
+    archInstallGenericLinuxSteps() {
         # This functions performs creating an arch linux system from any linux
         # system base.
         archInstallLog 'Create a list with urls for needed packages.' && \
@@ -630,7 +630,7 @@ EOF
 
     ### region change root functions
 
-    function archInstallPerformDependencyCheck() {
+    archInstallPerformDependencyCheck() {
         # This function check if all given dependencies are present.
         #
         # Examples:
@@ -649,12 +649,12 @@ EOF
         done
         return $result
     }
-    function archInstallChangeRootToMountPoint() {
+    archInstallChangeRootToMountPoint() {
         # This function performs a changeroot to currently set mountpoint path.
         archInstallChangeRoot "$_MOUNTPOINT_PATH" "$@"
         return $?
     }
-    function archInstallChangeRoot() {
+    archInstallChangeRoot() {
         # This function emulates the arch linux native "arch-chroot" function.
         if [[ "$1" == '/' ]]; then
             shift
@@ -672,7 +672,7 @@ EOF
         fi
         return $?
     }
-    function archInstallChangeRootViaMount() {
+    archInstallChangeRootViaMount() {
         # Performs a change root by mounting needed host locations in change
         # root environment.
         local mountpointPath && \
@@ -756,7 +756,7 @@ EOF
         done
         return $returnCode
     }
-    function archInstallPerformChangeRoot() {
+    archInstallPerformChangeRoot() {
         # Perform the available change root program wich needs at least rights.
         if [[ "$UID" == '0' ]]; then
             chroot "$@" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
@@ -769,7 +769,7 @@ EOF
 
     ### endregion
 
-    function archInstallConfigure() {
+    archInstallConfigure() {
         # Provides generic linux configuration mechanism. If new systemd
         # programs are used (if first argument is "true") they could have
         # problems in change root environment without and exclusive dbus
@@ -838,7 +838,7 @@ EOF
         done
         return $?
     }
-    function archInstallEnableServices() {
+    archInstallEnableServices() {
         # Enable all needed services.
         local networkDeviceName && \
         for networkDeviceName in $(ip addr | grep --extended-regexp \
@@ -890,7 +890,7 @@ EOF
         done
         return 0
     }
-    function archInstallTidyUpSystem() {
+    archInstallTidyUpSystem() {
         # Deletes some unneeded locations in new installs operating system.
         local returnCode=0 && \
         archInstallLog 'Tidy up new build system.' && \
@@ -904,7 +904,7 @@ EOF
         done
         return 0
     }
-    function archInstallAppendTemporaryInstallMirrors() {
+    archInstallAppendTemporaryInstallMirrors() {
         # Appends temporary used mirrors to download missing packages during
         # installation.
         local url && \
@@ -916,7 +916,7 @@ EOF
         done
         return 0
     }
-    function archInstallPackResult() {
+    archInstallPackResult() {
         # Packs the resulting system to provide files owned by root without
         # root permissions.
         if [[ "$UID" != '0' ]]; then
@@ -929,7 +929,7 @@ EOF
         fi
         return 0
     }
-    function archInstallCreatePackageUrlList() {
+    archInstallCreatePackageUrlList() {
         # Generates all web urls for needed packages.
         local returnCode=0
         local listBufferFile=$(mktemp)
@@ -951,7 +951,7 @@ EOF
         echo "$listBufferFile"
         return $returnCode
     }
-    function archInstallDeterminePacmansNeededPackages() {
+    archInstallDeterminePacmansNeededPackages() {
         # Reads pacmans database and determine pacman's dependencies.
         local coreDatabaseUrl=$(grep "core\.db" "$listBufferFile" | \
             head --lines 1)
@@ -971,7 +971,7 @@ EOF
                 "No database file (\"$_PACKAGE_CACHE_PATH/core.db\") available."
         fi
     }
-    function archInstallDeterminePackageDependencies() {
+    archInstallDeterminePackageDependencies() {
         # Determines all package dependencies. Returns a list of needed
         # packages for given package determined by given database.
         # NOTE: We append and prepend always a whitespace to simply identify
@@ -1012,7 +1012,7 @@ EOF
         fi
         return $returnCode
     }
-    function archInstallDeterminePackageDirectoryName() {
+    archInstallDeterminePackageDirectoryName() {
         # Determines the package directory name from given package name in
         # given database.
         local packageDirectoryPath=$(grep "%PROVIDES%\n(.+\n)*$1\n(.+\n)*\n" \
@@ -1040,7 +1040,7 @@ EOF
         echo "$packageDirectoryPath"
         return $?
     }
-    function archInstallDownloadAndExtractPacman() {
+    archInstallDownloadAndExtractPacman() {
         # Downloads all packages from arch linux needed to run pacman.
         local listBufferFile="$1" && \
         if archInstallDeterminePacmansNeededPackages "$listBufferFile"; then
@@ -1082,7 +1082,7 @@ EOF
         fi
         return 0
     }
-    function archInstallMakePartitions() {
+    archInstallMakePartitions() {
         # Performs the auto partitioning.
         if [[ $(echo "$_AUTO_PARTITIONING" | tr '[A-Z]' '[a-z]') == 'yes' ]]
         then
@@ -1134,7 +1134,7 @@ EOF
         fi
         return $?
     }
-    function archInstallGenerateFstabConfigurationFile() {
+    archInstallGenerateFstabConfigurationFile() {
         # Writes the fstab configuration file.
         archInstallLog 'Generate fstab config.' && \
         if hash genfstab 1>"$_STANDARD_OUTPUT" 2>/dev/null; then
@@ -1152,7 +1152,7 @@ EOF
         fi
         return $?
     }
-    function archInstallUnmountInstalledSystem() {
+    archInstallUnmountInstalledSystem() {
         # Unmount previous installed system.
         archInstallLog 'Unmount installed system.' && \
         sync 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
@@ -1162,7 +1162,7 @@ EOF
         umount "$_MOUNTPOINT_PATH" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
         return $?
     }
-    function archInstallPrepareNextBoot() {
+    archInstallPrepareNextBoot() {
         # Reboots into fresh installed system if previous defined.
         if [ -b "$_OUTPUT_SYSTEM" ]; then
             archInstallGenerateFstabConfigurationFile && \
@@ -1181,7 +1181,7 @@ EOF
         fi
         return $?
     }
-    function archInstallConfigurePacman() {
+    archInstallConfigurePacman() {
         # Disables signature checking for incoming packages.
         archInstallLog "Enable mirrors in \"$_COUNTRY_WITH_MIRRORS\"."
         local bufferFile=$(mktemp)
@@ -1208,7 +1208,7 @@ EOF
             2>"$_ERROR_OUTPUT"
         return $?
     }
-    function archInstallDetermineAutoPartitioning() {
+    archInstallDetermineAutoPartitioning() {
         # Determine whether we should perform our auto partitioning mechanism.
         if [ ! "$_AUTO_PARTITIONING" ]; then
             while true; do
@@ -1226,7 +1226,7 @@ EOF
         fi
         return 0
     }
-    function archInstallGetHostsContent() {
+    archInstallGetHostsContent() {
         # Provides the file content for the "/etc/hosts".
         cat << EOF
 #<IP-Adress> <computername.workgroup> <computernames>
@@ -1234,7 +1234,7 @@ EOF
 ::1          ipv6-localhost           ipv6-localhost ipv6-$1
 EOF
     }
-    function archInstallPrepareBlockdevices() {
+    archInstallPrepareBlockdevices() {
         # Prepares given block devices to make it ready for fresh installation.
         archInstallLog \
             "Unmount needed devices and devices pointing to our temporary system mount point \"$_MOUNTPOINT_PATH\"."
@@ -1248,7 +1248,7 @@ EOF
         archInstallFormatPartitions
         return $?
     }
-    function archInstallFormatSystemPartition() {
+    archInstallFormatSystemPartition() {
         # Prepares the system partition.
         local outputDevice="$_OUTPUT_SYSTEM" && \
         if [ -b "${_OUTPUT_SYSTEM}2" ]; then
@@ -1267,7 +1267,7 @@ EOF
         umount "$_MOUNTPOINT_PATH" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
         return $?
     }
-    function archInstallFormatBootPartition() {
+    archInstallFormatBootPartition() {
         # Prepares the boot partition.
         archInstallLog 'Make boot partition.' && \
         mkfs.vfat -F 32 "${_OUTPUT_SYSTEM}1" \
@@ -1281,13 +1281,13 @@ EOF
         fi
         return $?
     }
-    function archInstallFormatPartitions() {
+    archInstallFormatPartitions() {
         # Performs formating part.
         archInstallFormatSystemPartition && \
         archInstallFormatBootPartition
         return $?
     }
-    function archInstallAddBootEntries() {
+    archInstallAddBootEntries() {
         # Creates an uefi boot entry.
         if hash efibootmgr 1>"$_STANDARD_OUTPUT" 2>/dev/null; then
             archInstallLog 'Configure efi boot manager.' && \
@@ -1315,7 +1315,7 @@ EOF
         fi
         return $?
     }
-    function archInstallLoadCache() {
+    archInstallLoadCache() {
         # Load previous downloaded packages and database.
         archInstallLog 'Load cached databases.' && \
         mkdir --parents \
@@ -1332,7 +1332,7 @@ EOF
             2>"$_ERROR_OUTPUT"
         return $?
     }
-    function archInstallCache() {
+    archInstallCache() {
         # Cache previous downloaded packages and database.
         archInstallLog 'Cache loaded packages.'
         cp --force --preserve \
@@ -1345,7 +1345,7 @@ EOF
             "$_PACKAGE_CACHE_PATH"/ 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
         return $?
     }
-    function archInstallPrepareInstallation() {
+    archInstallPrepareInstallation() {
         # Deletes previous installed things in given output target. And creates
         # a package cache directory.
         mkdir --parents "$_PACKAGE_CACHE_PATH" 1>"$_STANDARD_OUTPUT" \
