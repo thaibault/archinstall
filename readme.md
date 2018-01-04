@@ -10,6 +10,7 @@ This library written by Torben Sickert stand under a creative commons naming
 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
 endregion -->
 
+<!--|deDE:Projekt Status-->
 Project status
 --------------
 
@@ -49,8 +50,14 @@ Simply load the newest version from:
 
 ```bash
 >>> wget \
-    https://raw.githubusercontent.com/archInstall/archInstall/master/archInstall.sh \
-    -O archInstall.sh && chmod +x archInstall.sh
+    http://torben.website/clientNode/data/distributionBundle/index.compiled.js \
+    \ -O archInstall.sh && chmod +x archInstall.sh
+```
+
+oder mit Link-Shortener:
+
+```bash
+>>> wget https://goo.gl/bPAqXB -O archInstall.sh && chmod +x archInstall.sh
 ```
 
 archInstall ist das zentrale Modul um eine Reihe von Aufgaben im Zuge der
