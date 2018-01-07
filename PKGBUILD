@@ -10,8 +10,8 @@
 # 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
 pkgname=arch-install
-pkgver=1.0.12
-pkgrel=18
+pkgver=1.0.13
+pkgrel=19
 pkgdesc='automate your installation process'
 arch=('any')
 url='http://torben.website/archInstall'
