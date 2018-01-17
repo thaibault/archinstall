@@ -16,15 +16,17 @@ pkgdesc='automate your installation process'
 arch=('any')
 url='http://torben.website/archInstall'
 license=('CC-BY-3.0')
-depends=('bash'
-         'util-linux'
-         'coreutils'
-         'sed'
-         'wget'
-         'xz'
-         'tar'
-         'grep'
-         'which')
+depends=(
+    bash \
+    util-linux \
+    coreutils \
+    sed \
+    wget \
+    xz \
+    tar \
+    grep \
+    which
+)
 optdepends=('pacman: if not provided a simple lite pacman version will be used to retrieve pacman first'
             'efibootmgr: to autoconfigure first efi based boot'
             'gptfdisk: for automatic partition creation'
@@ -36,9 +38,9 @@ optdepends=('pacman: if not provided a simple lite pacman version will be used t
             'os-prober: for automatic boot option creation for other found distributions'
             'iproute2: for automatic network configuration')
 provides=(arch-install)
-source=('archInstall.sh')
-md5sums=('SKIP')
-copyToAUR=true
+source=(archInstall.sh)
+md5sums=(SKIP)
+copy_to_aur=true
 
 package() {
     install -D --mode 755 "${srcdir}/archInstall.sh" \
