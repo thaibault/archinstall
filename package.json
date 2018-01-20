@@ -25,17 +25,29 @@
     "packIntoArchiso.sh"
   ],
   "main": "archInstall.sh",
+  "bin": {
+    "archInstall": "archInstall.sh"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/thaibault/archInstall"
   },
   "scripts": {
-    "lint": "hash shellcheck && shellcheck archInstall.sh packIntoArchiso.sh || echo Please install \"shellcheck\". || true",
-    "test": "npm run lint && ./archInstall.sh --help",
+    "clear": "rm --recursive apiDocumentation &>/dev/null || true",
+    "document": "mkdir --parents apiDocumentation/archInstall/latest && bashlink-document archInstall 1>apiDocumentation/archInstall/latest/index.html",
+    "document:show": "bashlink-document archInstall",
+    "document:show:error": "bashlink-document archInstall 1>/dev/null",
+    "lint": "hash shellcheck && shellcheck -x *.sh || echo Please install \"shellcheck\". || true",
+    "lint:given": "shellcheck -x",
+    "test": "bashlink-doctest --verbose archInstall",
     "update": "npm version patch && npm publish",
     "update:documentation": "documentationWebsite --log-level info"
   },
   "devDependencies": {
-    "documentation-website": "^1.0.89"
+    "documentation-website": "^1.0.92",
+    "shellcheck": "0.0.8"
+  },
+  "dependencies": {
+    "bashlink": "^1.0.20"
   }
 }
