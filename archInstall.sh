@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
-
 # region header
-
 # Copyright Torben Sickert (info["~at~"]torben.website) 16.12.2012
 
 # License
@@ -10,87 +8,65 @@
 
 # This library written by Torben Sickert stand under a creative commons naming
 # 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
-
-# archInstall provides a generic way to install an arch linux from any linux
-# environment without maintaining the install process.
-
-# Examples
-# --------
-
-# Start install progress command (Assuming internet is available):
-# >>> wget \
-# ... https://raw.github.com/archInstall/archInstall/master/archInstall.sh \
-# ...     -O archInstall.sh && chmod +x archInstall.sh && \
-# ... ./archInstall.sh --output-system /dev/sda1
-# ...
-
-# Call a global function (Configures your current system):
-# >>> source archInstall.sh --load-environment && \
-# ...     _MOUNTPOINT_PATH='/' _USER_NAMES='hans' \
-# ...     _LOCAL_TIME='Europe/Berlin' archInstallConfigure
-
-# Note that you only get very necessary output until you provide "--verbose" as
-# commandline options.
-
-# Dependencies
-# ------------
-
-# - bash (or any bash like shell with (test, shift, echo, cd))
-# - mount      - Filesystem mounter (part of util-linux).
-# - umount     - Filesystem unmounter (part of util-linux).
-# - mountpoint - See if a directory is a mountpoint (part of util-linux).
-# - blkid      - Locate or print block device attributes (part of util-linux).
-# - chroot     - Run command or interactive shell with special root directory
-#                (part of coreutils).
-# - ln         - Make links between files (part of coreutils).
-# - touch      - Change file timestamps or creates them (part of coreutils).
-# - sync       - Flushs file system buffers (part of coreutils).
-# - mktemp     - Create a temporary file or directory (part of coreutils).
-# - cat        - Concatenate files and print on the standard output (part of
-#                coreutils).
-# - uniq       - Report or omit repeated lines (part of coreutils).
-# - uname      - Prints system informations (part of coreutils).
-# - rm         - Remove files or directories (part of coreutils).
-# - sed        - Stream editor for filtering and transforming text.
-# - wget       - The non-interactive network downloader.
-# - xz         - Compress or decompress .xz and lzma files.
-# - tar        - The GNU version of the tar archiving utility.
-# - grep       - Searches the named input files (or standard input if no files
-#                are named, or if a single hyphen-minus (-) is given as file
-#                name) for lines containing a match to the given PATTERN. By
-#                default, grep prints the matching lines.
-# - which      - Shows the full path of (shell) commands.
-
-# Dependencies for blockdevice integration
-# ----------------------------------------
-
-# - blockdev   - Call block device ioctls from the command line (part of
-#                util-linux).
-# - efibootmgr - Manipulate the EFI Boot Manager (part of efibootmgr).
-# - gdisk      - Interactive GUID partition table (GPT) manipulator (part of
-#                gptfdisk).
-# - btrfs      - Control a btrfs filesystem (part of btrfs-progs).
-
-# Optional dependencies
-# ---------------------
-
-# for smart dos filesystem labeling, installing without root permissions or
-# automatic network configuration.
-
-# - dosfslabel  - Handle dos file systems (part of dosfstools).
-# - arch-chroot - Performs an arch chroot with api file system binding (part
-#                 of arch-install-scripts).
-# - fakeroot    - Run a command in an environment faking root privileges for
-#                 file manipulation.
-# - fakechroot  - Wraps some c-lib functions to enable programs like "chroot"
-#                 running without root privileges.
-# - os-prober   - Detects presence of other operating systems.
-# - ip          - Determines network adapter (part of iproute2).
-
-__NAME__='archInstall'
-
 # endregion
+# region variables
+archinstall__documentation__='
+    Start install progress command (Assuming internet is available):
 
+    ```bash
+        wget https://raw.github.com/archInstall/archInstall/master/archInstall.sh -O archInstall.sh && chmod +x archInstall.sh && ./archInstall.sh --output-system /dev/sda1
+    ```
+
+    Call a global function (Configures your current system):
+
+    ```bash
+        source archInstall.sh --load-environment && \
+            _MOUNTPOINT_PATH='/' _USER_NAMES='hans' \
+            _LOCAL_TIME='Europe/Berlin' archInstallConfigure
+    ```
+
+    Note that you only get very necessary output until you provide "--verbose"
+    as commandline options.
+'
+# shellcheck disable=SC2034
+archinstall__dependencies__=(
+    bash
+    mount
+    mountpoint
+    blkid
+    chroot
+    ln
+    touch
+    sync
+    mktemp
+    cat
+    uniq
+    uname
+    rm
+    sed
+    wget
+    xz
+    tar
+    grep
+    which
+)
+archinstall__optional_dependencies__=(
+    # Dependencies for blockdevice integration
+    'blockdev: Call block device ioctls from the command line (part of util-linux).'
+    'efibootmgr: Manipulate the EFI Boot Manager (part of efibootmgr).'
+    'gdisk: Interactive GUID partition table (GPT) manipulator (part of gptfdisk).'
+    'btrfs: Control a btrfs filesystem (part of btrfs-progs).'
+    # Needed for smart dos filesystem labeling, installing without root
+    # permissions or automatic network configuration.
+    'dosfslabel: Handle dos file systems (part of dosfstools).'
+    'arch-chroot: Performs an arch chroot with api file system binding (part of arch-install-scripts).'
+    'fakeroot: Run a command in an environment faking root privileges for file manipulation.'
+    'fakechroot: Wraps some c-lib functions to enable programs like "chroot" running without root privileges.'
+    'os-prober: Detects presence of other operating systems.'
+    'ip: Determines network adapter (part of iproute2).'
+)
+# endregion
+# TODO
 archInstall() {
     # Provides the main module scope.
 
@@ -1445,23 +1421,15 @@ EOF
             "Generating operating system into \"$_OUTPUT_SYSTEM\" has successfully finished."
     fi
     return 0
-
     # endregion
-
 }
-
 # region footer
-
 if [[ "$0" == *"${__NAME__}.sh" || $(echo "$@" | grep --extended-regexp \
     '(^| )(-l|--load-environment)($| )') ]]; then
     "$__NAME__" "$@"
 fi
-
 # endregion
-
 # region vim modline
-
 # vim: set tabstop=4 shiftwidth=4 expandtab:
 # vim: foldmethod=marker foldmarker=region,endregion:
-
 # endregion
