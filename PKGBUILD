@@ -10,35 +10,41 @@
 # 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
 pkgname=arch-install
-pkgver=1.0.12
-pkgrel=18
+pkgver=1.0.14
+pkgrel=20
 pkgdesc='automate your installation process'
-arch=('any')
-url='http://torben.website/archInstall'
-license=('CC-BY-3.0')
-depends=('bash'
-         'util-linux'
-         'coreutils'
-         'sed'
-         'wget'
-         'xz'
-         'tar'
-         'grep'
-         'which')
-optdepends=('pacman: if not provided a simple lite pacman version will be used to retrieve pacman first'
-            'efibootmgr: to autoconfigure first efi based boot'
-            'gptfdisk: for automatic partition creation'
-            'btrfs-progs: to automatically format btrfs as filesystem'
-            'dosfstools: for proper labeling boot partition'
-            'arch-install-scripts: to avoid using own implementation of "arch-chroot"'
-            'fakeroot: to support install into a folder without root access'
-            'fakechroot: to support install into a folder without root access'
-            'os-prober: for automatic boot option creation for other found distributions'
-            'iproute2: for automatic network configuration')
+arch=(any)
+url=http://torben.website/archInstall
+license=(CC-BY-3.0)
+devdepends=(shellcheck)
+depends=(
+    bash
+    bashlink
+    util-linux
+    coreutils
+    sed
+    wget
+    xz
+    tar
+    grep
+    which
+)
+optdepends=(
+    'pacman: if not provided a simple lite pacman version will be used to retrieve pacman first'
+    'efibootmgr: to autoconfigure first efi based boot'
+    'gptfdisk: for automatic partition creation'
+    'btrfs-progs: to automatically format btrfs as filesystem'
+    'dosfstools: for proper labeling boot partition'
+    'arch-install-scripts: to avoid using own implementation of "arch-chroot"'
+    'fakeroot: to support install into a folder without root access'
+    'fakechroot: to support install into a folder without root access'
+    'os-prober: for automatic boot option creation for other found distributions'
+    'iproute2: for automatic network configuration'
+)
 provides=(arch-install)
-source=('archInstall.sh')
-md5sums=('SKIP')
-copyToAUR=true
+source=(archInstall.sh)
+md5sums=(SKIP)
+copy_to_aur=true
 
 package() {
     install -D --mode 755 "${srcdir}/archInstall.sh" \
