@@ -18,7 +18,7 @@ wget \
     --output-document "${archInstall_bashlink_file_path}module.sh"
 # shellcheck disable=SC1091
 source "${archInstall_bashlink_file_path}/module.sh"
-bl.module.retrieve_remote_modules=true
+bl_module_retrieve_remote_modules=true
 bl.module.import bashlink.changeroot
 bl.module.import bashlink.logging
 # endregion
