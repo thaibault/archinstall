@@ -11,8 +11,14 @@
 # endregion
 # shellcheck disable=SC2016,SC2155
 # region import
-# shellcheck source=./module.sh
-source "$(dirname "${BASH_SOURCE[0]}")/module.sh"
+archInstall_bashlink_file_path="$(mktemp --directory)/bashlink/"
+mkdir "$archInstall_bashlink_file_path"
+wget \
+    https://goo.gl/UKF5JG \
+    --output-document "${archInstall_bashlink_file_path}module.sh"
+# shellcheck disable=SC1091
+source "${archInstall_bashlink_file_path}/module.sh"
+bl.module.retrieve_remote_modules=true
 bl.module.import bashlink.changeroot
 bl.module.import bashlink.logging
 # endregion
@@ -1271,6 +1277,7 @@ archInstall_main() {
 if bl.tools.is_main; then
     archInstall.main "$@"
 fi
+rm "$archInstall_bashlink_file_path"
 # region vim modline
 # vim: set tabstop=4 shiftwidth=4 expandtab:
 # vim: foldmethod=marker foldmarker=region,endregion:

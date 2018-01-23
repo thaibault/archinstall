@@ -11,8 +11,11 @@
 # endregion
 # shellcheck disable=SC2016,SC2155
 # region import
-# shellcheck source=./module.sh
-source "$(dirname "${BASH_SOURCE[0]}")/module.sh"
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")node_modules/bashlink/module.sh" ]]; then
+    source "$(dirname "${BASH_SOURCE[0]}")node_modules/bashlink/module.sh"
+elif [[ -f "/usr/lib/bashlink/module.sh" ]]; then
+    source "/usr/lib/bashlink/module.sh"
+fi
 bl.module.import bashlink.logging
 # endregion
 #  region variables
