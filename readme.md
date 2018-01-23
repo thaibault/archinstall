@@ -50,8 +50,8 @@ Simply load the newest version from:
 
 ```bash
 >>> wget \
-    http://torben.website/clientNode/data/distributionBundle/index.compiled.js \
-    \ -O archInstall.sh && chmod +x archInstall.sh
+    http://torben.website/archInstall/data/distributionBundle/archInstall.sh && \
+    chmod +x archInstall.sh
 ```
 
 oder mit Link-Shortener:
