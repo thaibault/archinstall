@@ -9,20 +9,22 @@
 # This library written by Torben Sickert stand under a creative commons naming
 # 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
-# shellcheck disable=SC2016,SC2155
+# shellcheck disable=SC1004,SC2016,SC2155
 # region import
 archInstall_bashlink_file_path="$(mktemp --directory)/bashlink/"
 mkdir "$archInstall_bashlink_file_path"
 wget \
     https://goo.gl/UKF5JG \
     --output-document "${archInstall_bashlink_file_path}module.sh"
-# shellcheck disable=SC1091
+# shellcheck disable=SC1090
 source "${archInstall_bashlink_file_path}/module.sh"
+# shellcheck disable=SC2034
 bl_module_retrieve_remote_modules=true
 bl.module.import bashlink.changeroot
 bl.module.import bashlink.logging
 # endregion
 # region variables
+# shellcheck disable=SC2034
 archinstall__documentation__='
     Start install progress command (Assuming internet is available):
 
@@ -57,6 +59,7 @@ archinstall__dependencies__=(
     wget
     xz
 )
+# shellcheck disable=SC2034
 archinstall__optional_dependencies__=(
     # Dependencies for blockdevice integration
     'blockdev: Call block device ioctls from the command line (part of util-linux).'
@@ -87,20 +90,8 @@ archInstall_mountpoint_path=/mnt/
 # "gnupg", "libksba", "libgcrypt", "libassuan", "pinentry", "ncurses",
 # "dirmngr", "pacman-mirrorlist", "archlinux-keyring"
 archInstall_needed_packages=(filesystem)
-# This list should be in the order they should be mounted before using.
-# NOTE: Mount binds has to be declared as absolute paths.
-archInstall_needed_mountpoints=(
-    /proc
-    /sys
-    /sys/firmware/efi/efivars
-    /dev
-    /dev/pts
-    /dev/shm
-    /run
-    /tmp
-)
 archInstall_packages=()
-archInstall_packages_sourceUrls=(
+archInstall_package_source_urls=(
     https://mirror.de.leaseweb.net/archlinux
     https://mirrors.kernel.org/archlinux
 )
@@ -121,7 +112,7 @@ archInstall_cpu_architecture="$(uname -m)"
 archInstall_fallback_boot_entry_label=archLinuxFallback
 archInstall_host_name=''
 archInstall_keyboard_layout=de-latin1
-archInstall_key_map_configuration_file_content="KEYMAP=${archInstall_keyboard_layout}\nFONT=Lat2-Terminus16\nFONT_MAP="
+archInstall_key_map_configuration_file_content="KEYMAP=${archInstall_keyboard_layout}"$'\nFONT=Lat2-Terminus16\nFONT_MAP='
 # NOTE: This properties aren't needed in the future with supporting "localectl"
 # program.
 archInstall_local_time=EUROPE/Berlin
@@ -175,7 +166,7 @@ archInstall_print_commandline_option_description() {
 
 -v --verbose Tells you what is going on.
 
--d --debug Gives you any output from all tools which are used (default: "$archInstall_debug").
+-d --debug Gives you any output from all tools which are used (default: "false").
 
 -l --load-environment Simple load the install arch linux scope without doing anything else.
 
@@ -235,13 +226,13 @@ EOF
 alias archInstall.print_help_message=archInstall_print_help_message
 archInstall_print_help_message() {
     # Provides a help message for this module.
-    echo -e "\nUsage: $0 [options]\n"
+    bl.logging.plain $'\nUsage: '"$0"$' [options]\n'
     archInstall.print_usage_message "$@"
-    echo -e '\nExamples:\n'
+    bl.logging.plain $'\nExamples:\n'
     archInstall.print_usage_examples "$@"
-    echo -e '\nOption descriptions:\n'
+    bl.logging.plain $'\nOption descriptions:\n'
     archInstall.print_commandline_option_description "$@"
-    echo
+    bl.logging.plain
 }
 alias archInstall.commandline_interface=archInstall_commandline_interface
 archInstall_commandline_interface() {
@@ -353,7 +344,7 @@ archInstall_commandline_interface() {
                 ;;
             -q|--needed-system-space-in-mega-byte)
                 shift
-                archInstall_needed_system_in_mega_byte="$1"
+                archInstall_needed_system_space_in_mega_byte="$1"
                 shift
                 ;;
 
@@ -391,7 +382,7 @@ archInstall_commandline_interface() {
                 return 1
         esac
     done
-    if [[ "$UID" != '0' ]] && ! (
+    if [[ "$UID" != 0 ]] && ! (
         hash fakeroot 2>/dev/null && \
         hash fakechroot 2>/dev/null && \
         ([ -e "$archInstall_output_system" ] && \
@@ -405,7 +396,7 @@ archInstall_commandline_interface() {
         if [ "$archInstall_host_name" = '' ]; then
             while true; do
                 echo -n 'Please set hostname for new system: '
-                read archInstall_host_name
+                read -r archInstall_host_name
                 if [[ "$(echo "$archInstall_host_name" | tr '[A-Z]' '[a-z]')" != '' ]]; then
                     break
                 fi
@@ -580,13 +571,13 @@ archInstall_configure() {
             hostnamectl \
             set-hostname "$archInstall_host_name"
     else
-        echo \
-            -e "$archInstall_host_name" 1>"${archInstall_mountpoint_path}etc/hostname" \
+        echo -e "$archInstall_host_name" \
+            1>"${archInstall_mountpoint_path}etc/hostname"
     fi
     bl.logging.info Set hosts.
     archInstall.get_hosts_content "$archInstall_host_name" \
         1>"${archInstall_mountpoint_path}etc/hosts"
-    if [[ "$1" != 'true' ]]; then
+    if [[ "$1" != true ]]; then
         bl.logging.info Set root password to \"root\".
         archInstall.changeroot_to_mount_point \
             /usr/bin/env bash \
@@ -604,18 +595,18 @@ archInstall_configure() {
                     if [[ "$UID" == '0' ]]; then
                         echo '--create-home '
                     else
-                        echo '--no-create-home'
+                        echo --no-create-home
                     fi
                 ) --no-user-group --shell /usr/bin/bash" \
-                "$userName" || (
-                    bl.logging.warn "Adding user \"$userName\" failed." && \
+                "$user_name" || (
+                    bl.logging.warn "Adding user \"$user_name\" failed." && \
                     false
                 )
         )
-        bl.logging.info "Set password for \"$userName\" to \"$userName\"."
+        bl.logging.info "Set password for \"$user_name\" to \"$user_name\"."
         archInstall.changeroot_to_mount_point \
-            /usr/bin/env bash \
-            -c "echo ${userName}:${userName} | \$(which chpasswd)"
+            /usr/bin/env bash -c \
+                "echo ${user_name}:${user_name} | \$(which chpasswd)"
     done
     return $?
 }
@@ -697,7 +688,7 @@ archInstall_append_temporary_install_mirrors() {
     # Appends temporary used mirrors to download missing packages during
     # installation.
     local url
-    for url in "${archInstall_packages_source_urls[@]}"; do
+    for url in "${archInstall_package_source_urls[@]}"; do
         echo \
             "Server = $url/\$repo/os/$archInstall_cpu_architecture" \
                 1>>"${_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
@@ -733,10 +724,10 @@ archInstall_create_package_url_list() {
         wget \
             --quiet \
             --output-document - \
-            "${archInstall_packages_source_urls[0]}/$repository_name/os/$archInstall_cpu_architecture/" | \
+            "${archInstall_package_source_urls[0]}/$repository_name/os/$archInstall_cpu_architecture/" | \
                 sed \
                 --quiet \
-                "s|.*href=\"\\([^\"]*\\).*|${archInstall_packages_source_urls[0]}\\/$repository_name\\/os\\/$archInstall_cpu_architecture\\/\\1|p" | \
+                "s|.*href=\"\\([^\"]*\\).*|${archInstall_package_source_urls[0]}\\/$repository_name\\/os\\/$archInstall_cpu_architecture\\/\\1|p" | \
                     grep --invert-match 'sig$' | \
                         uniq 1>>"$list_buffer_file"
         # NOTE: "return_code" remains with an error code if there was given
@@ -1007,7 +998,7 @@ archInstall_configure_pacman() {
             in_area=true
         elif [ "$line" = '' ]; then
             in_area=false
-        elif $in_area && [ "${line:0:1}" = # ]; then
+        elif $in_area && [ "${line:0:1}" = '#' ]; then
             line="${line:1}"
         fi
         echo "$line"
@@ -1089,7 +1080,7 @@ archInstall_format_boot_partition() {
     bl.logging.info Make boot partition.
     mkfs.vfat \
         -F 32 \
-        "${archInstall_output_system}1" \
+        "${archInstall_output_system}1"
     if hash dosfslabel 2>/dev/null; then
         dosfslabel \
             "${archInstall_output_system}1" \
