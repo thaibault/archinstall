@@ -10,9 +10,9 @@
 # 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
 pkgname=arch-install
-pkgver=1.0.16
-pkgrel=22
-pkgdesc='automate your installation process'
+pkgver=1.0.17
+pkgrel=23
+pkgdesc='Automate your installation process.'
 arch=(any)
 url=http://torben.website/archInstall
 license=(CC-BY-3.0)
@@ -30,24 +30,27 @@ depends=(
     which
 )
 optdepends=(
-    'pacman: if not provided a simple lite pacman version will be used to retrieve pacman first'
-    'efibootmgr: to autoconfigure first efi based boot'
-    'gptfdisk: for automatic partition creation'
+    'arch-install-scripts: to avoid using own implementation of "arch-chroot"'
     'btrfs-progs: to automatically format btrfs as filesystem'
     'dosfstools: for proper labeling boot partition'
-    'arch-install-scripts: to avoid using own implementation of "arch-chroot"'
-    'fakeroot: to support install into a folder without root access'
+    'efibootmgr: to autoconfigure first efi based boot'
     'fakechroot: to support install into a folder without root access'
-    'os-prober: for automatic boot option creation for other found distributions'
+    'fakeroot: to support install into a folder without root access'
+    'gptfdisk: for automatic partition creation'
     'iproute2: for automatic network configuration'
+    'os-prober: for automatic boot option creation for other found distributions'
+    'pacman: if not provided a simple lite pacman version will be used to retrieve pacman first'
 )
 provides=(arch-install)
-source=(archInstall.sh)
-md5sums=(SKIP)
+source=(archInstall.sh packIntoArchiso.sh)
+md5sums=(SKIP SKIP)
 copy_to_aur=true
 
 package() {
-    install -D --mode 755 "${srcdir}/archInstall.sh" \
+    install \
+        -D \
+        --mode 755 \
+        "${srcdir}/archInstall.sh" \
         "${pkgdir}/usr/bin/arch-install"
 }
 # region vim modline

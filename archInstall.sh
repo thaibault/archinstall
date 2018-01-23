@@ -13,6 +13,7 @@
 # region import
 # shellcheck source=./module.sh
 source "$(dirname "${BASH_SOURCE[0]}")/module.sh"
+bl.module.import bashlink.changeroot
 bl.module.import bashlink.logging
 # endregion
 # region variables
@@ -122,7 +123,7 @@ archInstall_needed_services=()
 archInstall_needed_system_space_in_mega_byte=512
 archInstall_output_system=archInstall
 archInstall_package_cache_path=archInstallPackageCache
-archInstall_prevent_using_native_arch_change_root=false
+archInstall_prevent_using_native_arch_changeroot=false
 archInstall_prevent_using_pacstrap=false
 archInstall_system_partition_label=system
 archInstall_user_names=()
@@ -196,7 +197,7 @@ archInstall_print_commandline_option_description() {
 
 -p --prevent-using-pacstrap Ignores presence of pacstrap to use it for install operating system (default: "$archInstall_prevent_using_pacstrap").
 
--y --prevent-using-native-arch-chroot Ignores presence of "arch-chroot" to use it for chroot into newly created operating system (default: "$archInstall_prevent_using_native_arch_change_root").
+-y --prevent-using-native-arch-chroot Ignores presence of "arch-chroot" to use it for chroot into newly created operating system (default: "$archInstall_prevent_using_native_arch_changeroot").
 
 -a --auto-paritioning Defines to do partitioning on founded block device automatic.
 
@@ -233,11 +234,11 @@ archInstall_print_help_message() {
     echo -e '\nExamples:\n'
     archInstall.print_usage_examples "$@"
     echo -e '\nOption descriptions:\n'
-    archInstall.print_command_line_option_description "$@"
+    archInstall.print_commandline_option_description "$@"
     echo
 }
-alias archInstall.command_line_interface=archInstall_command_line_interface
-archInstall_command_line_interface() {
+alias archInstall.commandline_interface=archInstall_commandline_interface
+archInstall_commandline_interface() {
     # Provides the command line interface and interactive questions.
     while true; do
         case "$1" in
@@ -314,7 +315,7 @@ archInstall_command_line_interface() {
                 ;;
             -y|--prevent-using-native-arch-chroot)
                 shift
-                archInstall_prevent_using_native_arch_change_root=true
+                archInstall_prevent_using_native_arch_changeroot=true
                 ;;
 
             -e|--boot-partition-label)
@@ -460,7 +461,7 @@ archInstall_generic_linux_steps() {
     # If the native "arch-chroot" is used it will mount the file into the
     # change root environment.
     cp /etc/resolv.conf "${archInstall_mounpoint_path}etc/"
-    ! "$archInstall_prevent_using_native_arch_change_root" && \
+    ! "$archInstall_prevent_using_native_arch_changeroot" && \
         hash arch-chroot 2>/dev/null
     mv "${archInstall_mountpoint_path}etc/resolv.conf" \
         "${archInstall_mountpoint_path}etc/resolv.conf.old" 2>/dev/null
@@ -476,7 +477,7 @@ archInstall_generic_linux_steps() {
     )
     bl.logging.info Update package databases.
     (
-        archInstall.change_root_to_mount_point \
+        archInstall.changeroot_to_mount_point \
             /usr/bin/pacman \
             --arch "$archInstall_cpu_architecture" \
             --refresh \
@@ -489,7 +490,7 @@ archInstall_generic_linux_steps() {
             sed --regexp-extended 's/(^ +| +$)//g' | \
             sed 's/ /", "/g'
         )\" to \"$archInstall_output_system\"."
-    archInstall.change_root_to_mount_point \
+    archInstall.changeroot_to_mount_point \
         /usr/bin/pacman \
         --arch "$archInstall_cpu_architecture" \
         --force \
@@ -508,126 +509,28 @@ archInstall_generic_linux_steps() {
 }
 ## endregion
 ## region helper
-# TODO sync with bashlink
 ### region change root functions
-alias archInstall.change_root_to_mountpoint=archInstall_change_root_to_mountpoint
-archInstall_change_root_to_mount_point() {
+alias archInstall.changeroot_to_mountpoint=archInstall_changeroot_to_mountpoint
+archInstall_changeroot_to_mount_point() {
     # This function performs a changeroot to currently set mountpoint path.
-    archInstall.change_root "$_MOUNTPOINT_PATH" "$@"
+    archInstall.changeroot "$_MOUNTPOINT_PATH" "$@"
     return $?
 }
-alias archInstall.change_root=archInstall_change_root
-archInstall_change_root() {
+alias archInstall.changeroot=archInstall_changeroot
+archInstall_changeroot() {
     # This function emulates the arch linux native "arch-chroot" function.
-    if [ "$1" = / ]; then
-        shift
-        "$@"
-        return $?
-    else
-        if ! $archInstall_prevent_using_native_arch_change_root && \
-            hash arch-chroot 2>/dev/null
-        then
-            arch-chroot "$@"
+    if ! $archInstall_prevent_using_native_arch_changeroot && \
+        hash arch-chroot 2>/dev/null
+    then
+        if [ "$1" = / ]; then
+            shift
+            "$@"
             return $?
         fi
-        archInstall.change_root_via_mount "$@"
+        arch-chroot "$@"
         return $?
     fi
-    return $?
-}
-alias archInstall.change_root_via_mount=archInstall_change_root_via_mount
-archInstall_change_root_via_mount() {
-    # Performs a change root by mounting needed host locations in change
-    # root environment.
-    local mountpoint_path
-    for mountpoint_path in "${archInstall_needed_mountpoints[@]}"; do
-        mountpointPath="${mountpointPath:1}" && \
-        if [ ! -e "${_MOUNTPOINT_PATH}${mountpointPath}" ]; then
-            mkdir --parents "${_MOUNTPOINT_PATH}${mountpointPath}" \
-                1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        fi
-        if ! mountpoint -q "${_MOUNTPOINT_PATH}${mountpointPath}"; then
-            if [ "$mountpointPath" == 'proc' ]; then
-                mount "/${mountpointPath}" \
-                    "${_MOUNTPOINT_PATH}${mountpointPath}" --types \
-                    "$mountpointPath" --options nosuid,noexec,nodev \
-                    1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-            elif [ "$mountpointPath" == 'sys' ]; then
-                mount "/${mountpointPath}" \
-                    "${_MOUNTPOINT_PATH}${mountpointPath}" --types sysfs \
-                    --options nosuid,noexec,nodev 1>"$_STANDARD_OUTPUT" \
-                    2>"$_ERROR_OUTPUT"
-            elif [ "$mountpointPath" == 'dev' ]; then
-                mount udev "${_MOUNTPOINT_PATH}${mountpointPath}" --types \
-                    devtmpfs --options mode=0755,nosuid \
-                    1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-            elif [ "$mountpointPath" == 'dev/pts' ]; then
-                mount devpts "${_MOUNTPOINT_PATH}${mountpointPath}" \
-                    --types devpts --options \
-                    mode=0620,gid=5,nosuid,noexec 1>"$_STANDARD_OUTPUT" \
-                    2>"$_ERROR_OUTPUT"
-            elif [ "$mountpointPath" == 'dev/shm' ]; then
-                mount shm "${_MOUNTPOINT_PATH}${mountpointPath}" --types \
-                    tmpfs --options mode=1777,nosuid,nodev \
-                    1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-            elif [ "$mountpointPath" == 'run' ]; then
-                mount "/${mountpointPath}" \
-                    "${_MOUNTPOINT_PATH}${mountpointPath}" --types tmpfs \
-                    --options nosuid,nodev,mode=0755 \
-                    1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-            elif [ "$mountpointPath" == 'tmp' ]; then
-                mount run "${_MOUNTPOINT_PATH}${mountpointPath}" --types \
-                    tmpfs --options mode=1777,strictatime,nodev,nosuid \
-                    1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-            elif [ -f "/${mountpointPath}" ]; then
-                mount "/${mountpointPath}" \
-                    "${_MOUNTPOINT_PATH}${mountpointPath}" --bind
-            else
-                archInstallLog 'warning' \
-                    "Mountpoint \"/${mountpointPath}\" couldn't be handled."
-            fi
-        fi
-    done
-    archInstallPerformChangeRoot "$@"
-    local returnCode=$?
-    # Reverse mountpoint list to unmount them in reverse order.
-    local reverseNeededMountpoints && \
-    for mountpointPath in ${_NEEDED_MOUNTPOINTS[*]}; do
-        reverseNeededMountpoints="$mountpointPath ${reverseNeededMountpoints[*]}"
-    done
-    for mountpointPath in ${reverseNeededMountpoints[*]}; do
-        mountpointPath="${mountpointPath:1}" && \
-        if mountpoint -q "${_MOUNTPOINT_PATH}${mountpointPath}" || \
-            [ -f "/${mountpointPath}" ]
-        then
-            # If unmounting doesn't work try to unmount in lazy mode
-            # (when mountpoints are not needed anymore).
-            umount "${_MOUNTPOINT_PATH}${mountpointPath}" \
-                1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" || \
-            (archInstallLog 'warning' "Unmounting \"${_MOUNTPOINT_PATH}${mountpointPath}\" fails so unmount it in force mode." && \
-             umount -f "${_MOUNTPOINT_PATH}${mountpointPath}" \
-                 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT") || \
-            (archInstallLog 'warning' "Unmounting \"${_MOUNTPOINT_PATH}${mountpointPath}\" in force mode fails so unmount it if mountpoint isn't busy anymore." && \
-             umount -l "${_MOUNTPOINT_PATH}${mountpointPath}" \
-                 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT")
-            # NOTE: "returnCode" remains with an error code if there was
-            # given one in all iterations.
-            [[ $? != 0 ]] && returnCode=$?
-        else
-            archInstallLog 'warning' \
-                "Location \"${_MOUNTPOINT_PATH}${mountpointPath}\" should be a mountpoint but isn't."
-        fi
-    done
-    return $returnCode
-}
-archInstallPerformChangeRoot() {
-    # Perform the available change root program wich needs at least rights.
-    if [[ "$UID" == '0' ]]; then
-        chroot "$@" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        return $?
-    fi
-    fakeroot fakechroot chroot "$@" 1>"$_STANDARD_OUTPUT" \
-        2>"$_ERROR_OUTPUT"
+    bl.changeroot "$@"
     return $?
 }
 ### endregion
@@ -640,13 +543,13 @@ archInstall_configure() {
     bl.logging.info \
         "Make keyboard layout permanent to \"${_KEYBOARD_LAYOUT}\"."
     if [ "$1" = true ]; then
-        archInstall.change_root_to_mount_point \
+        archInstall.changeroot_to_mount_point \
             localectl \
             set-keymap "$archInstall_keyboard_layout"
-        archInstall.change_root_to_mount_point \
+        archInstall.changeroot_to_mount_point \
             localectl \
             set-locale LANG=en_US.utf8
-        archInstall.change_root_to_mount_point \
+        archInstall.changeroot_to_mount_point \
             locale-gen \
             set-keymap "$archInstall_keyboard_layout"
     else
@@ -656,7 +559,7 @@ archInstall_configure() {
     fi
     bl.logging.info "Set localtime \"$_LOCAL_TIME\"."
     if [ "$1" = true ]; then
-        archInstall.change_root_to_mount_point \
+        archInstall.changeroot_to_mount_point \
             timedatectl \
             set-timezone "$archInstall_local_time"
     else
@@ -667,7 +570,7 @@ archInstall_configure() {
     fi
     bl.logging.info "Set hostname to \"$archInstall_host_name\"."
     if [ "$1" = true ]; then
-        archInstall.change_root_to_mount_point \
+        archInstall.changeroot_to_mount_point \
             hostnamectl \
             set-hostname "$archInstall_host_name"
     else
@@ -679,7 +582,7 @@ archInstall_configure() {
         1>"${archInstall_mountpoint_path}etc/hosts"
     if [[ "$1" != 'true' ]]; then
         bl.logging.info Set root password to \"root\".
-        archInstall.change_root_to_mount_point \
+        archInstall.changeroot_to_mount_point \
             /usr/bin/env bash \
             -c "echo root:root | \$(which chpasswd)"
     fi
@@ -690,7 +593,7 @@ archInstall_configure() {
         # NOTE: We could only create a home directory with right rights if we
         # are root.
         (
-            archInstall.change_root_to_mount_point \
+            archInstall.changeroot_to_mount_point \
                 useradd "$(
                     if [[ "$UID" == '0' ]]; then
                         echo '--create-home '
@@ -704,7 +607,7 @@ archInstall_configure() {
                 )
         )
         bl.logging.info "Set password for \"$userName\" to \"$userName\"."
-        archInstall.change_root_to_mount_point \
+        archInstall.changeroot_to_mount_point \
             /usr/bin/env bash \
             -c "echo ${userName}:${userName} | \$(which chpasswd)"
     done
@@ -761,7 +664,7 @@ EOF
     local service_name
     for serviceName in "${archInstall_needed_services[@]}"; do
         bl.logging.info "Enable \"$service_name\" service."
-        archInstall.change_root_to_mount_point \
+        archInstall.changeroot_to_mount_point \
             systemctl \
             enable \
             "${service_name}.service"
@@ -1204,7 +1107,7 @@ archInstall_add_boot_entries() {
         cat << EOF 1>"${archInstall_mounpoint_path}/boot/startup.nsh"
 \vmlinuz-linux initrd=\initramfs-linux.img root=PARTLABEL=${archInstall_system_partition_label} rw rootflags=subvol=root quiet loglevel=2 acpi_osi="!Windows 2012"
 EOF
-        archInstall.change_root_to_mount_point \
+        archInstall.changeroot_to_mount_point \
             efibootmgr \
             --create \
             --disk "$archInstall_output_system" \
@@ -1216,7 +1119,7 @@ EOF
                 bl.logging.warn \
                     "Adding boot entry \"${archInstall_fallback_boot_entry_label}\" failed."
         # NOTE: Boot entry to boot on next reboot should be added at last.
-        archInstall.change_root_to_mount_point \
+        archInstall.changeroot_to_mount_point \
             efibootmgr \
             --create \
             --disk "$archInstall_output_system" \
@@ -1305,10 +1208,11 @@ archInstall_prepare_installation() {
 }
 ## endregion
 ## region controller
-main() {
+alias archInstall.main=archInstall_main
+archInstall_main() {
     # Provides the main module scope.
     bl.logging.set_command_output_off
-    archInstall.command_line_interface "$@" || return $?
+    archInstall.commandline_interface "$@" || return $?
     archInstall_packages+=(
         "${archInstall_basic_packages[@]}"
         "${archInstall_additional_packages[@]}"
@@ -1365,7 +1269,7 @@ main() {
 ## endregion
 # endregion
 if bl.tools.is_main; then
-    main "$@"
+    archInstall.main "$@"
 fi
 # region vim modline
 # vim: set tabstop=4 shiftwidth=4 expandtab:

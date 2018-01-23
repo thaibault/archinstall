@@ -1,367 +1,323 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
-
 # region header
-
-# Copyright Torben Sickert 16.12.2012
+# Copyright Torben Sickert (info["~at~"]torben.website) 16.12.2012
 
 # License
 # -------
 
 # This library written by Torben Sickert stand under a creative commons naming
 # 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
-
-# Example
-# -------
-
-# Start install progress command (Assuming internet is available):
-# >>> ./packIntoArchIso.bash /path/to/archiso/file.iso \
-# ...     /path/to/newly/packed/archiso/file.iso
-
-# Note that you only get very necessary output until you provide "--verbose" as
-# commandline options.
-
-# Dependencies
-# ------------
-
-# - bash (or any bash like shell)
-# - test           - Check file types and compare values.
-# - mount          - Filesystem mounter.
-# - echo           - Display a line of text.
-# - umount         - Filesystem unmounter.
-# - mktemp         - Create a temporary file or directory.
-# - squashfs-tools - Packs and unpacks the iso embedded squash filesystem.
-# - cdrkit         - Suite of programs for CD/DVD recording, ISO image
-#                    creation, and audio CD extraction.
-# - touch          - Change file timestamps or creates them.
-# - grep           - Searches the named input files (or standard input if no
-#                    files are named, or if a single hyphen-minus (-) is given
-#                    as file name) for lines containing a match to the given
-#                    PATTERN. By default, grep prints the matching lines.
-# - shift          - Shifts the command line arguments.
-# - readlink       - Print resolved symbolic links or canonical file names.
-# - rm             - Remove files or directories.
-
-# Optional dependencies:
-
-# - sudo                 - Perform action as another user.
-# - arch-install-scripts - Supports to perform an arch-chroot.
-
-__NAME__='packIntoArchiso'
-
 # endregion
-
-packIntoArchiso() {
-    # Provides the main module scope.
-
-# region configuration
-
-    # region properties
-
-        # region command line arguments
-
-    local _VERBOSE='no'
-    local _SQUASH_FILESYSTEM_COMPRESSOR='gzip'
-    local _KEYBOARD_LAYOUT='de-latin1'
-    local _KEY_MAP_CONFIGURATION_FILE_CONTENT="KEYMAP=${_KEYBOARD_LAYOUT}\nFONT=Lat2-Terminus16\nFONT_MAP="
-
-        # endregion
-
-    local _STANDARD_OUTPUT=/dev/null
-    local _ERROR_OUTPUT=/dev/null
-    local _SOURCE_PATH=''
-    local _TARGET_PATH=''
-    local _MOUNPOINT_PATH="$(mktemp --directory)"
-    local _TEMPORARY_REMASTERING_PATH="$(mktemp --directory)"
-    local _TEMPORARY_FILESYSTEM_REMASTERING_PATH="$(mktemp --directory)/mnt"
-    local _TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH="$(mktemp --directory)"
-    local _RELATIVE_PATHS_TO_SQUASH_FILESYSTEM=(arch/i686/root-image.fs.sfs \
-        arch/x86_64/root-image.fs.sfs)
-    local _RELATIVE_SOURCE_FILE_PATH='archInstall.bash'
-    local _RELATIVE_TARGET_FILE_PATH='usr/bin/'
-    local _BASH_RC_CODE="\nalias getInstallScript='wget https://raw.github.com/archInstall/archInstall/master/archInstall.bash --output-document archInstall.bash && chmod +x archInstall.bash'\nalias install='([ -f /root/archInstall.bash ] || getInstallScript);/root/archInstall.bash'"
-
-    # endregion
-
+# shellcheck disable=SC2016,SC2155
+# region import
+# shellcheck source=./module.sh
+source "$(dirname "${BASH_SOURCE[0]}")/module.sh"
+bl.module.import bashlink.logging
 # endregion
-
+#  region variables
+# shellcheck disable=SC2034
+packIntoArchiso__dependencies__=(
+    bash
+    cdrkit
+    grep
+    mktemp
+    mount
+    readlink
+    rm
+    squashfs-tools
+    touch
+    umount
+)
+packIntoArchiso__optional_dependencies__=(
+    'sudo: Perform action as another user.'
+    'arch-install-scripts: Supports to perform an arch-chroot.'
+)
+## region commandline arguments
+packIntoArchiso_squash_filesystem_compressor=gzip
+packIntoArchiso_keyboard_layout=de-latin1
+packIntoArchiso_key_map_configuration_file_content="KEYMAP=${packIntoArchiso_keyboard_layout}\nFONT=Lat2-Terminus16\nFONT_MAP="
+## endregion
+packIntoArchiso_source_path=''
+packIntoArchiso_target_path=''
+paclIntoArchiso_mountpoint_path="$(mktemp --directory)"
+packIntoArchiso_temporary_remastering_path="$(mktemp --directory)"
+packIntoArchiso_temporary_filesystem_remastering_path="$(mktemp --directory)/mnt"
+packIntoArchiso_temporary_root_filesystem_remastering_path="$(mktemp --directory)"
+packIntoArchiso_relative_paths_to_squash_filesystem=(
+    arch/i686/root-image.fs.sfs
+    arch/x86_64/root-image.fs.sfs
+)
+packIntoArchiso_relative_source_file_path=archInstall.sh
+packIntoArchiso_relative_target_file_path=usr/bin/
+packIntoArchiso_bashrc_code="\nalias getInstallScript='wget https://goo.gl/bPAqXB --output-document archInstall.sh && chmod +x archInstall.sh'\nalias install='([ -f /root/archInstall.sh ] || getInstallScript);/root/archInstall.sh'"
+# endregion
 # region functions
-
-    # region command line interface
-
-    printUsageMessage() {
-        # Prints a description about how to use this program.
+## region command line interface
+alias packIntoArchiso.print_usage_message=packIntoArchiso_print_usage_message
+packIntoArchiso_print_usage_message() {
+    # Prints a description about how to use this program.
+cat << EOF
+"packIntoArchiso.sh" Packs the current packIntoArchiso.bash script into the archiso image.
+EOF
+}
+alias packIntoArchiso.print_usage_examples=packIntoArchiso_print_usage_message
+packIntoArchiso_print_usage_examples() {
+    # Prints a description about how to use this program by providing
+    # examples.
     cat << EOF
-$__NAME__ Packs the current packIntoArchiso.bash script into the archiso image.
+# Remaster archiso file.
+>>> $0 ./archiso.iso ./remasteredArchiso.iso
+
+# Remaster archiso file verbosely.
+>>> $0 ./archiso.iso ./remasteredArchiso.iso --verbose
+
+# Show help message.
+>>> $0 --help
 EOF
-    }
-    printUsageExamples() {
-        # Prints a description about how to use this program by providing
-        # examples.
-        cat << EOF
-    # Remaster archiso file.
-    >>> $0 ./archiso.iso ./remasteredArchiso.iso
+}
+alias packIntoArchiso.print_commandlint_option_description=packIntoArchiso_print_commandline_option_description
+packIntoArchiso_print_commandline_option_description() {
+    # Prints descriptions about each available command line option.
+    # NOTE: "-k" and "--key-map-configuration" isn't needed in the future.
+    cat << EOF
+-h --help Shows this help message.
 
-    # Remaster archiso file verbosely.
-    >>> $0 ./archiso.iso ./remasteredArchiso.iso --verbose
+-v --verbose Tells you what is going on (default: "false").
 
-    # Show help message.
-    >>> $0 --help
+-d --debug Gives you any output from all tools which are used (default: "false").
+
+-c --squash-filesystem-compressor Defines the squash filesystem compressor. All supported compressors for "mksquashfs" are possible (default: "$packIntoArchiso_squash_filesystem_compressor").
+
+-k --keyboard-layout Defines needed key map (default: "$packIntoArchiso_keyboard_layout").
+
+-k --key-map-configuration FILE_CONTENT Keyboard map configuration (default: "$packIntoArchiso_key_map_configuration_file_content").
 EOF
-    }
-    printCommandLineOptionDescription() {
-        # Prints descriptions about each available command line option.
-        # NOTE: "-k" and "--key-map-configuration" isn't needed in the future.
-        cat << EOF
-    -h --help Shows this help message.
+}
+alias packIntoArchiso.print_help_message=packIntoArchiso_print_help_message
+packIntoArchiso_print_help_message() {
+    # Provides a help message for this module.
+    echo -e "\nUsage: $0 /path/to/archiso/file.iso /path/to/newly/packed/archiso/file.iso [options]\n"
+    packIntoArchiso.print_usage_message "$@"
+    echo -e '\nExamples:\n'
+    packIntoArchiso.print_usage_examples "$@"
+    echo -e '\nOption descriptions:\n'
+    packIntoArchiso.print_commandline_option_description "$@"
+    echo
+}
+alias packIntoArchiso.commandline_interface=packIntoArchiso_commandline_interface
+packIntoArchiso_commandline_interface() {
+    # Provides the command line interface and interactive questions.
+    while true; do
+        case "$1" in
+            -h|--help)
+                shift
+                packIntoArchiso.print_help_message "$0"
+                exit 0
+                ;;
+            -v|--verbose)
+                shift
+                bl.logging.set_level info
+                ;;
+            -d|--debug)
+                shift
+                bl.logging.set_command_output_on
+                ;;
+            -c|--squash-filesystem-compressor)
+                shift
+                packIntoArchiso_squash_filesystem_compressor="$1"
+                shift
+                ;;
+            -k|--keyboard-layout)
+                shift
+                packIntoArchiso_keyboard_layout="$1"
+                shift
+                ;;
+            -k|--key-map-configuation)
+                shift
+                packIntoArchiso_key_map_configuration_file_content="$1"
+                shift
+                ;;
 
-    -v --verbose Tells you what is going on (default: "$_VERBOSE").
-
-    -d --debug Gives you any output from all tools which are used
-        (default: "$_DEBUG").#
-
-    -c --squash-filesystem-compressor Defines the squash filesystem compressor.
-        All supported compressors for "mksquashfs" are possible
-        (default: "$_SQUASH_FILESYSTEM_COMPRESSOR").
-
-    -k --keyboard-layout Defines needed key map (default: "$_KEYBOARD_LAYOUT").
-
-    -k --key-map-configuration FILE_CONTENT Keyboard map configuration
-        (default: "$_KEY_MAP_CONFIGURATION_FILE_CONTENT").
-EOF
-    }
-    printHelpMessage() {
-        # Provides a help message for this module.
-        echo -e "\nUsage: $0 /path/to/archiso/file.iso /path/to/newly/packed/archiso/file.iso [options]\n"
-        printUsageMessage "$@"
-        echo -e '\nExamples:\n'
-        printUsageExamples "$@"
-        echo -e '\nOption descriptions:\n'
-        printCommandLineOptionDescription "$@"
-        echo
-    }
-    commandLineInterface() {
-        # Provides the command line interface and interactive questions.
-        while true; do
-            case "$1" in
-                -h|--help)
-                    shift
-                    printHelpMessage "$0"
-                    exit 0
-                    ;;
-                -v|--verbose)
-                    shift
-                    _VERBOSE='yes'
-                    ;;
-                -d|--debug)
-                    shift
-                    _STANDARD_OUTPUT=/dev/stdout
-                    _ERROR_OUTPUT=/dev/stderr
-                    ;;
-                -c|--squash-filesystem-compressor)
-                    shift
-                    _SQUASH_FILESYSTEM_COMPRESSOR="$1"
-                    shift
-                    ;;
-                -k|--keyboard-layout)
-                    shift
-                    _KEYBOARD_LAYOUT="$1"
-                    shift
-                    ;;
-                -k|--key-map-configuation)
-                    shift
-                    _KEY_MAP_CONFIGURATION_FILE_CONTENT="$1"
-                    shift
-                    ;;
-
-                '')
-                    shift
-                    break
-                    ;;
-                *)
-                    if [[ ! "$_SOURCE_PATH" ]]; then
-                        _SOURCE_PATH="$1"
-                    elif [[ ! "$_TARGET_PATH" ]]; then
-                        _TARGET_PATH="$1" && \
-                        if [[ -d "$_TARGET_PATH" ]]; then
-                            _TARGET_PATH="$(readlink --canonicalize \
-                                "$_TARGET_PATH")/$(basename "$_SOURCE_PATH")"
-                        fi
-                    else
-                        log 'critical' \
-                            "Given argument: \"$1\" is not available." '\n' && \
-                        printHelpMessage "$0"
+            '')
+                shift
+                break
+                ;;
+            *)
+                if [[ ! "$packIntoArchiso_source_path" ]]; then
+                    packIntoArchiso_source_path="$1"
+                elif [[ ! "$packIntoArchiso_target_path" ]]; then
+                    packIntoArchiso_target_path="$1"
+                    if [[ -d "$packIntoArchiso_target_path" ]]; then
+                        packIntoArchiso_target_path="$(
+                            readlink \
+                                --canonicalize \
+                                "$packIntoArchiso_target_path"
+                        )/$(basename "$packIntoArchiso_source_path")"
                     fi
-                    shift
-            esac
-        done
-        if [[ ! "$_SOURCE_PATH" ]] || [[ ! "$_TARGET_PATH" ]]; then
-            log 'critical' \
-                'You have to provide source and target file path.' '\n' && \
-            printHelpMessage "$0"
-            return 1
-        fi
-    }
-    log() {
-        # Handles logging messages. Returns non zero and exit on log level
-        # error to support chaining the message into toolchain.
-        local loggingType='info' && \
-        local message="$1" && \
-        if [ "$2" ]; then
-            loggingType="$1"
-            message="$2"
-        fi
-        if [ "$_VERBOSE" == 'yes' ] || [ "$loggingType" == 'error' ] || \
-           [ "$loggingType" == 'critical' ]; then
-            if [ "$3" ]; then
-                echo -e -n "$3"
-            fi
-            echo -e "${loggingType}: $message"
-        fi
-        if [ "$loggingType" == 'error' ]; then
-            exit 1
-        fi
-    }
-
-    # endregion
-
-    # region tools
-
-    remasterISO() {
-        # Remasters given iso into new iso. If new systemd programs are used
-        # (if first argument is "true") they could have problems in change root
-        # environment without and exclusive dbus connection.
-        log "Mount \"$_SOURCE_PATH\" to \"$_MOUNPOINT_PATH\"." && \
-        mount -t iso9660 -o loop "$_SOURCE_PATH" "$_MOUNPOINT_PATH" \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-        log "Copy content in \"$_MOUNPOINT_PATH\" to \"$_TEMPORARY_REMASTERING_PATH\"." && \
-        cp --archiv "${_MOUNPOINT_PATH}/"* "$_TEMPORARY_REMASTERING_PATH" \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-        local path && \
-        for path in ${_RELATIVE_PATHS_TO_SQUASH_FILESYSTEM[*]}; do
-            log "Extract squash file system in \"${_TEMPORARY_REMASTERING_PATH}/$path\" to \"${_TEMPORARY_FILESYSTEM_REMASTERING_PATH}\"." && \
-            unsquashfs -d "${_TEMPORARY_FILESYSTEM_REMASTERING_PATH}" \
-                "${_TEMPORARY_REMASTERING_PATH}/${path}" \
-                1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-            rm --force "${_TEMPORARY_REMASTERING_PATH}/${path}" \
-                1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-            log "Mount root file system in \"${_TEMPORARY_FILESYSTEM_REMASTERING_PATH}\" to \"$_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH\"." && \
-            mount "${_TEMPORARY_FILESYSTEM_REMASTERING_PATH}/"* \
-                "$_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH" \
-                1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-            log "Copy \"$(dirname "$(readlink --canonicalize "$0")")/$_RELATIVE_SOURCE_FILE_PATH\" to \"${_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}/${_RELATIVE_TARGET_FILE_PATH}\"." && \
-            cp "$(dirname "$(readlink --canonicalize "$0")")/$_RELATIVE_SOURCE_FILE_PATH" \
-                "${_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}/${_RELATIVE_TARGET_FILE_PATH}" \
-                1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-            log "Set key map to \"$_KEYBOARD_LAYOUT\"." && \
-            if [[ "$1" == 'true' ]]; then
-                arch-chroot "$_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH" \
-                    localectl set-keymap "$_KEYBOARD_LAYOUT" \
-                    1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-                arch-chroot "$_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH" \
-                    set-locale LANG="en_US.utf8" 1>"$_STANDARD_OUTPUT" \
-                    2>"$_ERROR_OUTPUT"
-            else
-                echo -e "$_KEY_MAP_CONFIGURATION_FILE_CONTENT" 1>\
-                    "${_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}/etc/vconsole.conf" \
-                    2>"$_ERROR_OUTPUT"
-            fi
-            log 'Set root symbolic link for root user.' && \
-            local fileName && \
-            for fileName in .bashrc .zshrc; do
-                if [[ -f "${_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}/root/" ]]; then
-                    echo -e "$_BASH_RC_CODE" \
-                        1>>"${_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}/root/$fileName"
                 else
-                    echo -e "$_BASH_RC_CODE" \
-                        1>"${_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}/root/$fileName"
+                    bl.logging.critical \
+                        "Given argument: \"$1\" is not available." '\n'
+                    packIntoArchiso.print_help_message "$0"
                 fi
-            done
-            log "Unmount \"$_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH\"." && \
-            umount "$_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH" \
-                1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-            log "Make new squash file system from \"${_TEMPORARY_FILESYSTEM_REMASTERING_PATH}\" to \"${_TEMPORARY_REMASTERING_PATH}/${path}\"." && \
-            mksquashfs "${_TEMPORARY_FILESYSTEM_REMASTERING_PATH}" \
-                "${_TEMPORARY_REMASTERING_PATH}/${path}" -noappend -comp \
-                "$_SQUASH_FILESYSTEM_COMPRESSOR" 1>"$_STANDARD_OUTPUT" \
-                2>"$_ERROR_OUTPUT" && \
-            rm --recursive --force \
-                "${_TEMPORARY_FILESYSTEM_REMASTERING_PATH}" \
-                1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-            if [[ $? != 0 ]]; then
-                log "Unmount \"$_MOUNPOINT_PATH\"." && \
-                umount "$_MOUNPOINT_PATH" 1>"$_STANDARD_OUTPUT" \
-                    2>"$_ERROR_OUTPUT"
-                return $?
+                shift
+        esac
+    done
+    if [[ ! "$packIntoArchiso_source_path" ]] || [[ ! "$packIntoArchiso_target_path" ]]; then
+        bl.logging.critical \
+            You have to provide source and target file path. '\n'
+        packIntoArchiso.print_help_message "$0"
+        return 1
+    fi
+}
+## endregion
+## region helper
+alias packIntoArchiso.remaster_iso=packIntoArchiso_remaster_iso
+packIntoArchiso_remaster_iso() {
+    # Remasters given iso into new iso. If new systemd programs are used
+    # (if first argument is "true") they could have problems in change root
+    # environment without and exclusive dbus connection.
+    bl.logging.info "Mount \"$packIntoArchiso_source_path\" to \"$packIntoArchiso_mountpoint_path\"."
+    mount \
+        -t iso9660 \
+        -o loop \
+        "$packIntoArchiso_source_path" \
+        "$packIntoArchiso_target_path"
+    bl.logging.info "Copy content in \"$packIntoArchiso_mountpoint_path\" to \"$packIntoArchiso_temporary_remastering_path\"."
+    cp --archiv "${packIntoArchiso_mountpoint_path}/"* "$packIntoArchiso_temporary_remastering_path"
+    local path
+    for path in "${packIntoArchiso_relative_paths_to_squash_filesystem[@]}"; do
+        bl.logging.info "Extract squash file system in \"${packIntoArchiso_temporary_remastering_path}/$path\" to \"${packIntoArchiso_temporary_remastering_path}\"."
+        unsquashfs \
+            -d "${packIntoArchiso_temorary_filesystem_remastering_path}" \
+            "${packIntoArchiso_temporary_remastering_path}/${path}"
+        rm --force "${packIntoArchiso_temporary_remastering_path}/${path}"
+        bl.logging.info "Mount root file system in \"${packIntoArchiso_temporary_filesystem_remastering_path}\" to \"${packIntoArchiso_temporary_root_filesystem_remastering_path}\"."
+        mount \
+            "${packIntoArchiso_temporary_filesystem_remastering_path}/"* \
+            "$_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH"
+        bl.logging.info "Copy \"$(
+            dirname "$(readlink --canonicalize "$0")"
+        )/$packIntoArchiso_relative_source_file_path\" to \"${packIntoArchiso_temporary_root_filesystem_remastering_path}/${packIntoArchiso_relative_target_file_path}\"."
+        cp \
+            "$(dirname "$(readlink --canonicalize "$0")")/$_RELATIVE_SOURCE_FILE_PATH" \
+            "${packIntoArchiso_temporary_root_filesystem_remastering_path}/${packIntoArchiso_relative_target_file_path}"
+        bl.logging.info "Set key map to \"$packIntoArchiso_keyboard_layout\"."
+        if [ "$1" = true ]; then
+            arch-chroot \
+                "$packIntoArchiso_temporary_root_filesystem_remastering_path" \
+                localectl set-keymap "$packIntoArchiso_keyboard_layout"
+            arch-chroot \
+                "$packIntoArchiso_temporary_root_filesystem_remastering_path" \
+                set-locale LANG=en_US.utf8
+        else
+            echo -e "$packIntoArchiso_key_map_configuration_file_content" \
+                1>"${packIntoArchiso_temporary_root_filesystem_remastering_path}/etc/vconsole.conf"
+        fi
+        bl.logging.info Set root symbolic link for root user.
+        local file_name
+        for file_name in .bashrc .cshrc .kshrc .zshrc; do
+            if [[ -f "${packIntoArchiso_temporary_root_filesystem_remastering_path}/root/$file_name" ]]; then
+                echo -e "$packIntoArchiso_bashrc_code" \
+                    1>>"${packIntoArchiso_temporary_root_filesystem_remastering_path}/root/$file_name"
+            else
+                echo -e "$packIntoArchiso_bashrc_code" \
+                    1>"${packIntoArchiso_temporary_root_filesystem_remastering_path}/root/$file_name"
             fi
         done
-        local volumeID="$(isoinfo -i "$_SOURCE_PATH" -d | grep \
-            --extended-regexp 'Volume id:' | grep --only-matching \
-            --extended-regexp '[^ ]+$')" && \
-        log "Create new iso file from \"$_TEMPORARY_REMASTERING_PATH\" in \"$_TARGET_PATH\" with old detected volume id \"$volumeID\"." && \
-        cd "${_MOUNPOINT_PATH}" && \
-        genisoimage -verbose -full-iso9660-filenames -rational-rock -joliet \
-            --volid "$volumeID" -eltorito-boot "isolinux/isolinux.bin" \
-            -no-emul-boot -boot-load-size 4 -boot-info-table \
-            -eltorito-catalog "isolinux/boot.cat" -output "$_TARGET_PATH" \
-            "$_TEMPORARY_REMASTERING_PATH" 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT" && \
-        cd - 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-        log "Unmount \"$_MOUNPOINT_PATH\"." && \
-        umount "$_MOUNPOINT_PATH" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        return $?
-    }
-    tidyUp() {
-        # Removes temporary created files.
-        log "Remove temporary created location \"$_MOUNPOINT_PATH\"." &&
-        rm --recursive --force "$_MOUNPOINT_PATH" 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT"
-        log "Remove temporary created location \"$_TEMPORARY_REMASTERING_PATH\"." && \
-        rm --recursive --force "$_TEMPORARY_REMASTERING_PATH" \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        log "Remove temporary created location \"$_TEMPORARY_FILESYSTEM_REMASTERING_PATH\"." && \
-        rm --recursive --force "$_TEMPORARY_FILESYSTEM_REMASTERING_PATH" \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        log "Remove temporary created location \"$_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH\"." && \
-        rm --recursive --force "$_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH" \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        return $?
-    }
-
-    # endregion
-
-# endregion
-
-# region controller
-
-    if [[ "$0" == *"${__NAME__}.bash" ]]; then
-        commandLineInterface "$@" || return $?
-        # Switch user if necessary and possible.
-        if [[ root != "$USER" ]] && grep root /etc/passwd &>/dev/null; then
-            sudo -u root "$0" "$@"
+        bl.logging.info "Unmount \"$packIntoArchiso_temporary_root_filesystem_remastering_path\"."
+        umount "$packIntoArchiso_temporary_root_filesystem_remastering_path"
+        bl.logging.info "Make new squash file system from \"${packIntoArchiso_temporary_remastering_path}\" to \"${packIntoArchiso_temporary_remastering_path}/${path}\"."
+        mksquashfs \
+            "${packIntoArchiso_temporary_filesystem_remastering_path}" \
+            "${packIntoArchiso_temporary_remastering_path}/${path}" \
+            -noappend \
+            -comp \
+            "$packIntoArchiso_squash_filesystem_compressor"
+        rm \
+            --force \
+            --recursive \
+            "${packIntoArchiso_temporary_filesystem_remastering_path}"
+        if [[ $? != 0 ]]; then
+            bl.logging.info "Unmount \"$packIntoArchiso_mountpoint_path\"."
+            umount "$packIntoArchiso_mountpoint_path"
             return $?
         fi
-        remasterISO || archInstallLog 'error' 'Remastering given iso failed.'
-        tidyUp || archInstallLog 'error' 'Tidying up failed.'
-        archInstallLog \
-            "Remastering given image \"$_SOURCE_PATH\" to \"$_TARGET_PATH\" has successfully finished."
+    done
+    local volume_id="$(
+        isoinfo -i "$packIntoArchiso_source_path" -d | \
+            grep --extended-regexp 'Volume id:' | \
+                grep --extended-regexp --only-matching '[^ ]+$'
+    )"
+    bl.logging.info "Create new iso file from \"$packIntoArchiso_temporary_remastering_path\" in \"$packIntoArchiso_target_path\" with old detected volume id \"$volume_id\"."
+    pushd "${packIntoArchiso_mountpoint_path}"
+    genisoimage \
+        -boot-info-table \
+        -boot-load-size 4 \
+        -eltorito-boot isolinux/isolinux.bin \
+        -eltorito-catalog isolinux/boot.cat \
+        -full-iso9660-filenames \
+        -joliet \
+        -no-emul-boot \
+        -output "$packIntoArchiso_target_path" \
+        -rational-rock \
+        -verbose \
+        --volid "$volume_id" \
+        "$packIntoArchiso_temporary_remastering_path"
+    popd
+    bl.logging.info "Unmount \"$packIntoArchiso_mountpoint_path\"."
+    umount "$packIntoArchiso_mountpoint_path"
+}
+alias packIntoArchiso.tidy_up=packIntoArchiso_tidy_up
+packIntoArchiso_tidy_up() {
+    # Removes temporary created files.
+    bl.logging.info "Remove temporary created location \"$packIntoArchiso_mountpoint_path\"."
+    rm \
+        --force \
+        --recursive \
+        "$packIntoArchiso_mountpoint_path"
+    bl.logging.info \
+        "Remove temporary created location \"$packIntoArchiso_temporary_remastering_pat\"."
+    rm \
+        --force \
+        --recursive \
+        "$packIntoArchiso_temporary_remastering_path"
+    bl.logging.info \
+        "Remove temporary created location \"$packIntoArchiso_temporary_filesystem_remastering_path\"."
+    rm \
+        --force \
+        --recursive \
+        "$packIntoArchiso_temporary_filesystem_remastering_path"
+    bl.logging.info \
+        "Remove temporary created location \"$packIntoArchiso_temporary_root_filesystem_remastering_path\"."
+    rm \
+        --force \
+        --recursive \
+        "$packIntoArchiso_temporary_root_filesystem_remastering_path"
+}
+## endregion
+## region controller
+alias packIntoArchiso.main=packIntoArchiso_main
+packIntoArchiso_main() {
+    packIntoArchiso.commandline_interface "$@" || return $?
+    # Switch user if necessary and possible.
+    if [[ "$USER" != root ]] && grep root /etc/passwd &>/dev/null; then
+        sudo -u root "$0" "$@"
         return $?
     fi
-
-# endregion
-
+    packIntoArchiso.remaster_iso || \
+        bl.logging.critical Remastering given iso failed.
+    packIntoArchiso.tidy_up || \
+        bl.logging.critical Tidying up failed.
+    bl.logging.info
+        "Remastering given image \"$packIntoArchiso_source_path\" to \"$packIntoArchiso_target_path\" has successfully finished."
 }
-
-# region footer
-
-[[ "$0" == *"${__NAME__}.bash" ]] && "$__NAME__" "$@"
-exit $?
-
+## endregion
 # endregion
-
+if bl.tools.is_main; then
+    packIntoArchiso.main "$@"
+fi
 # region vim modline
-
 # vim: set tabstop=4 shiftwidth=4 expandtab:
 # vim: foldmethod=marker foldmarker=region,endregion:
-
 # endregion
