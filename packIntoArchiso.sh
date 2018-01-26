@@ -12,8 +12,10 @@
 # shellcheck disable=SC2016,SC2155
 # region import
 if [[ -f "$(dirname "${BASH_SOURCE[0]}")node_modules/bashlink/module.sh" ]]; then
+    # shellcheck disable=SC1090
     source "$(dirname "${BASH_SOURCE[0]}")node_modules/bashlink/module.sh"
 elif [[ -f "/usr/lib/bashlink/module.sh" ]]; then
+    # shellcheck disable=SC1091
     source "/usr/lib/bashlink/module.sh"
 fi
 bl.module.import bashlink.logging
@@ -40,7 +42,7 @@ packIntoArchiso__optional_dependencies__=(
 ## region commandline arguments
 packIntoArchiso_squash_filesystem_compressor=gzip
 packIntoArchiso_keyboard_layout=de-latin1
-packIntoArchiso_key_map_configuration_file_content="KEYMAP=${packIntoArchiso_keyboard_layout}\nFONT=Lat2-Terminus16\nFONT_MAP="
+packIntoArchiso_key_map_configuration_file_content="KEYMAP=${packIntoArchiso_keyboard_layout}"$'\nFONT=Lat2-Terminus16\nFONT_MAP='
 ## endregion
 packIntoArchiso_source_path=''
 packIntoArchiso_target_path=''
@@ -54,7 +56,7 @@ packIntoArchiso_relative_paths_to_squash_filesystem=(
 )
 packIntoArchiso_relative_source_file_path=archInstall.sh
 packIntoArchiso_relative_target_file_path=usr/bin/
-packIntoArchiso_bashrc_code="\nalias getInstallScript='wget https://goo.gl/bPAqXB --output-document archInstall.sh && chmod +x archInstall.sh'\nalias install='([ -f /root/archInstall.sh ] || getInstallScript);/root/archInstall.sh'"
+packIntoArchiso_bashrc_code=$'\nalias getInstallScript='"'wget https://goo.gl/bPAqXB --output-document archInstall.sh && chmod +x archInstall.sh'"$'\nalias install='"'([ -f /root/archInstall.sh ] || getInstallScript);/root/archInstall.sh'"
 # endregion
 # region functions
 ## region command line interface
@@ -95,17 +97,17 @@ packIntoArchiso_print_commandline_option_description() {
 
 -k --keyboard-layout Defines needed key map (default: "$packIntoArchiso_keyboard_layout").
 
--k --key-map-configuration FILE_CONTENT Keyboard map configuration (default: "$packIntoArchiso_key_map_configuration_file_content").
+-m --key-map-configuration FILE_CONTENT Keyboard map configuration (default: "$packIntoArchiso_key_map_configuration_file_content").
 EOF
 }
 alias packIntoArchiso.print_help_message=packIntoArchiso_print_help_message
 packIntoArchiso_print_help_message() {
     # Provides a help message for this module.
-    echo -e "\nUsage: $0 /path/to/archiso/file.iso /path/to/newly/packed/archiso/file.iso [options]\n"
+    echo -e $'\nUsage: '"$0 /path/to/archiso/file.iso /path/to/newly/packed/archiso/file.iso [options]"$'\n'
     packIntoArchiso.print_usage_message "$@"
-    echo -e '\nExamples:\n'
+    echo -e $'\nExamples:\n'
     packIntoArchiso.print_usage_examples "$@"
-    echo -e '\nOption descriptions:\n'
+    echo -e $'\nOption descriptions:\n'
     packIntoArchiso.print_commandline_option_description "$@"
     echo
 }
@@ -137,7 +139,7 @@ packIntoArchiso_commandline_interface() {
                 packIntoArchiso_keyboard_layout="$1"
                 shift
                 ;;
-            -k|--key-map-configuation)
+            -m|--key-map-configuation)
                 shift
                 packIntoArchiso_key_map_configuration_file_content="$1"
                 shift
@@ -190,10 +192,11 @@ packIntoArchiso_remaster_iso() {
     bl.logging.info "Copy content in \"$packIntoArchiso_mountpoint_path\" to \"$packIntoArchiso_temporary_remastering_path\"."
     cp --archiv "${packIntoArchiso_mountpoint_path}/"* "$packIntoArchiso_temporary_remastering_path"
     local path
+    local return_code=0
     for path in "${packIntoArchiso_relative_paths_to_squash_filesystem[@]}"; do
         bl.logging.info "Extract squash file system in \"${packIntoArchiso_temporary_remastering_path}/$path\" to \"${packIntoArchiso_temporary_remastering_path}\"."
         unsquashfs \
-            -d "${packIntoArchiso_temorary_filesystem_remastering_path}" \
+            -d "${packIntoArchiso_temporary_filesystem_remastering_path}" \
             "${packIntoArchiso_temporary_remastering_path}/${path}"
         rm --force "${packIntoArchiso_temporary_remastering_path}/${path}"
         bl.logging.info "Mount root file system in \"${packIntoArchiso_temporary_filesystem_remastering_path}\" to \"${packIntoArchiso_temporary_root_filesystem_remastering_path}\"."
@@ -242,7 +245,8 @@ packIntoArchiso_remaster_iso() {
             --force \
             --recursive \
             "${packIntoArchiso_temporary_filesystem_remastering_path}"
-        if [[ $? != 0 ]]; then
+        return_code=$?
+        if (( return_code != 0 )); then
             bl.logging.info "Unmount \"$packIntoArchiso_mountpoint_path\"."
             umount "$packIntoArchiso_mountpoint_path"
             return $?
@@ -254,7 +258,7 @@ packIntoArchiso_remaster_iso() {
                 command grep --extended-regexp --only-matching '[^ ]+$'
     )"
     bl.logging.info "Create new iso file from \"$packIntoArchiso_temporary_remastering_path\" in \"$packIntoArchiso_target_path\" with old detected volume id \"$volume_id\"."
-    pushd "${packIntoArchiso_mountpoint_path}"
+    pushd "${packIntoArchiso_mountpoint_path}" && \
     genisoimage \
         -boot-info-table \
         -boot-load-size 4 \
@@ -268,7 +272,7 @@ packIntoArchiso_remaster_iso() {
         -verbose \
         --volid "$volume_id" \
         "$packIntoArchiso_temporary_remastering_path"
-    popd
+    popd && \
     bl.logging.info "Unmount \"$packIntoArchiso_mountpoint_path\"."
     umount "$packIntoArchiso_mountpoint_path"
 }
@@ -281,7 +285,7 @@ packIntoArchiso_tidy_up() {
         --recursive \
         "$packIntoArchiso_mountpoint_path"
     bl.logging.info \
-        "Remove temporary created location \"$packIntoArchiso_temporary_remastering_pat\"."
+        "Remove temporary created location \"$packIntoArchiso_temporary_remastering_path\"."
     rm \
         --force \
         --recursive \
