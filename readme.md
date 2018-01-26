@@ -489,8 +489,9 @@ selber setzten will, eignet sich folgender Pattern:
 
     Option descriptions:
 
-    $(archInstallPrintCommandLineOptionDescriptions "$@" | \
-        sed '/^ *-[a-z] --output-system .*$/,/^$/d')
+    $(
+        archInstallPrintCommandLineOptionDescriptions "$@" | \
+            command sed '/^ *-[a-z] --output-system .*$/,/^$/d')
     EOF
 
     myTarget="$(mktemp)"

@@ -32,6 +32,7 @@ packIntoArchiso__dependencies__=(
     touch
     umount
 )
+# shellcheck disable=SC2034
 packIntoArchiso__optional_dependencies__=(
     'sudo: Perform action as another user.'
     'arch-install-scripts: Supports to perform an arch-chroot.'
@@ -43,7 +44,7 @@ packIntoArchiso_key_map_configuration_file_content="KEYMAP=${packIntoArchiso_key
 ## endregion
 packIntoArchiso_source_path=''
 packIntoArchiso_target_path=''
-paclIntoArchiso_mountpoint_path="$(mktemp --directory)"
+packIntoArchiso_mountpoint_path="$(mktemp --directory)"
 packIntoArchiso_temporary_remastering_path="$(mktemp --directory)"
 packIntoArchiso_temporary_filesystem_remastering_path="$(mktemp --directory)/mnt"
 packIntoArchiso_temporary_root_filesystem_remastering_path="$(mktemp --directory)"
@@ -249,8 +250,8 @@ packIntoArchiso_remaster_iso() {
     done
     local volume_id="$(
         isoinfo -i "$packIntoArchiso_source_path" -d | \
-            grep --extended-regexp 'Volume id:' | \
-                grep --extended-regexp --only-matching '[^ ]+$'
+            command grep --extended-regexp 'Volume id:' | \
+                command grep --extended-regexp --only-matching '[^ ]+$'
     )"
     bl.logging.info "Create new iso file from \"$packIntoArchiso_temporary_remastering_path\" in \"$packIntoArchiso_target_path\" with old detected volume id \"$volume_id\"."
     pushd "${packIntoArchiso_mountpoint_path}"
@@ -304,7 +305,7 @@ alias packIntoArchiso.main=packIntoArchiso_main
 packIntoArchiso_main() {
     packIntoArchiso.commandline_interface "$@" || return $?
     # Switch user if necessary and possible.
-    if [[ "$USER" != root ]] && grep root /etc/passwd &>/dev/null; then
+    if [[ "$USER" != root ]] && command grep root /etc/passwd &>/dev/null; then
         sudo -u root "$0" "$@"
         return $?
     fi
