@@ -23,6 +23,7 @@ bl_module_retrieve_remote_modules=true
 source "${archInstall_bashlink_path}/module.sh"
 bl.module.import bashlink.changeroot
 bl.module.import bashlink.logging
+bl.module.import bashlink.tools
 # endregion
 # region variables
 # shellcheck disable=SC2034

@@ -20,7 +20,7 @@ elif [[ -f "/usr/lib/bashlink/module.sh" ]]; then
 fi
 bl.module.import bashlink.logging
 # endregion
-#  region variables
+# region variables
 # shellcheck disable=SC2034
 packIntoArchiso__dependencies__=(
     bash
