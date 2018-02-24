@@ -41,7 +41,7 @@ optdepends=(
     'os-prober: for automatic boot option creation for other found distributions'
     'pacman: if not provided a simple lite pacman version will be used to retrieve pacman first'
 )
-provides=(arch-install)
+provides=(arch-install pack-into-archiso)
 source=(archInstall.sh packIntoArchiso.sh)
 md5sums=(SKIP SKIP)
 copy_to_aur=true
@@ -52,6 +52,11 @@ package() {
         --mode 755 \
         "${srcdir}/archInstall.sh" \
         "${pkgdir}/usr/bin/arch-install"
+    install \
+        -D \
+        --mode 755 \
+        "${srcdir}/packIntoArchiso.sh" \
+        "${pkgdir}/usr/bin/pack-into-archiso"
 }
 # region vim modline
 # vim: set tabstop=4 shiftwidth=4 expandtab:

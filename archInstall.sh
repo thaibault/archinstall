@@ -1332,6 +1332,12 @@ alias archInstall.main=archInstall_main
 archInstall_main() {
     local __documentation__='
         Provides the main module scope.
+
+        >>> archInstall.main --help
+        +bl.doctest.multiline_ellipsis
+        ...
+        Usage: arch-install [options]
+        ...
     '
     bl.logging.set_command_output_off
     archInstall.commandline_interface "$@" || return $?
