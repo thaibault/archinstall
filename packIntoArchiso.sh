@@ -11,12 +11,15 @@
 # endregion
 # shellcheck disable=SC2016,SC2034,SC2155
 # region import
-if [[ -f "$(dirname "${BASH_SOURCE[0]}")node_modules/bashlink/module.sh" ]]; then
+if [ -f "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh" ]; then
     # shellcheck disable=SC1090
-    source "$(dirname "${BASH_SOURCE[0]}")node_modules/bashlink/module.sh"
-elif [[ -f "/usr/lib/bashlink/module.sh" ]]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh"
+elif [ -f "/usr/lib/bashlink/module.sh" ]; then
     # shellcheck disable=SC1091
     source "/usr/lib/bashlink/module.sh"
+else
+    echo Needed bashlink library not found 1>&2
+    exit 1
 fi
 bl.module.import bashlink.logging
 bl.module.import bashlink.tools
@@ -121,7 +124,7 @@ packIntoArchiso_print_help_message() {
         ...
     '
     bl.logging.plain $'\nUsage: pack-into-archiso /path/to/archiso/file.iso /path/to/newly/packed/archiso/file.iso [options]\n'
-    bl.logging.plain $packIntoArchiso__documentation__
+    bl.logging.plain "$packIntoArchiso__documentation__"
     bl.logging.plain $'\nOption descriptions:\n'
     packIntoArchiso.print_commandline_option_description "$@"
     bl.logging.plain
