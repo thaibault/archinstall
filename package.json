@@ -26,7 +26,8 @@
   ],
   "main": "archInstall.sh",
   "bin": {
-    "arch-install": "archInstall.sh"
+    "arch-install": "archInstall.sh",
+    "pack-into-archiso": "packIntoArchiso.sh"
   },
   "repository": {
     "type": "git",
@@ -39,7 +40,7 @@
     "document:show:error": "bashlink-document archInstall 1>/dev/null",
     "lint": "hash shellcheck && shellcheck -x *.sh || echo Please install \"shellcheck\". || true",
     "lint:given": "shellcheck -x",
-    "test": "bashlink-doctest --verbose ../../archInstall",
+    "test": "bashlink-doctest --verbose ../../archInstall; bashlink-doctest --verbose ../../packIntoArchiso",
     "update": "npm version patch && npm publish",
     "update:documentation": "documentationWebsite --log-level info"
   },
