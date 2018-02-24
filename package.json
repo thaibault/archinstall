@@ -26,7 +26,7 @@
   ],
   "main": "archInstall.sh",
   "bin": {
-    "archInstall": "archInstall.sh"
+    "arch-install": "archInstall.sh"
   },
   "repository": {
     "type": "git",
@@ -39,15 +39,15 @@
     "document:show:error": "bashlink-document archInstall 1>/dev/null",
     "lint": "hash shellcheck && shellcheck -x *.sh || echo Please install \"shellcheck\". || true",
     "lint:given": "shellcheck -x",
-    "test": "bashlink-doctest --verbose archInstall",
+    "test": "bashlink-doctest --verbose ../../archInstall",
     "update": "npm version patch && npm publish",
     "update:documentation": "documentationWebsite --log-level info"
   },
   "devDependencies": {
-    "documentation-website": "^1.0.93",
+    "documentation-website": "^1.0.106",
     "shellcheck": "0.0.8"
   },
   "dependencies": {
-    "bashlink": "^1.0.27"
+    "bashlink": "^1.0.41"
   }
 }

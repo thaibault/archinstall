@@ -27,7 +27,15 @@ bl.module.import bashlink.tools
 # endregion
 # region variables
 # shellcheck disable=SC2034
-archinstall__documentation__='
+archInstall__documentation__='
+    archInstall installs a linux from scratch by the arch way. You will end up
+    in ligtweigth linux with pacman as packetmanager. You can directly install
+    into a given blockdevice, partition or any directory (see command line
+    option "--output-system"). Note that every needed information which is not
+    given via command line will be asked interactivly on start. This script is
+    as unnatted it could be, which means you can relax after providing all
+    needed informations in the beginning till your new system is ready to boot.
+
     Start install progress command (Assuming internet is available):
 
     ```bash
@@ -38,6 +46,26 @@ archinstall__documentation__='
 
     Note that you only get very necessary output until you provide "--verbose"
     as commandline option.
+
+    Examples:
+
+    Start install progress command on first found blockdevice:
+
+    ```bash
+        arch-install --output-system /dev/sda
+    ```
+
+    Install directly into a given partition with verbose output:
+
+    ```bash
+        arch-install --output-system /dev/sda1 --verbose
+    ```
+
+    Install directly into a given directory with addtional packages included:
+
+    ```bash
+        arch-install --output-system /dev/sda1 --verbose -f vim net-tools
+    ```
 '
 # shellcheck disable=SC2034
 archinstall__dependencies__=(
@@ -130,40 +158,20 @@ archInstall_user_names=()
 # endregion
 # region functions
 ## region command line interface
-alias archInstall.print_usage_message=archInstall_print_usage_message
-archInstall_print_usage_message() {
-    # Prints a description about how to use this program.
-cat << EOF
-archInstall installs a linux from scratch by the arch way. You will end up in
-ligtweigth linux with pacman as packetmanager.
-You can directly install into a given blockdevice, partition or
-any directory (see command line option "--output-system").
-Note that every needed information which isn't given via command line
-will be asked interactivly on start. This script is as unnatted it could
-be, which means you can relax after providing all needed informations in
-the beginning till your new system is ready to boot.
-EOF
-}
-alias archInstall.print_usage_examples=archInstall.print_usage_examples
-archInstall_print_usage_examples() {
-    # Prints a description about how to use this program by providing examples.
-    cat << EOF
-# Start install progress command on first found blockdevice:
->>> $0 --output-system /dev/sda
-
-# Install directly into a given partition with verbose output:
->>> $0 --output-system /dev/sda1 --verbose
-
-# Install directly into a given directory with addtional packages included:
->>> $0 --output-system /dev/sda1 --verbose -f vim net-tools
-EOF
-}
 alias archInstall.print_commandline_option_description=archInstall_print_commandline_option_description
 archInstall_print_commandline_option_description() {
-    # Prints descriptions about each available command line option.
-    # NOTE; All letters are used for short options.
-    # NOTE: "-k" and "--key-map-configuration" isn't needed in the future.
-    cat << EOF
+    local __documentation__='
+        Prints descriptions about each available command line option.
+        NOTE: All letters are used for short options.
+        NOTE: "-k" and "--key-map-configuration" is not needed in the future.
+
+        >>> archInstall.print_commandline_option_description
+        +bl.doctest.contains
+        +bl.doctest.multiline_ellipsis
+        -h --help Shows this help message.
+        ...
+    '
+    bl.logging.cat << EOF
 -h --help Shows this help message.
 
 -v --verbose Tells you what is going on.
@@ -227,18 +235,34 @@ EOF
 }
 alias archInstall.print_help_message=archInstall_print_help_message
 archInstall_print_help_message() {
-    # Provides a help message for this module.
-    bl.logging.plain $'\nUsage: '"$0"$' [options]\n'
-    archInstall.print_usage_message "$@"
-    bl.logging.plain $'\nExamples:\n'
-    archInstall.print_usage_examples "$@"
+    local __documentation__='
+        Provides a help message for this module.
+
+        >>> archInstall.print_help_message
+        +bl.doctest.contains
+        +bl.doctest.multiline_ellipsis
+        ...
+        Usage: arch-install [options]
+        ...
+    '
+    bl.logging.plain $'\nUsage: arch-install [options]\n'
+    echo "$archInstall__documentation__"
     bl.logging.plain $'\nOption descriptions:\n'
     archInstall.print_commandline_option_description "$@"
     bl.logging.plain
 }
 alias archInstall.commandline_interface=archInstall_commandline_interface
 archInstall_commandline_interface() {
-    # Provides the command line interface and interactive questions.
+    local __documentation__='
+        Provides the command line interface and interactive questions.
+
+        >>> archInstall.commandline_interface --help
+        +bl.doctest.contains
+        +bl.doctest.multiline_ellipsis
+        ...
+        Usage: arch-install [options]
+        ...
+    '
     while true; do
         case "$1" in
             -h|--help)
