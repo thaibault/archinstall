@@ -9,7 +9,7 @@
 # This library written by Torben Sickert stand under a creative commons naming
 # 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
-# shellcheck disable=SC2016,SC2155
+# shellcheck disable=SC2016,SC2034,SC2155
 # region import
 if [[ -f "$(dirname "${BASH_SOURCE[0]}")node_modules/bashlink/module.sh" ]]; then
     # shellcheck disable=SC1090
@@ -21,7 +21,9 @@ fi
 bl.module.import bashlink.logging
 # endregion
 # region variables
-# shellcheck disable=SC2034
+archInstall__documentation__='
+    This module modifies a given arch linux iso image.
+'
 packIntoArchiso__dependencies__=(
     bash
     cdrkit
@@ -34,7 +36,6 @@ packIntoArchiso__dependencies__=(
     touch
     umount
 )
-# shellcheck disable=SC2034
 packIntoArchiso__optional_dependencies__=(
     'sudo: Perform action as another user.'
     'arch-install-scripts: Supports to perform an arch-chroot.'

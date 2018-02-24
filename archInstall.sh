@@ -9,26 +9,32 @@
 # This library written by Torben Sickert stand under a creative commons naming
 # 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
-# shellcheck disable=SC1004,SC2016,SC2155
+# shellcheck disable=SC1004,SC2016,SC2034,SC2155
 # region import
-archInstall_bashlink_path="$(mktemp --directory)/bashlink/"
-mkdir "$archInstall_bashlink_path"
-wget \
-    https://goo.gl/UKF5JG \
-    --output-document "${archInstall_bashlink_path}module.sh" \
-    --quiet
-# shellcheck disable=SC2034
-bl_module_retrieve_remote_modules=true
-# shellcheck disable=SC1090
-source "${archInstall_bashlink_path}/module.sh"
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")node_modules/bashlink/module.sh" ]]; then
+    # shellcheck disable=SC1090
+    source "$(dirname "${BASH_SOURCE[0]}")node_modules/bashlink/module.sh"
+elif [[ -f "/usr/lib/bashlink/module.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "/usr/lib/bashlink/module.sh"
+else
+    archInstall_bashlink_path="$(mktemp --directory)/bashlink/"
+    mkdir "$archInstall_bashlink_path"
+    wget \
+        https://goo.gl/UKF5JG \
+        --output-document "${archInstall_bashlink_path}module.sh" \
+        --quiet
+    bl_module_retrieve_remote_modules=true
+    # shellcheck disable=SC1090
+    source "${archInstall_bashlink_path}/module.sh"
+fi
 bl.module.import bashlink.changeroot
 bl.module.import bashlink.logging
 bl.module.import bashlink.tools
 # endregion
 # region variables
-# shellcheck disable=SC2034
 archInstall__documentation__='
-    archInstall installs a linux from scratch by the arch way. You will end up
+    This module installs a linux from scratch by the arch way. You will end up
     in ligtweigth linux with pacman as packetmanager. You can directly install
     into a given blockdevice, partition or any directory (see command line
     option "--output-system"). Note that every needed information which is not
@@ -67,7 +73,6 @@ archInstall__documentation__='
         arch-install --output-system /dev/sda1 --verbose -f vim net-tools
     ```
 '
-# shellcheck disable=SC2034
 archinstall__dependencies__=(
     bash
     blkid
@@ -89,7 +94,6 @@ archinstall__dependencies__=(
     wget
     xz
 )
-# shellcheck disable=SC2034
 archinstall__optional_dependencies__=(
     # Dependencies for blockdevice integration
     'blockdev: Call block device ioctls from the command line (part of util-linux).'
@@ -246,7 +250,7 @@ archInstall_print_help_message() {
         ...
     '
     bl.logging.plain $'\nUsage: arch-install [options]\n'
-    echo "$archInstall__documentation__"
+    bl.logging.plain "$archInstall__documentation__"
     bl.logging.plain $'\nOption descriptions:\n'
     archInstall.print_commandline_option_description "$@"
     bl.logging.plain
@@ -458,12 +462,13 @@ archInstall_with_pacstrap() {
             --sync || \
                 true
     )
-    bl.logging.info \
-        "Install needed packages \"$(echo "${archInstall_packages[@]}" | \
+    bl.logging.info "Install needed packages \"$(
+        bl.logging.plain "${archInstall_packages[@]}" | \
             command sed \
                 --regexp-extended 's/(^ +| +$)//g' | \
                     command sed \
-                        's/ /", "/g')\" to \"$archInstall_output_system\"."
+                        's/ /", "/g'
+    )\" to \"$archInstall_output_system\"."
     "${archInstall_package_cache_path}/patchedOfflinePacman.sh" \
         -d "$archInstall_mountpoint_path" \
         --force
@@ -632,8 +637,7 @@ archInstall_configure() {
     if [[ "$1" != true ]]; then
         bl.logging.info "Set root password to \"root\"."
         archInstall.changeroot_to_mount_point \
-            /usr/bin/env bash \
-            -c 'echo root:root | $(which chpasswd)'
+            /usr/bin/env bash -c 'echo root:root | $(which chpasswd)'
     fi
     archInstall.enable_services
     local user_name
