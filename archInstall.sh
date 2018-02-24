@@ -11,22 +11,27 @@
 # endregion
 # shellcheck disable=SC1004,SC2016,SC2034,SC2155
 # region import
-if [[ -f "$(dirname "${BASH_SOURCE[0]}")node_modules/bashlink/module.sh" ]]; then
+if [ -f "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh" ]; then
     # shellcheck disable=SC1090
-    source "$(dirname "${BASH_SOURCE[0]}")node_modules/bashlink/module.sh"
-elif [[ -f "/usr/lib/bashlink/module.sh" ]]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh"
+elif [ -f "/usr/lib/bashlink/module.sh" ]; then
     # shellcheck disable=SC1091
     source "/usr/lib/bashlink/module.sh"
 else
     archInstall_bashlink_path="$(mktemp --directory)/bashlink/"
     mkdir "$archInstall_bashlink_path"
-    wget \
+    if wget \
         https://goo.gl/UKF5JG \
         --output-document "${archInstall_bashlink_path}module.sh" \
         --quiet
-    bl_module_retrieve_remote_modules=true
-    # shellcheck disable=SC1090
-    source "${archInstall_bashlink_path}/module.sh"
+    then
+        bl_module_retrieve_remote_modules=true
+        # shellcheck disable=SC1090
+        source "${archInstall_bashlink_path}/module.sh"
+    else
+        echo Needed bashlink library not found 1>&2
+        exit 1
+    fi
 fi
 bl.module.import bashlink.changeroot
 bl.module.import bashlink.logging
