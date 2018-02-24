@@ -421,10 +421,11 @@ archInstall_commandline_interface() {
     if bl.tools.is_main; then
         if [ "$archInstall_host_name" = '' ]; then
             while true; do
-                echo -n 'Please set hostname for new system: '
+                bl.logging.plain $'Please set hostname for new system:\n'
                 read -r archInstall_host_name
                 if [[ "$(
-                    echo "$archInstall_host_name" | tr '[:upper:]' '[:lower:]'
+                    bl.logging.plain "$archInstall_host_name" | \
+                        tr '[:upper:]' '[:lower:]'
                 )" != '' ]]; then
                     break
                 fi
@@ -437,7 +438,9 @@ archInstall_commandline_interface() {
 ## region install arch linux steps.
 alias archInstall.with_pacstrap=archInstall_with_pacstrap
 archInstall_with_pacstrap() {
-    # Installs arch linux via pacstrap.
+    local __documentation__='
+        Installs arch linux via pacstrap.
+    '
     local return_code=0
     archInstall.load_cache
     bl.logging.info Patch pacstrap to handle offline installations.
@@ -462,21 +465,25 @@ archInstall_with_pacstrap() {
                     command sed \
                         's/ /", "/g')\" to \"$archInstall_output_system\"."
     "${archInstall_package_cache_path}/patchedOfflinePacman.sh" \
-        -d "$archInstall_mountpoint_path" "${archInstall_packages[@]}" \
+        -d "$archInstall_mountpoint_path" \
         --force
+        "${archInstall_packages[@]}" \
     rm "${_PACKAGE_CACHE_PATH}/patchedOfflinePacman.sh"
     return_code=$?
     (
         archInstall.cache || \
-        bl.logging.warn \
-            Caching current downloaded packages and generated database failed.
+            bl.logging.warn \
+                Caching current downloaded packages and generated database \
+                failed.
     )
     return $return_code
 }
 alias archInstall.generic_linux_steps=archInstall_generic_linux_steps
 archInstall_generic_linux_steps() {
-    # This functions performs creating an arch linux system from any linux
-    # system base.
+    local __documentation__='
+        This functions performs creating an arch linux system from any linux
+        system base.
+    '
     local return_code=0
     bl.logging.info Create a list with urls for needed packages.
     archInstall.download_and_extract_pacman \
@@ -484,8 +491,8 @@ archInstall_generic_linux_steps() {
     # Create root filesystem only if not exists.
     (
         test -e "${archInstall_mountpoint_path}etc/mtab" || \
-        echo 'rootfs / rootfs rw 0 0' \
-            1>"${archInstall_mountpoint_path}etc/mtab"
+            bl.logging.plain rootfs / rootfs rw 0 0 \
+                1>"${archInstall_mountpoint_path}etc/mtab"
     )
     # Copy systems resolv.conf to new installed system.
     # If the native "arch-chroot" is used it will mount the file into the
@@ -493,8 +500,10 @@ archInstall_generic_linux_steps() {
     cp /etc/resolv.conf "${archInstall_mountpoint_path}etc/"
     ! "$archInstall_prevent_using_native_arch_changeroot" && \
         hash arch-chroot 2>/dev/null
-    mv "${archInstall_mountpoint_path}etc/resolv.conf" \
-        "${archInstall_mountpoint_path}etc/resolv.conf.old" 2>/dev/null
+    mv \
+        "${archInstall_mountpoint_path}etc/resolv.conf" \
+        "${archInstall_mountpoint_path}etc/resolv.conf.old" \
+            2>/dev/null
     command sed \
         --in-place \
         --quiet \
@@ -519,12 +528,11 @@ archInstall_generic_linux_steps() {
             --sync || \
                 true
     )
-    bl.logging.info
-        "Install needed packages \"$(
-            echo "${archInstall_packages[@]}" | \
+    bl.logging.info "Install needed packages \"$(
+        bl.logging.plain "${archInstall_packages[@]}" | \
             command sed --regexp-extended 's/(^ +| +$)//g' | \
                 command sed 's/ /", "/g'
-        )\" to \"$archInstall_output_system\"."
+    )\" to \"$archInstall_output_system\"."
     archInstall.changeroot_to_mount_point \
         /usr/bin/pacman \
         --arch "$archInstall_cpu_architecture" \
@@ -536,8 +544,9 @@ archInstall_generic_linux_steps() {
     return_code=$?
     (
         archInstall.cache || \
-        bl.logging.warn \
-            Caching current downloaded packages and generated database failed.
+            bl.logging.warn \
+                Caching current downloaded packages and generated database \
+                failed.
     )
     (( return_code == 0 )) && archInstall.configure_pacman
     return $return_code
@@ -547,13 +556,17 @@ archInstall_generic_linux_steps() {
 ### region change root functions
 alias archInstall.changeroot_to_mountpoint=archInstall_changeroot_to_mountpoint
 archInstall_changeroot_to_mount_point() {
-    # This function performs a changeroot to currently set mountpoint path.
-    archInstall.changeroot "$_MOUNTPOINT_PATH" "$@"
+    local __documentation__='
+        This function performs a changeroot to currently set mountpoint path.
+    '
+    archInstall.changeroot "$archInstall_mountpoint_path" "$@"
     return $?
 }
 alias archInstall.changeroot=archInstall_changeroot
 archInstall_changeroot() {
-    # This function emulates the arch linux native "arch-chroot" function.
+    local __documentation__='
+        This function emulates the arch linux native "arch-chroot" function.
+    '
     if ! $archInstall_prevent_using_native_arch_changeroot && \
         hash arch-chroot 2>/dev/null
     then
@@ -571,12 +584,13 @@ archInstall_changeroot() {
 ### endregion
 alias archInstall.configure=archInstall_configure
 archInstall_configure() {
-    # Provides generic linux configuration mechanism. If new systemd
-    # programs are used (if first argument is "true") they could have
-    # problems in change root environment without and exclusive dbus
-    # connection.
+    local __documentation__='
+        Provides generic linux configuration mechanism. If new systemd programs
+        are used (if first argument is "true") they could have problems in
+        change root environment without and exclusive dbus connection.
+    '
     bl.logging.info \
-        "Make keyboard layout permanent to \"${_KEYBOARD_LAYOUT}\"."
+        "Make keyboard layout permanent to \"${archInstall_keyboard_layout}\"."
     if [ "$1" = true ]; then
         archInstall.changeroot_to_mount_point \
             localectl \
@@ -588,9 +602,9 @@ archInstall_configure() {
             locale-gen \
             set-keymap "$archInstall_keyboard_layout"
     else
-        echo \
+        bl.logging.plain \
             -e "$archInstall_key_map_configuration_file_content" \
-            1>"${archInstall_mountpoint_path}etc/vconsole.conf"
+                1>"${archInstall_mountpoint_path}etc/vconsole.conf"
     fi
     bl.logging.info "Set localtime \"$_LOCAL_TIME\"."
     if [ "$1" = true ]; then
@@ -609,17 +623,17 @@ archInstall_configure() {
             hostnamectl \
             set-hostname "$archInstall_host_name"
     else
-        echo -e "$archInstall_host_name" \
+        bl.logging.plain "$archInstall_host_name" \
             1>"${archInstall_mountpoint_path}etc/hostname"
     fi
     bl.logging.info Set hosts.
     archInstall.get_hosts_content "$archInstall_host_name" \
         1>"${archInstall_mountpoint_path}etc/hosts"
     if [[ "$1" != true ]]; then
-        bl.logging.info Set root password to \"root\".
+        bl.logging.info "Set root password to \"root\"."
         archInstall.changeroot_to_mount_point \
             /usr/bin/env bash \
-            -c "echo root:root | \$(which chpasswd)"
+            -c 'echo root:root | $(which chpasswd)'
     fi
     archInstall.enable_services
     local user_name
@@ -630,16 +644,15 @@ archInstall_configure() {
         (
             archInstall.changeroot_to_mount_point \
                 useradd "$(
-                    if [[ "$UID" == '0' ]]; then
-                        echo '--create-home '
+                    if (( UID == 0 )); then
+                        bl.logging.plain --create-home
                     else
-                        echo --no-create-home
+                        bl.logging.plain --no-create-home
                     fi
                 ) --no-user-group --shell /usr/bin/bash" \
                 "$user_name" || (
                     bl.logging.warn "Adding user \"$user_name\" failed." && \
-                    false
-                )
+                        false)
         )
         bl.logging.info "Set password for \"$user_name\" to \"$user_name\"."
         archInstall.changeroot_to_mount_point \
@@ -650,14 +663,16 @@ archInstall_configure() {
 }
 alias archInstall.enable_services=archInstall_enable_services
 archInstall_enable_services() {
-    # Enable all needed services.
+    local __documentation__='
+        Enable all needed services.
+    '
     local network_device_name
     for network_device_name in $(
         ip addr | \
-        command grep --extended-regexp --only-matching '^[0-9]+: .+: ' | \
-        command sed --regexp-extended 's/^[0-9]+: (.+): $/\1/g'
+            command grep --extended-regexp --only-matching '^[0-9]+: .+: ' | \
+                command sed --regexp-extended 's/^[0-9]+: (.+): $/\1/g'
     ); do
-        if ! echo "$network_device_name" | \
+        if ! bl.logging.plain "$network_device_name" | \
             command grep --extended-regexp '^(lo|loopback|localhost)$' --quiet
         then
             local service_name=dhcpcd
@@ -678,7 +693,7 @@ archInstall_enable_services() {
                 description='A simple WPA encrypted wireless connection'
                 additional_properties=$'\nSecurity=wpa\nESSID='"'home'"$'\nKey='"'home'"
             fi
-        cat << EOF 1>"${archInstall_mountpoint_path}etc/netctl/${network_device_name}-dhcp"
+        bl.logging.cat << EOF 1>"${archInstall_mountpoint_path}etc/netctl/${network_device_name}-dhcp"
 Description='${description}'
 Interface=${network_device_name}
 Connection=${connection}
@@ -704,12 +719,15 @@ EOF
             enable \
             "${service_name}.service"
         return_code=$?
-        (( return_code != 0 )) && return $return_code
+        (( return_code != 0 )) && \
+            return $return_code
     done
 }
 alias archInstall.tidy_up_system=archInstall_tidy_up_system
 archInstall_tidy_up_system() {
-    # Deletes some unneeded locations in new installs operating system.
+    local __documentation__='
+        Deletes some unneeded locations in new installs operating system.
+    '
     local return_code=0
     bl.logging.info Tidy up new build system.
     local file_path
@@ -720,30 +738,36 @@ archInstall_tidy_up_system() {
             --force \
             --recursive
         return_code=$?
-        (( return_code != 0 )) && return $return_code
+        (( return_code != 0 )) && \
+            return $return_code
     done
 }
 alias archInstall.append_temporary_install_mirrors=archInstall_append_temporary_install_mirrors
 archInstall_append_temporary_install_mirrors() {
-    # Appends temporary used mirrors to download missing packages during
-    # installation.
+    local __documentation__='
+        Appends temporary used mirrors to download missing packages during
+        installation.
+    '
     local return_code
     local url
     for url in "${archInstall_package_source_urls[@]}"; do
-        echo \
+        bl.logging.plain \
             "Server = $url/\$repo/os/$archInstall_cpu_architecture" \
-                1>>"${_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
+                1>>"${archInstall_mountpoint_path}etc/pacman.d/mirrorlist"
         return_code=$?
-        (( return_code != 0 )) && return $return_code
+        (( return_code != 0 )) && \
+            return $return_code
     done
 }
 alias archInstall.pack_result=archInstall_pack_result
 archInstall_pack_result() {
-    # Packs the resulting system to provide files owned by root without
-    # root permissions.
-    if [[ "$UID" != '0' ]]; then
+    local __documentation__='
+        Packs the resulting system to provide files owned by root without
+        root permissions.
+    '
+    if (( UID != 0 )); then
         bl.logging.info \
-            "System will be packed into \"$_MOUNTPOINT_PATH.tar\" to provide root owned files. You have to extract this archiv as root."
+            "System will be packed into \"$archInstall_mountpoint_path.tar\" to provide root owned files. You have to extract this archiv as root."
         tar \
             cvf \
             "${archInstall_mountpoint_path}.tar" \
@@ -758,7 +782,9 @@ archInstall_pack_result() {
 }
 alias archInstall.create_package_url_list=archInstall_create_package_url_list
 archInstall_create_package_url_list() {
-    # Generates all web urls for needed packages.
+    local __documentation__='
+        Generates all web urls for needed packages.
+    '
     local temporary_return_code=0
     local return_code=0
     local list_buffer_file="$(mktemp)"
@@ -776,14 +802,17 @@ archInstall_create_package_url_list() {
         temporary_return_code=$?
         # NOTE: "return_code" remains with an error code if there was given
         # one in all iterations.
-        (( temporary_return_code != 0 )) && return_code=$temporary_return_code
+        (( temporary_return_code != 0 )) && \
+            return_code=$temporary_return_code
     done
     bl.logging.plain "$list_buffer_file"
     return $return_code
 }
 alias archInstall.determine_pacmans_needed_packages=archInstall_determine_pacmans_needed_packages
 archInstall_determine_pacmans_needed_packages() {
-    # Reads pacmans database and determine pacman's dependencies.
+    local __documentation__='
+        Reads pacmans database and determine pacmans dependencies.
+    '
     local core_database_url="$(command grep 'core\.db' "$0" | head --lines 1)"
     wget \
         "$core_database_url" \
@@ -805,11 +834,13 @@ archInstall_determine_pacmans_needed_packages() {
 }
 alias archInstall.determine_package_dependencies=archInstall_determine_package_dependencies
 archInstall_determine_package_dependencies() {
-    # Determines all package dependencies. Returns a list of needed
-    # packages for given package determined by given database.
-    # NOTE: We append and prepend always a whitespace to simply identify
-    # duplicates without using extended regular expression and packname
-    # escaping.
+    local __documentation__='
+        Determines all package dependencies. Returns a list of needed packages
+        for given package determined by given database.
+        NOTE: We append and prepend always a whitespace to simply identify
+        duplicates without using extended regular expression and package name
+        escaping.
+    '
     archInstall_needed_packages+=("${1[@]}")
     local package_directory_path="$(
         archInstall.determine_package_directory_name "$@")"
@@ -824,13 +855,13 @@ archInstall_determine_package_dependencies() {
                     while IFS= read -r package_dependency_description
         do
             local package_name="$(
-                echo "$package_dependency_description" | \
+                bl.logging.plain "$package_dependency_description" | \
                     command grep \
                         --extended-regexp \
                         --only-matching \
                         '^[-a-zA-Z0-9]+'
             )"
-            if ! echo "${archInstall_needed_packages[@]}" | \
+            if ! bl.logging.plain "${archInstall_needed_packages[@]}" | \
                 command grep " $package_name " &>/dev/null
             then
                 archInstall.determine_package_dependencies \
@@ -847,8 +878,10 @@ archInstall_determine_package_dependencies() {
 }
 alias archInstall.determine_package_directory_name=archInstall_determine_pacage_directory_name
 archInstall.determine_package_directory_name() {
-    # Determines the package directory name from given package name in
-    # given database.
+    local __documentation__='
+        Determines the package directory name from given package name in given
+        database.
+    '
     local package_directory_path="$(
         command grep \
             "%PROVIDES%"$'\n(.+\n)*'"$1"$'\n(.+\n)*\n' \
@@ -869,8 +902,7 @@ archInstall.determine_package_directory_name() {
             '^[0-9a-zA-Z]*acm[0-9a-zA-Z]*-([0-9a-zA-Z\.]+-[0-9a-zA-Z\.])$'
         do
             local package_directory_name="$(
-                command find "$2" -maxdepth 1 -regex "$regular_expression"
-            )"
+                command find "$2" -maxdepth 1 -regex "$regular_expression")"
             if [ "$package_directory_name" ]; then
                 break
             fi
@@ -879,15 +911,17 @@ archInstall.determine_package_directory_name() {
             package_directory_path="$2/$package_directory_name/"
         fi
     fi
-    echo "$package_directory_path"
+    bl.logging.plain "$package_directory_path"
 }
 alias archInstall.download_and_extract_pacman=archInstall_download_and_extract_pacman
 archInstall_download_and_extract_pacman() {
-    # Downloads all packages from arch linux needed to run pacman.
+    local __documentation__='
+        Downloads all packages from arch linux needed to run pacman.
+    '
     local list_buffer_file="$1"
     if archInstall.determine_pacmans_needed_packages "$list_buffer_file"; then
         bl.logging.info "Needed packages are: \"$(
-            echo "${archInstall_needed_packages[@]}" | \
+            bl.logging.plain "${archInstall_needed_packages[@]}" | \
                 command sed 's/ /", "/g'
         )\"."
         bl.logging.info \
@@ -900,8 +934,8 @@ archInstall_download_and_extract_pacman() {
                     head --lines 1
             )"
             local file_name="$(
-                echo "$package_url" | command sed 's/.*\/\([^\/][^\/]*\)$/\1/'
-            )"
+                bl.logging.plain "$package_url" | \
+                    command sed 's/.*\/\([^\/][^\/]*\)$/\1/')"
             # If "file_name" couldn't be determined via server determine it via
             # current package cache.
             if [ ! "$file_name" ]; then
@@ -910,8 +944,7 @@ archInstall_download_and_extract_pacman() {
                         "$archInstall_package_cache_path" \
                         -maxdepth 1 \
                         -regex "$package_name-[0-9]" | \
-                            head --lines 1
-                )"
+                            head --lines 1)"
             fi
             if [ "$file_name" ]; then
                 wget \
@@ -923,7 +956,7 @@ archInstall_download_and_extract_pacman() {
                 bl.logging.critical \
                     "A suitable file for package \"$package_name\" could not be determined."
             fi
-            bl.logging.indo "Install package \"$file_name\" manually."
+            bl.logging.info "Install package \"$file_name\" manually."
             xz \
                 --decompress \
                 --to-stdout \
@@ -933,7 +966,8 @@ archInstall_download_and_extract_pacman() {
                         --extract \
                         "$archInstall_mountpoint_path"
             return_code=$?
-            (( return_code != 0 )) && return $return_code
+            (( return_code != 0 )) && \
+                return $return_code
         done
     else
         return 1
@@ -941,7 +975,9 @@ archInstall_download_and_extract_pacman() {
 }
 alias archInstall.make_partitions=archInstall_make_partitions
 archInstall_make_partitions() {
-    # Performs the auto partitioning.
+    local __documentation__='
+        Performs the auto partitioning.
+    '
     if $archInstall_auto_partitioning; then
         bl.logging.info Check block device size.
         local blockdevice_space_in_mega_byte="$(("$(
@@ -994,7 +1030,9 @@ EOF
 }
 alias archInstall.generate_fstab_configuration_file=archInstall_generate_fstab_configuration_file
 archInstall_generate_fstab_configuration_file() {
-    # Writes the fstab configuration file.
+    local __documentation__='
+        Writes the fstab configuration file.
+    '
     bl.logging.info Generate fstab config.
     if hash genfstab 2>/dev/null; then
         # NOTE: Mountpoint shouldn't have a path separator at the end.
@@ -1003,7 +1041,7 @@ archInstall_generate_fstab_configuration_file() {
             -p "${archInstall_mountpoint_path%?}" \
             1>>"${archInstall_mountpoint_path}etc/fstab"
     else
-        cat << EOF 1>>"${archInstall_mountpoint_path}etc/fstab"
+        bl.logging.cat << EOF 1>>"${archInstall_mountpoint_path}etc/fstab"
 # Added during installation.
 # <file system>                    <mount point> <type> <options>                                                                                            <dump> <pass>
 # "compress=lzo" has lower compression ratio by better cpu performance.
@@ -1014,7 +1052,9 @@ EOF
 }
 alias archInstall.unmount_installed_system=archInstall_unmount_installed_system
 archInstall_unmount_installed_system() {
-    # Unmount previous installed system.
+    local __documentation__='
+        Unmount previous installed system.
+    '
     bl.logging.info Unmount installed system.
     sync
     cd / && \
@@ -1023,7 +1063,9 @@ archInstall_unmount_installed_system() {
 }
 alias archInstall.prepare_next_boot=archInstall_prepare_next_boot
 archInstall_prepare_next_boot() {
-    # Reboots into fresh installed system if previous defined.
+    local __documentation__='
+        Reboots into fresh installed system if previous defined.
+    '
     if [ -b "$archInstall_output_system" ]; then
         archInstall.generate_fstab_configuration_file
         archInstall.add_boot_entries
@@ -1036,7 +1078,9 @@ archInstall_prepare_next_boot() {
 }
 alias archInstall.configure_pacman=archInstall_configure_pacman
 archInstall_configure_pacman() {
-    # Disables signature checking for incoming packages.
+    local __documentation__='
+        Disables signature checking for incoming packages.
+    '
     bl.logging.info "Enable mirrors in \"$archInstall_country_with_mirrors\"."
     local buffer_file="$(mktemp)"
     local in_area=false
@@ -1051,10 +1095,11 @@ archInstall_configure_pacman() {
         elif $in_area && [ "${line:0:1}" = '#' ]; then
             line="${line:1}"
         fi
-        echo "$line"
+        bl.logging.plain "$line"
     done < "${archInstall_mountpoint_path}etc/pacman.d/mirrorlist" \
         1>"$buffer_file"
-    cat "$buffer_file" 1>"${archInstall_mountpoint_path}etc/pacman.d/mirrorlist"
+    bl.logging.cat "$buffer_file" \
+        1>"${archInstall_mountpoint_path}etc/pacman.d/mirrorlist"
     bl.logging.info "Change signature level to \"Never\" for pacman's packages."
     command sed \
         --in-place \
@@ -1064,19 +1109,23 @@ archInstall_configure_pacman() {
 }
 alias archInstall.determine_auto_partitioning=archInstall_determine_auto_partitioning
 archInstall_determine_auto_partitioning() {
-    # Determine whether we should perform our auto partitioning mechanism.
+    local __documentation__='
+        Determine whether we should perform our auto partitioning mechanism.
+    '
     if ! $archInstall_auto_partitioning; then
         while true; do
-            echo -n 'Do you want auto partioning? [yes|NO]: '
+            bl.logging.plain -n Do you want auto partioning? [yes|NO]:
             local auto_partitioning
             read -r auto_partitioning
             if [ "$auto_partitioning" = '' ] || [ "$(
-                echo "$auto_partitioning" | tr '[:upper:]' '[:lower:]'
+                bl.logging.plain "$auto_partitioning" | \
+                    tr '[:upper:]' '[:lower:]'
             )" = no ]; then
                 archInstall_auto_partitioning=false
                 break
             elif [ "$(
-                echo "$auto_partitioning" | tr '[:upper:]' '[:lower:]'
+                bl.logging.plain "$auto_partitioning" | \
+                    tr '[:upper:]' '[:lower:]'
             )" = yes ]; then
                 archInstall_auto_partitioning=true
                 break
@@ -1086,8 +1135,10 @@ archInstall_determine_auto_partitioning() {
 }
 alias archInstall.get_hosts_content=archInstall_get_hosts_content
 archInstall_get_hosts_content() {
-    # Provides the file content for the "/etc/hosts".
-    cat << EOF
+    local __documentation__='
+        Provides the file content for the "/etc/hosts".
+    '
+    bl.logging.cat << EOF
 #<IP-Adress> <computername.workgroup> <computernames>
 127.0.0.1    localhost.localdomain    localhost $1
 ::1          ipv6-localhost           ipv6-localhost ipv6-$1
@@ -1095,7 +1146,9 @@ EOF
 }
 alias archInstall.prepare_blockdevices=archInstall_prepare_blockdevices
 archInstall_prepare_blockdevices() {
-    # Prepares given block devices to make it ready for fresh installation.
+    local __documentation__='
+        Prepares given block devices to make it ready for fresh installation.
+    '
     bl.logging.info \
         "Unmount needed devices and devices pointing to our temporary system mount point \"$archInstall_mountpoint_path\"."
     umount -f "${archInstall_output_system}"* 2>/dev/null
@@ -1108,7 +1161,9 @@ archInstall_prepare_blockdevices() {
 }
 alias archInstall.format_system_partition=archInstall_format_system_partition
 archInstall_format_system_partition() {
-    # Prepares the system partition.
+    local __documentation__='
+        Prepares the system partition.
+    '
     local output_device="$archInstall_output_system"
     if [ -b "${archInstall_output_system}2" ]; then
         output_device="${archInstall_output_system}2"
@@ -1127,7 +1182,9 @@ archInstall_format_system_partition() {
 }
 alias archInstall.format_boot_partition=archInstall_format_boot_partition
 archInstall_format_boot_partition() {
-    # Prepares the boot partition.
+    local __documentation__='
+        Prepares the boot partition.
+    '
     bl.logging.info Make boot partition.
     mkfs.vfat \
         -F 32 \
@@ -1143,16 +1200,21 @@ archInstall_format_boot_partition() {
 }
 alias archInstall.format_partitions=archInstall_format_partitions
 archInstall_format_partitions() {
-    # Performs formating part.
+    local __documentation__='
+        Performs formating part.
+    '
     archInstall.format_system_partition
     archInstall.format_boot_partition
 }
 alias archInstall.add_boot_entries=archInstall_add_boot_entries
 archInstall_add_boot_entries() {
-    # Creates an uefi boot entry.
+    local __documentation__='
+        Creates an uefi boot entry.
+    '
     if hash efibootmgr 2>/dev/null; then
         bl.logging.info Configure efi boot manager.
-        cat << EOF 1>"${archInstall_mountpoint_path}/boot/startup.nsh"
+        bl.logging.cat << EOF \
+            1>"${archInstall_mountpoint_path}/boot/startup.nsh"
 \\vmlinuz-linux initrd=\\initramfs-linux.img root=PARTLABEL=${archInstall_system_partition_label} rw rootflags=subvol=root quiet loglevel=2 acpi_osi="!Windows 2012"
 EOF
         archInstall.changeroot_to_mount_point \
@@ -1185,7 +1247,9 @@ EOF
 }
 alias archInstall.load_cache=archInstall_load_cache
 archInstall_load_cache() {
-    # Load previous downloaded packages and database.
+    local __documentation__='
+        Load previous downloaded packages and database.
+    '
     bl.logging.info Load cached databases.
     mkdir --parents "${archInstall_mountpoint_path}var/lib/pacman/sync"
     cp \
@@ -1205,7 +1269,9 @@ archInstall_load_cache() {
 }
 alias archInstall.cache=archInstall_cache
 archInstall_cache() {
-    # Cache previous downloaded packages and database.
+    local __documentation__='
+        Cache previous downloaded packages and database.
+    '
     bl.logging.info Cache loaded packages.
     cp \
         --force \
@@ -1222,8 +1288,10 @@ archInstall_cache() {
 }
 alias archInstall.prepare_installation=archInstall_prepare_installation
 archInstall_prepare_installation() {
-    # Deletes previous installed things in given output target. And creates
-    # a package cache directory.
+    local __documentation__='
+        Deletes previous installed things in given output target. And creates a
+        package cache directory.
+    '
     mkdir --parents "$archInstall_package_cache_path"
     if [ -b "$archInstall_output_system" ]; then
         bl.logging.info Mount system partition.
@@ -1248,7 +1316,7 @@ archInstall_prepare_installation() {
     chmod 755 "$archInstall_mountpoint_path"
     # Make an uniqe array.
     read -r -a archInstall_packages <<< "$(
-        echo "${archInstall_packages[@]}" | \
+        bl.logging.plain "${archInstall_packages[@]}" | \
             tr ' ' '\n' | \
                 sort -u | \
                     tr '\n' ' '
@@ -1258,7 +1326,9 @@ archInstall_prepare_installation() {
 ## region controller
 alias archInstall.main=archInstall_main
 archInstall_main() {
-    # Provides the main module scope.
+    local __documentation__='
+        Provides the main module scope.
+    '
     bl.logging.set_command_output_off
     archInstall.commandline_interface "$@" || return $?
     archInstall_packages+=(
@@ -1278,7 +1348,7 @@ archInstall_main() {
         fi
     elif [ -b "$archInstall_output_system" ]; then
         archInstall_packages+=(efibootmgr)
-        if echo "$archInstall_output_system" | \
+        if bl.logging.plain "$archInstall_output_system" | \
             command grep --quiet --extended-regexp '[0-9]$'
         then
             archInstall.format_system_partition || \
@@ -1294,7 +1364,7 @@ archInstall_main() {
     fi
     archInstall.prepare_installation || \
         bl.logging.critical Preparing installation failed.
-    if [ "$UID" = 0 ] && ! $archInstall_prevent_using_pacstrap && \
+    if (( UID == 0 )) && ! $archInstall_prevent_using_pacstrap && \
         hash pacstrap 2>/dev/null
     then
         archInstall.with_pacstrap || \
