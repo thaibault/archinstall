@@ -455,7 +455,7 @@ archInstall_with_pacstrap() {
     bl.logging.info Patch pacstrap to handle offline installations.
     command sed --regexp-extended \
         's/(pacman.+-(S|-sync))(y|--refresh)/\1/g' \
-            <"$(which pacstrap)" \
+            <"$(command -v pacstrap)" \
             1>"${_PACKAGE_CACHE_PATH}/patchedOfflinePacman.sh"
     chmod +x "${_PACKAGE_CACHE_PATH}/patchedOfflinePacman.sh"
     bl.logging.info Update package databases.
