@@ -1264,7 +1264,7 @@ archInstall_generic_linux_steps() {
         system base.
     '
     local return_code=0
-    bl.logging.info Create a list with urls for needed packages.
+    bl.logging.info Create a list with urls for existing packages.
     local package_url_list_file_path="$(archInstall.create_package_url_list)"
     bl.exception.try
         archInstall.download_and_extract_pacman "$package_url_list_file_path"
@@ -1290,17 +1290,7 @@ archInstall_generic_linux_steps() {
         "${archInstall_mountpoint_path}etc/resolv.conf" \
         "${archInstall_mountpoint_path}etc/resolv.conf.old" \
             2>/dev/null
-    command sed \
-        --in-place \
-        --quiet \
-        '/^[ \t]*CheckSpace/ !p' \
-        "${archInstall_mountpoint_path}etc/pacman.conf"
-    command sed \
-        --in-place \
-        's/^[ \t]*SigLevel[ \t].*/SigLevel = Never/' \
-        "${archInstall_mountpoint_path}etc/pacman.conf"
-    bl.logging.info Create temporary mirrors to download new packages.
-    archInstall.append_temporary_install_mirrors
+    archInstall.make_pacman_portable
     archInstall.load_cache || \
         bl.logging.info No package cache was loaded.
     bl.logging.info Update package databases.
@@ -1331,6 +1321,23 @@ archInstall_generic_linux_steps() {
     (( return_code == 0 )) && \
         archInstall.configure_pacman
     return $return_code
+}
+alias archInstall.make_pacman_portable=archInstall_make_pacman_portable
+archInstall_make_pacman_portable() {
+    local __documentation__='
+        Disables signature checks and registers temporary download mirrors.
+    '
+    command sed \
+        --in-place \
+        --quiet \
+        '/^[ \t]*CheckSpace/ !p' \
+        "${archInstall_mountpoint_path}etc/pacman.conf"
+    command sed \
+        --in-place \
+        's/^[ \t]*SigLevel[ \t].*/SigLevel = Never/' \
+        "${archInstall_mountpoint_path}etc/pacman.conf"
+    bl.logging.info Register temporary mirrors to download new packages.
+    archInstall.append_temporary_install_mirrors
 }
 alias archInstall.with_existing_pacman=archInstall_with_existing_pacman
 archInstall_with_existing_pacman() {
@@ -1371,8 +1378,16 @@ archInstall_with_existing_pacman() {
             "${archInstall_packages[@]}" \
             --force
         return_code=$?
-        rm "${_PACKAGE_CACHE_PATH}/patchedOfflinePacstrap.sh"
+        rm "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
     else
+        pacman \
+            --force \
+            --root "$archInstall_mountpoint_path" \
+            --sync \
+            --noconfirm \
+            filesystem \
+            pacman
+        archInstall.make_pacman_portable
         archInstall.changeroot_to_mountpoint \
             /usr/bin/pacman \
             --arch "$archInstall_cpu_architecture" \
