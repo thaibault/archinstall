@@ -19,6 +19,7 @@ elif [ -f "/usr/lib/bashlink/module.sh" ]; then
     source "/usr/lib/bashlink/module.sh"
 else
     archInstall_bashlink_path="$(mktemp --directory --suffix -bashlink)/bashlink/"
+    mkdir "$archInstall_bashlink_path"
     if wget \
         https://goo.gl/UKF5JG \
         --output-document "${archInstall_bashlink_path}module.sh" \
