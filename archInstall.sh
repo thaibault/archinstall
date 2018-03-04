@@ -190,8 +190,6 @@ archInstall_print_commandline_option_description() {
 
 -d --debug Gives you any output from all tools which are used (default: "false").
 
--l --load-environment Simple load the install arch linux scope without doing anything else.
-
 
 -u --user-names [USER_NAMES [USER_NAMES ...]], Defines user names for new system (default: "${archInstall_user_names[@]}").
 
@@ -487,7 +485,7 @@ archInstall_add_boot_entries() {
     '
     if hash efibootmgr 2>/dev/null; then
         bl.logging.info Configure efi boot manager.
-        bl.logging.cat << EOF \
+        cat << EOF \
             1>"${archInstall_mountpoint_path}/boot/startup.nsh"
 \\vmlinuz-linux initrd=\\initramfs-linux.img root=PARTLABEL=${archInstall_system_partition_label} rw rootflags=subvol=root quiet loglevel=2 acpi_osi="!Windows 2012"
 EOF
@@ -653,7 +651,7 @@ archInstall_configure_pacman() {
         echo "$line"
     done < "${archInstall_mountpoint_path}etc/pacman.d/mirrorlist" \
         1>"$buffer_file"
-    bl.logging.cat "$buffer_file" \
+    cat "$buffer_file" \
         1>"${archInstall_mountpoint_path}etc/pacman.d/mirrorlist"
     bl.logging.info "Change signature level to \"Never\" for pacman's packages."
     command sed \
@@ -860,7 +858,7 @@ archInstall_get_hosts_content() {
     local __documentation__='
         Provides the file content for the "/etc/hosts".
     '
-    bl.logging.cat << EOF
+    cat << EOF
 #<IP-Adress> <computername.workgroup> <computernames>
 127.0.0.1    localhost.localdomain    localhost $1
 ::1          ipv6-localhost           ipv6-localhost ipv6-$1
@@ -961,7 +959,7 @@ archInstall_enable_services() {
                 description='A simple WPA encrypted wireless connection'
                 additional_properties=$'\nSecurity=wpa\nESSID='"'home'"$'\nKey='"'home'"
             fi
-        bl.logging.cat << EOF 1>"${archInstall_mountpoint_path}etc/netctl/${network_device_name}-dhcp"
+        cat << EOF 1>"${archInstall_mountpoint_path}etc/netctl/${network_device_name}-dhcp"
 Description='${description}'
 Interface=${network_device_name}
 Connection=${connection}
@@ -1051,7 +1049,7 @@ archInstall_generate_fstab_configuration_file() {
             -p "${archInstall_mountpoint_path%?}" \
             1>>"${archInstall_mountpoint_path}etc/fstab"
     else
-        bl.logging.cat << EOF 1>>"${archInstall_mountpoint_path}etc/fstab"
+        cat << EOF 1>>"${archInstall_mountpoint_path}etc/fstab"
 # Added during installation.
 # <file system>                    <mount point> <type> <options>                                                                                            <dump> <pass>
 # "compress=lzo" has lower compression ratio by better cpu performance.
@@ -1344,11 +1342,12 @@ archInstall_with_existing_pacman() {
     archInstall.load_cache
     if hash pacstrap &>/dev/null; then
         bl.logging.info Patch pacstrap to handle offline installations.
-        command sed --regexp-extended \
+        command sed \
+            --regexp-extended \
             's/(pacman.+-(S|-sync))(y|--refresh)/\1/g' \
                 <"$(command -v pacstrap)" \
-                1>"${_PACKAGE_CACHE_PATH}/patchedOfflinePacstrap.sh"
-        chmod +x "${_PACKAGE_CACHE_PATH}/patchedOfflinePacstrap.sh"
+                1>"${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
+        chmod +x "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
     fi
     bl.logging.info Update package databases.
     pacman \
@@ -1369,13 +1368,17 @@ archInstall_with_existing_pacman() {
     then
         "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh" \
             -d "$archInstall_mountpoint_path" \
-            "${archInstall_packages[@]}"
+            "${archInstall_packages[@]}" \
+            --force
         return_code=$?
+        rm "${_PACKAGE_CACHE_PATH}/patchedOfflinePacstrap.sh"
     else
-        pacman \
+        archInstall.changeroot_to_mountpoint \
+            /usr/bin/pacman \
+            --arch "$archInstall_cpu_architecture" \
             --force \
-            --root "$archInstall_mountpoint_path" \
             --sync \
+            --needed \
             --noconfirm \
             "${archInstall_packages[@]}"
         return_code=$?
