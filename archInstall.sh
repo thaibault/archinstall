@@ -106,14 +106,16 @@ archinstall__optional_dependencies__=(
     'btrfs: Control a btrfs filesystem (part of btrfs-progs).'
     'efibootmgr: Manipulate the EFI Boot Manager (part of efibootmgr).'
     'gdisk: Interactive GUID partition table (GPT) manipulator (part of gptfdisk).'
+    # Native arch install script helper.
+    'arch-chroot: Performs an arch chroot with api file system binding (part of package "arch-install-scripts").'
     # Needed for smart dos filesystem labeling, installing without root
     # permissions or automatic network configuration.
-    'arch-chroot: Performs an arch chroot with api file system binding (part of arch-install-scripts).'
     'dosfslabel: Handle dos file systems (part of dosfstools).'
     'fakeroot: Run a command in an environment faking root privileges for file manipulation.'
     'fakechroot: Wraps some c-lib functions to enable programs like "chroot" running without root privileges.'
     'ip: Determines network adapter (part of iproute2).'
     'os-prober: Detects presence of other operating systems.'
+    'pacstrap: Installs arch linux from an existing linux system (part of package "arch-install-scripts").'
 )
 archInstall_basic_packages=(base ifplugd)
 archInstall_common_additional_packages=(base-devel python sudo)
@@ -345,7 +347,7 @@ archInstall_commandline_interface() {
                 shift
                 archInstall_auto_partitioning=true
                 ;;
-            -p|--prevent-using-existsing-pacman)
+            -p|--prevent-using-existing-pacman)
                 shift
                 archInstall_prevent_using_existing_pacman=true
                 ;;
@@ -1266,23 +1268,23 @@ archInstall_generic_linux_steps() {
     local return_code=0
     bl.logging.info Create a list with urls for needed packages.
     local package_url_list_file_path="$(archInstall.create_package_url_list)"
-    bl.exception.try {
+    bl.exception.try
         archInstall.download_and_extract_pacman "$package_url_list_file_path"
-    } bl.exception.catch {
+    bl.exception.catch_single
+    {
         rm --force "$package_url_list_file_path"
+        # shellcheck disable=SC2154
         bl.logging.error "$bl_exception_last_traceback"
         return 1
     }
     rm --force "$package_url_list_file_path"
     # Create root filesystem only if not exists.
-    (
-        test -e "${archInstall_mountpoint_path}etc/mtab" || \
-            echo rootfs / rootfs rw 0 0 \
-                1>"${archInstall_mountpoint_path}etc/mtab"
-    )
-    # Copy systems resolv.conf to new installed system.
-    # If the native "arch-chroot" is used it will mount the file into the
-    # change root environment.
+    [ -e "${archInstall_mountpoint_path}etc/mtab" ] || \
+        echo rootfs / rootfs rw 0 0 \
+            1>"${archInstall_mountpoint_path}etc/mtab"
+    # Copy systems resolv.conf to new installed system. If the native
+    # "arch-chroot" is used it will mount the file into the change root
+    # environment.
     cp /etc/resolv.conf "${archInstall_mountpoint_path}etc/"
     ! "$archInstall_prevent_using_native_arch_changeroot" && \
         hash arch-chroot 2>/dev/null
@@ -1301,19 +1303,16 @@ archInstall_generic_linux_steps() {
         "${archInstall_mountpoint_path}etc/pacman.conf"
     bl.logging.info Create temporary mirrors to download new packages.
     archInstall.append_temporary_install_mirrors
-    (
-        archInstall.load_cache || \
-            bl.logging.info No package cache was loaded.
-    )
+    archInstall.load_cache || \
+        bl.logging.info No package cache was loaded.
     bl.logging.info Update package databases.
-    (
-        archInstall.changeroot_to_mountpoint \
-            /usr/bin/pacman \
-            --arch "$archInstall_cpu_architecture" \
-            --refresh \
-            --sync || \
-                true
-    )
+    archInstall.changeroot_to_mountpoint \
+        /usr/bin/pacman \
+        --arch "$archInstall_cpu_architecture" \
+        --refresh \
+        --sync || \
+            bl.logging.info \
+                Updating package database failed. Operating offline.
     bl.logging.info "Install needed packages \"$(
         echo "${archInstall_packages[@]}" | \
             command sed --regexp-extended 's/(^ +| +$)//g' | \
@@ -1327,12 +1326,10 @@ archInstall_generic_linux_steps() {
         --noconfirm \
         "${archInstall_packages[@]}"
     return_code=$?
-    (
-        archInstall.cache || \
-            bl.logging.warn \
-                Caching current downloaded packages and generated database \
-                failed.
-    )
+    archInstall.cache || \
+        bl.logging.warn \
+            Caching current downloaded packages and generated database \
+            failed.
     (( return_code == 0 )) && \
         archInstall.configure_pacman
     return $return_code
@@ -1340,16 +1337,27 @@ archInstall_generic_linux_steps() {
 alias archInstall.with_existing_pacman=archInstall_with_existing_pacman
 archInstall_with_existing_pacman() {
     local __documentation__='
-        Installs arch linux via existing pacman.
+        Installs arch linux via patched (to be able to operate offline)
+        pacstrap of pacman directly.
     '
     local return_code=0
     archInstall.load_cache
+    if hash pacstrap &>/dev/null; then
+        bl.logging.info Patch pacstrap to handle offline installations.
+        command sed --regexp-extended \
+            's/(pacman.+-(S|-sync))(y|--refresh)/\1/g' \
+                <"$(command -v pacstrap)" \
+                1>"${_PACKAGE_CACHE_PATH}/patchedOfflinePacstrap.sh"
+        chmod +x "${_PACKAGE_CACHE_PATH}/patchedOfflinePacstrap.sh"
+    fi
     bl.logging.info Update package databases.
     pacman \
         --arch "$archInstall_cpu_architecture" \
         --refresh \
         --root "$archInstall_mountpoint_path" \
-        --sync
+        --sync || \
+            bl.logging.info \
+                Updating package database failed. Operating offline.
     bl.logging.info "Install needed packages \"$(
         echo "${archInstall_packages[@]}" | \
             command sed \
@@ -1357,20 +1365,24 @@ archInstall_with_existing_pacman() {
                     command sed \
                         's/ /", "/g'
     )\" to \"$archInstall_output_system\"."
-    pacman \
-        --force \
-        --root "$archInstall_mountpoint_path" \
-        --sync \
-        --noconfirm \
-        "${archInstall_packages[@]}"
-    bl.logging.plain YOO "${archInstall_packages[@]}"
-    return_code=$?
-    (
-        archInstall.cache || \
-            bl.logging.warn \
-                Caching current downloaded packages and generated database \
-                failed.
-    )
+    if [ -f "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh" ]
+    then
+        "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh" \
+            -d "$archInstall_mountpoint_path" \
+            "${archInstall_packages[@]}"
+        return_code=$?
+    else
+        pacman \
+            --force \
+            --root "$archInstall_mountpoint_path" \
+            --sync \
+            --noconfirm \
+            "${archInstall_packages[@]}"
+        return_code=$?
+    fi
+    archInstall.cache || \
+        bl.logging.warn \
+            Caching current downloaded packages and generated database failed.
     return $return_code
 }
 ## endregion
@@ -1425,7 +1437,7 @@ archInstall_main() {
         hash pacman 2>/dev/null
     then
         archInstall.with_existing_pacman || \
-            bl.logging.critical Installation with existing pacman failed.
+            bl.logging.critical Installation with pacman failed.
     else
         archInstall.generic_linux_steps || \
             bl.logging.critical Installation via generic linux steps failed.
