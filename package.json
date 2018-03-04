@@ -49,6 +49,6 @@
     "shellcheck": "0.0.8"
   },
   "dependencies": {
-    "bashlink": "^1.0.54"
+    "bashlink": "^1.0.58"
   }
 }
