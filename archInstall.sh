@@ -1445,9 +1445,10 @@ archInstall_main() {
 # endregion
 if bl.tools.is_main; then
     bl.exception.activate
-    bl.exception.try {
+    bl.exception.try
         archInstall.main "$@"
-    } bl.exception.catch {
+    bl.exception.catch_single
+    {
         [ -d "$archInstall_bashlink_path" ] && \
             rm --recursive "$archInstall_bashlink_path"
         # shellcheck disable=SC2154
