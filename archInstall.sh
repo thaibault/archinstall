@@ -523,14 +523,10 @@ archInstall_append_temporary_install_mirrors() {
         Appends temporary used mirrors to download missing packages during
         installation.
     '
-    local return_code
     local url
     for url in "${archInstall_package_source_urls[@]}"; do
         echo "Server = $url/\$repo/os/$archInstall_cpu_architecture" \
             1>>"${archInstall_mountpoint_path}etc/pacman.d/mirrorlist"
-        return_code=$?
-        (( return_code != 0 )) && \
-            return $return_code
     done
 }
 alias archInstall.cache=archInstall_cache
@@ -552,6 +548,76 @@ archInstall_cache() {
         "${archInstall_package_cache_path}/"
     return $?
 }
+alias archInstall.enable_services=archInstall_enable_services
+archInstall_enable_services() {
+    local __documentation__='
+        Enable all needed services.
+    '
+    local network_device_name
+    for network_device_name in $(
+        ip addr | \
+            command grep --extended-regexp --only-matching '^[0-9]+: .+: ' | \
+                command sed --regexp-extended 's/^[0-9]+: (.+): $/\1/g'
+    ); do
+        if ! echo "$network_device_name" | \
+            command grep --extended-regexp '^(lo|loopback|localhost)$' --quiet
+        then
+            local service_name=dhcpcd
+            local connection=ethernet
+            local description='A basic dhcp connection'
+            local additional_properties=''
+            if [ "${network_device_name:0:1}" = e ]; then
+                bl.logging.info \
+                    "Enable dhcp service on wired network device \"$network_device_name\"."
+                service_name=netctl-ifplugd
+                connection=ethernet
+                description='A basic ethernet dhcp connection'
+            elif [ "${network_device_name:0:1}" = w ]; then
+                bl.logging.info \
+                    "Enable dhcp service on wireless network device \"$network_device_name\"."
+                service_name=netctl-auto
+                connection=wireless
+                description='A simple WPA encrypted wireless connection'
+                additional_properties=$'\nSecurity=wpa\nESSID='"'home'"$'\nKey='"'home'"
+            fi
+        cat << EOF 1>"${archInstall_mountpoint_path}etc/netctl/${network_device_name}-dhcp"
+Description='${description}'
+Interface=${network_device_name}
+Connection=${connection}
+IP=dhcp
+## for DHCPv6
+#IP6=dhcp
+## for IPv6 autoconfiguration
+#IP6=stateless${additional_properties}
+EOF
+            ln \
+                --force \
+                --symbolic \
+                "/usr/lib/systemd/system/${service-name}@.service" \
+                "${archInstall_mountpoint_path}etc/systemd/system/multi-user.target.wants/${service_name}@${network_device_name}.service"
+        fi
+    done
+    local service_name
+    for service_name in "${archInstall_needed_services[@]}"; do
+        bl.logging.info "Enable \"$service_name\" service."
+        archInstall.changeroot_to_mountpoint \
+            systemctl \
+            enable \
+            "${service_name}.service"
+    done
+}
+alias archInstall.get_hosts_content=archInstall_get_hosts_content
+archInstall_get_hosts_content() {
+    local __documentation__='
+        Provides the file content for the "/etc/hosts".
+    '
+    cat << EOF
+#<IP-Adress> <computername.workgroup> <computernames>
+127.0.0.1    localhost.localdomain    localhost $1
+::1          ipv6-localhost           ipv6-localhost ipv6-$1
+EOF
+}
+# NOTE: Depends on "archInstall.get_hosts_content", "archInstall.enable_services"
 alias archInstall.configure=archInstall_configure
 archInstall_configure() {
     local __documentation__='
@@ -603,7 +669,8 @@ archInstall_configure() {
         archInstall.changeroot_to_mountpoint \
             /usr/bin/env bash -c 'echo root:root | $(which chpasswd)'
     fi
-    archInstall.enable_services
+    archInstall.enable_services ||
+        bl.logging.warn Enabling services has failed.
     local user_name
     for user_name in "${archInstall_user_names[@]}"; do
         bl.logging.info "Add user: \"$user_name\"."
@@ -853,17 +920,6 @@ archInstall_determine_pacmans_needed_packages() {
     bl.logging.critical \
         "No database file (\"${archInstall_package_cache_path}/core.db\") available."
 }
-alias archInstall.get_hosts_content=archInstall_get_hosts_content
-archInstall_get_hosts_content() {
-    local __documentation__='
-        Provides the file content for the "/etc/hosts".
-    '
-    cat << EOF
-#<IP-Adress> <computername.workgroup> <computernames>
-127.0.0.1    localhost.localdomain    localhost $1
-::1          ipv6-localhost           ipv6-localhost ipv6-$1
-EOF
-}
 alias archInstall.download_and_extract_pacman=archInstall_download_and_extract_pacman
 archInstall_download_and_extract_pacman() {
     local __documentation__='
@@ -880,7 +936,6 @@ archInstall_download_and_extract_pacman() {
         bl.logging.info \
             "Download and extract each package into our new system located in \"$archInstall_mountpoint_path\"."
         local package_name
-        local return_code=0
         for package_name in "${archInstall_needed_packages[@]}"; do
             local package_url="$(
                 command grep \
@@ -919,75 +974,10 @@ archInstall_download_and_extract_pacman() {
                     tar \
                         --directory "$archInstall_mountpoint_path" \
                         --extract
-            return_code=$?
-            (( return_code != 0 )) && \
-                return $return_code
         done
     else
         return 1
     fi
-}
-alias archInstall.enable_services=archInstall_enable_services
-archInstall_enable_services() {
-    local __documentation__='
-        Enable all needed services.
-    '
-    local network_device_name
-    for network_device_name in $(
-        ip addr | \
-            command grep --extended-regexp --only-matching '^[0-9]+: .+: ' | \
-                command sed --regexp-extended 's/^[0-9]+: (.+): $/\1/g'
-    ); do
-        if ! echo "$network_device_name" | \
-            command grep --extended-regexp '^(lo|loopback|localhost)$' --quiet
-        then
-            local service_name=dhcpcd
-            local connection=ethernet
-            local description='A basic dhcp connection'
-            local additional_properties=''
-            if [ "${network_device_name:0:1}" = e ]; then
-                bl.logging.info \
-                    "Enable dhcp service on wired network device \"$network_device_name\"."
-                service_name=netctl-ifplugd
-                connection=ethernet
-                description='A basic ethernet dhcp connection'
-            elif [ "${network_device_name:0:1}" = w ]; then
-                bl.logging.info \
-                    "Enable dhcp service on wireless network device \"$network_device_name\"."
-                service_name=netctl-auto
-                connection=wireless
-                description='A simple WPA encrypted wireless connection'
-                additional_properties=$'\nSecurity=wpa\nESSID='"'home'"$'\nKey='"'home'"
-            fi
-        cat << EOF 1>"${archInstall_mountpoint_path}etc/netctl/${network_device_name}-dhcp"
-Description='${description}'
-Interface=${network_device_name}
-Connection=${connection}
-IP=dhcp
-## for DHCPv6
-#IP6=dhcp
-## for IPv6 autoconfiguration
-#IP6=stateless${additional_properties}
-EOF
-            ln \
-                --force \
-                --symbolic \
-                "/usr/lib/systemd/system/${service-name}@.service" \
-                "${archInstall_mountpoint_path}etc/systemd/system/multi-user.target.wants/${service_name}@${network_device_name}.service"
-        fi
-    done
-    local return_code=0
-    local service_name
-    for service_name in "${archInstall_needed_services[@]}"; do
-        bl.logging.info "Enable \"$service_name\" service."
-        archInstall.changeroot_to_mountpoint \
-            systemctl \
-            enable \
-            "${service_name}.service"
-        return_code=$?
-        (( return_code != 0 )) && \
-            return $return_code
-    done
 }
 alias archInstall.format_boot_partition=archInstall_format_boot_partition
 archInstall_format_boot_partition() {
@@ -1229,7 +1219,6 @@ archInstall_tidy_up_system() {
     local __documentation__='
         Deletes some unneeded locations in new installs operating system.
     '
-    local return_code=0
     bl.logging.info Tidy up new build system.
     local file_path
     for file_path in "${archInstall_unneeded_file_locations[@]}"; do
@@ -1239,9 +1228,6 @@ archInstall_tidy_up_system() {
             "${archInstall_mountpoint_path}$file_path" \
             --force \
             --recursive
-        return_code=$?
-        (( return_code != 0 )) && \
-            return $return_code
     done
 }
 alias archInstall.unmount_installed_system=archInstall_unmount_installed_system
@@ -1272,24 +1258,13 @@ archInstall_generic_linux_steps() {
     {
         rm --force "$package_url_list_file_path"
         # shellcheck disable=SC2154
-        bl.logging.error "$bl_exception_last_traceback"
-        return 1
+        bl.logging.error_exception "$bl_exception_last_traceback"
     }
     rm --force "$package_url_list_file_path"
     # Create root filesystem only if not exists.
     [ -e "${archInstall_mountpoint_path}etc/mtab" ] || \
         echo rootfs / rootfs rw 0 0 \
             1>"${archInstall_mountpoint_path}etc/mtab"
-    # Copy systems resolv.conf to new installed system. If the native
-    # "arch-chroot" is used it will mount the file into the change root
-    # environment.
-    cp /etc/resolv.conf "${archInstall_mountpoint_path}etc/"
-    ! "$archInstall_prevent_using_native_arch_changeroot" && \
-        hash arch-chroot 2>/dev/null
-    mv \
-        "${archInstall_mountpoint_path}etc/resolv.conf" \
-        "${archInstall_mountpoint_path}etc/resolv.conf.old" \
-            2>/dev/null
     archInstall.make_pacman_portable
     archInstall.load_cache || \
         bl.logging.info No package cache was loaded.
@@ -1327,6 +1302,19 @@ archInstall_make_pacman_portable() {
     local __documentation__='
         Disables signature checks and registers temporary download mirrors.
     '
+    # Copy systems resolv.conf to new installed system. If the native
+    # "arch-chroot" is used it will mount the file into the change root
+    # environment.
+    cp /etc/resolv.conf "${archInstall_mountpoint_path}etc/"
+    if \
+        ! "$archInstall_prevent_using_native_arch_changeroot" && \
+        hash arch-chroot 2>/dev/null
+    then
+        mv \
+            "${archInstall_mountpoint_path}etc/resolv.conf" \
+            "${archInstall_mountpoint_path}etc/resolv.conf.old" \
+                2>/dev/null
+    fi
     command sed \
         --in-place \
         --quiet \
@@ -1416,6 +1404,7 @@ archInstall_main() {
         Usage: arch-install [options]
         ...
     '
+    bl.exception.activate
     archInstall.commandline_interface "$@" || \
         return $?
     archInstall_packages+=(
@@ -1439,53 +1428,43 @@ archInstall_main() {
             command grep --quiet --extended-regexp '[0-9]$'
         then
             archInstall.format_system_partition || \
-                bl.logging.critical System partition creation failed.
+                bl.logging.error_exception System partition creation failed.
         else
             archInstall.determine_auto_partitioning
             archInstall.prepare_blockdevices || \
-                bl.logging.critical Preparing blockdevices failed.
+                bl.logging.error_exception Preparing blockdevices failed.
         fi
     else
-        bl.logging.critical \
+        bl.logging.error_exception \
             "Could not install into \"$archInstall_output_system\"."
     fi
     archInstall.prepare_installation || \
-        bl.logging.critical Preparing installation failed.
+        bl.logging.error_exception Preparing installation failed.
     if (( UID == 0 )) && ! $archInstall_prevent_using_existing_pacman && \
         hash pacman 2>/dev/null
     then
         archInstall.with_existing_pacman || \
-            bl.logging.critical Installation with pacman failed.
+            bl.logging.error_exception Installation with pacman failed.
     else
         archInstall.generic_linux_steps || \
-            bl.logging.critical Installation via generic linux steps failed.
+            bl.logging.error_exception Installation via generic linux steps failed.
     fi
     archInstall.tidy_up_system
     archInstall.configure || \
-        bl.logging.critical Configuring installed system failed.
+        bl.logging.error_exception Configuring installed system failed.
     archInstall.prepare_next_boot || \
-        bl.logging.critical Preparing reboot failed.
+        bl.logging.error_exception Preparing reboot failed.
     archInstall.pack_result || \
-        bl.logging.critical \
+        bl.logging.error_exception \
             Packing system into archiv with files owned by root failed.
     bl.logging.info \
-        "Generating operating system into \"$_OUTPUT_SYSTEM\" has successfully finished."
+        "Generating operating system into \"$archInstall_output_system\" has successfully finished."
+    bl.exception.deactivate
 }
 ## endregion
 # endregion
 if bl.tools.is_main; then
-    bl.exception.activate
-    bl.exception.try
-        archInstall.main "$@"
-    bl.exception.catch_single
-    {
-        [ -d "$archInstall_bashlink_path" ] && \
-            rm --recursive "$archInstall_bashlink_path"
-        # shellcheck disable=SC2154
-        [ -d "$bl_module_remote_module_cache_path" ] && \
-            rm --recursive "$bl_module_remote_module_cache_path"
-        bl.logging.error "$bl_exception_last_traceback"
-    }
+    archInstall.main "$@"
     [ -d "$archInstall_bashlink_path" ] && \
         rm --recursive "$archInstall_bashlink_path"
     # shellcheck disable=SC2154
