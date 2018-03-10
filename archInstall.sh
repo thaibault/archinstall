@@ -559,8 +559,12 @@ archInstall_enable_services() {
             command grep --extended-regexp --only-matching '^[0-9]+: .+: ' | \
                 command sed --regexp-extended 's/^[0-9]+: (.+): $/\1/g'
     ); do
-        if ! echo "$network_device_name" | \
-            command grep --extended-regexp '^(lo|loopback|localhost)$' --quiet
+        # NOTE: We have to use `"$(which grep)"` instead of `command grep`
+        # because the latter one's return value is not catched by the wrapping
+        # test, so activated exceptions would throw on negative test here.
+        # shellcheck disable=SC2230
+        if ! echo "$network_device_name" | "$(which grep)" \
+            --extended-regexp '^(lo|loopback|localhost)$' --quiet
         then
             local service_name=dhcpcd
             local connection=ethernet
