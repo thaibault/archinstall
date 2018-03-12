@@ -91,10 +91,10 @@ archinstall__dependencies__=(
     mountpoint
     rm
     sed
+    sort
     sync
     touch
     tar
-    uniq
     uname
     which
     wget
@@ -776,7 +776,7 @@ archInstall_create_package_url_list() {
                     --quiet \
                     "s|.*href=\"\\([^\"]*\\).*|${archInstall_package_source_urls[0]}\\/$repository_name\\/os\\/$archInstall_cpu_architecture\\/\\1|p" | \
                         command grep --invert-match 'sig$' | \
-                            uniq \
+                            sort --unique \
                                 1>>"$package_url_list_file_path"
         temporary_return_code=$?
         # NOTE: "return_code" remains with an error code if there was given one
@@ -796,7 +796,7 @@ archInstall_determine_package_dependencies() {
         duplicates without using extended regular expression and package name
         escaping.
     '
-    archInstall_needed_packages+=("$1")
+    echo "$1"
     local package_description_file_path
     if package_description_file_path="$(
         archInstall.determine_package_description_file_path "$@"
@@ -818,15 +818,11 @@ archInstall_determine_package_dependencies() {
                         '^[a-zA-Z0-9][-a-zA-Z0-9]+' | \
                             sed --regexp-extended 's/^(.+)[><=].+$/\1/'
             )"
-            if ! echo "${archInstall_needed_packages[@]}" | \
-                command grep " $package_name " &>/dev/null
-            then
-                archInstall.determine_package_dependencies \
-                    "$package_name" \
-                    "$2" || \
-                        bl.logging.warn \
-                            "Needed package \"$package_name\" for \"$1\" couldn't be found in database in \"$2\"."
-            fi
+            archInstall.determine_package_dependencies \
+                "$package_name" \
+                "$2" || \
+                    bl.logging.warn \
+                        "Needed package \"$package_name\" for \"$1\" couldn't be found in database in \"$2\"."
         done
     else
         return 1
@@ -873,7 +869,7 @@ archInstall.determine_package_description_file_path() {
             )"
             if [[ "$package_description_file_path" != '' ]]; then
                 local number_of_results="$(
-                    echo "$package_description_file_path" | wc -w)"
+                    echo "$package_description_file_path" | wc --words)"
                 if (( number_of_results > 1 )); then
                     # NOTE: We want to use newer package if their are two
                     # results.
@@ -918,11 +914,19 @@ archInstall_determine_pacmans_needed_packages() {
             --extract \
             --file "${archInstall_package_cache_path}/core.db" \
             --gzip
-        archInstall.determine_package_dependencies pacman "$database_location"
-        return $?
+        local needed_packages
+        IFS=$'\n' read -d '' -r -a needed_packages <<<"$(
+            archInstall.determine_package_dependencies \
+                pacman \
+                "$database_location" | \
+                    sort --unique
+        )"
+        archInstall_needed_packages+=("${needed_packages[@]}")
+        return 0
     fi
     bl.logging.critical \
         "No database file (\"${archInstall_package_cache_path}/core.db\") available."
+    return 1
 }
 alias archInstall.download_and_extract_pacman=archInstall_download_and_extract_pacman
 archInstall_download_and_extract_pacman() {
@@ -967,7 +971,7 @@ archInstall_download_and_extract_pacman() {
                     --directory-prefix "${archInstall_package_cache_path}/" \
                     --timestamping
             else
-                bl.logging.critical \
+                bl.logging.error_exception \
                     "A suitable file for package \"$package_name\" could not be determined."
             fi
             bl.logging.info "Install package \"$file_name\" manually."
@@ -977,7 +981,8 @@ archInstall_download_and_extract_pacman() {
                 "$archInstall_package_cache_path/$file_name" | \
                     tar \
                         --directory "$archInstall_mountpoint_path" \
-                        --extract
+                        --extract || \
+                            return $?
         done
     else
         return 1
@@ -1197,11 +1202,7 @@ archInstall_prepare_installation() {
     chmod 755 "$archInstall_mountpoint_path"
     # Make an unique array.
     read -r -a archInstall_packages <<< "$(
-        echo "${archInstall_packages[@]}" | \
-            tr ' ' '\n' | \
-                sort -u | \
-                    tr '\n' ' '
-    )"
+        bl.array.unique "${archInstall_packages[@]}")"
 }
 alias archInstall.prepare_next_boot=archInstall_prepare_next_boot
 archInstall_prepare_next_boot() {
@@ -1247,60 +1248,6 @@ archInstall_unmount_installed_system() {
 }
 ## endregion
 ## region install arch linux steps.
-alias archInstall.generic_linux_steps=archInstall_generic_linux_steps
-archInstall_generic_linux_steps() {
-    local __documentation__='
-        This functions performs creating an arch linux system from any linux
-        system base.
-    '
-    local return_code=0
-    bl.logging.info Create a list with urls for existing packages.
-    local package_url_list_file_path="$(archInstall.create_package_url_list)"
-    bl.exception.try
-        archInstall.download_and_extract_pacman "$package_url_list_file_path"
-    bl.exception.catch_single
-    {
-        rm --force "$package_url_list_file_path"
-        # shellcheck disable=SC2154
-        bl.logging.error_exception "$bl_exception_last_traceback"
-    }
-    rm --force "$package_url_list_file_path"
-    # Create root filesystem only if not exists.
-    [ -e "${archInstall_mountpoint_path}etc/mtab" ] || \
-        echo rootfs / rootfs rw 0 0 \
-            1>"${archInstall_mountpoint_path}etc/mtab"
-    archInstall.make_pacman_portable
-    archInstall.load_cache || \
-        bl.logging.info No package cache was loaded.
-    bl.logging.info Update package databases.
-    archInstall.changeroot_to_mountpoint \
-        /usr/bin/pacman \
-        --arch "$archInstall_cpu_architecture" \
-        --refresh \
-        --sync || \
-            bl.logging.info \
-                Updating package database failed. Operating offline.
-    bl.logging.info "Install needed packages \"$(
-        echo "${archInstall_packages[@]}" | \
-            command sed --regexp-extended 's/(^ +| +$)//g' | \
-                command sed 's/ /", "/g'
-    )\" to \"$archInstall_output_system\"."
-    archInstall.changeroot_to_mountpoint \
-        /usr/bin/pacman \
-        --arch "$archInstall_cpu_architecture" \
-        --sync \
-        --needed \
-        --noconfirm \
-        "${archInstall_packages[@]}"
-    return_code=$?
-    archInstall.cache || \
-        bl.logging.warn \
-            Caching current downloaded packages and generated database \
-            failed.
-    (( return_code == 0 )) && \
-        archInstall.configure_pacman
-    return $return_code
-}
 alias archInstall.make_pacman_portable=archInstall_make_pacman_portable
 archInstall_make_pacman_portable() {
     local __documentation__='
@@ -1331,6 +1278,65 @@ archInstall_make_pacman_portable() {
     bl.logging.info Register temporary mirrors to download new packages.
     archInstall.append_temporary_install_mirrors
 }
+# NOTE: Depends on "archInstall.make_pacman_portable"
+alias archInstall.generic_linux_steps=archInstall_generic_linux_steps
+archInstall_generic_linux_steps() {
+    local __documentation__='
+        This functions performs creating an arch linux system from any linux
+        system base.
+    '
+    local return_code=0
+    bl.logging.info Create a list with urls for existing packages.
+    local package_url_list_file_path="$(archInstall.create_package_url_list)"
+    # TODO
+    bl.logging.plain A "$bl_exception_active"
+    bl.exception.enter_try; (bl.exception.activate; {
+        #archInstall.download_and_extract_pacman "$package_url_list_file_path"
+        #bl.logging.plain A $?
+        false
+    } ; true); bl.exception.exit_try $? || {
+        bl.logging.plain C
+        rm --force "$package_url_list_file_path"
+        # shellcheck disable=SC2154
+        bl.logging.error_exception "$bl_exception_last_traceback"
+    }
+    bl.logging.plain B
+    rm --force "$package_url_list_file_path"
+    # Deprecated: Create root filesystem only if not exists.
+    #[ -e "${archInstall_mountpoint_path}etc/mtab" ] || \
+    #    echo rootfs / rootfs rw 0 0 \
+    #        1>"${archInstall_mountpoint_path}etc/mtab"
+    archInstall.make_pacman_portable
+    archInstall.load_cache || \
+        bl.logging.info No package cache was loaded.
+    bl.logging.info Update package databases.
+    archInstall.changeroot_to_mountpoint \
+        /usr/bin/pacman \
+        --arch "$archInstall_cpu_architecture" \
+        --refresh \
+        --sync || \
+            bl.logging.info \
+                Updating package database failed. Operating offline.
+    bl.logging.info "Install needed packages \"$(
+        echo "${archInstall_packages[@]}" | \
+            command sed 's/ /", "/g'
+    )\" to \"$archInstall_output_system\"."
+    archInstall.changeroot_to_mountpoint \
+        /usr/bin/pacman \
+        --arch "$archInstall_cpu_architecture" \
+        --sync \
+        --needed \
+        --noconfirm \
+        "${archInstall_packages[@]}"
+    return_code=$?
+    archInstall.cache || \
+        bl.logging.warn \
+            Caching current downloaded packages and generated database \
+            failed.
+    (( return_code == 0 )) && \
+        archInstall.configure_pacman
+    return $return_code
+}
 alias archInstall.with_existing_pacman=archInstall_with_existing_pacman
 archInstall_with_existing_pacman() {
     local __documentation__='
@@ -1358,10 +1364,7 @@ archInstall_with_existing_pacman() {
                 Updating package database failed. Operating offline.
     bl.logging.info "Install needed packages \"$(
         echo "${archInstall_packages[@]}" | \
-            command sed \
-                --regexp-extended 's/(^ +| +$)//g' | \
-                    command sed \
-                        's/ /", "/g'
+            command sed 's/ /", "/g'
     )\" to \"$archInstall_output_system\"."
     if [ -f "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh" ]
     then
