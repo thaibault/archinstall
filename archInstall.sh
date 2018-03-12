@@ -36,6 +36,7 @@ fi
 bl.module.import bashlink.changeroot
 bl.module.import bashlink.exception
 bl.module.import bashlink.logging
+bl.module.import bashlink.number
 bl.module.import bashlink.tools
 # endregion
 # region variables
@@ -878,8 +879,8 @@ archInstall.determine_package_description_file_path() {
                     for description_file_path in $package_description_file_path
                     do
                         local raw_version="$(
-                            echo "$description_file_path" | \
-                                sed --regexp-extended s/[^0-9]+//g)"
+                            bl.number.normalize_version \
+                                "$description_file_path")"
                         if (( raw_version > highest_raw_version )); then
                             package_description_file_path="$description_file_path"
                             highest_raw_version=$raw_version
@@ -954,9 +955,11 @@ archInstall_download_and_extract_pacman() {
             local file_name="$(
                 echo "$package_url" | \
                     command sed 's/.*\/\([^\/][^\/]*\)$/\1/')"
+            # NOTE: We have to url decode given name.
+            file_name="$(printf '%b' "${file_name//%/\\x}")"
             # If "file_name" couldn't be determined via server determine it via
             # current package cache.
-            if [ ! "$file_name" ]; then
+            if [ "$file_name" = '' ]; then
                 file_name="$(
                     command find \
                         "$archInstall_package_cache_path" \
@@ -1288,19 +1291,14 @@ archInstall_generic_linux_steps() {
     local return_code=0
     bl.logging.info Create a list with urls for existing packages.
     local package_url_list_file_path="$(archInstall.create_package_url_list)"
-    # TODO
-    bl.logging.plain A "$bl_exception_active"
-    bl.exception.enter_try; (bl.exception.activate; {
-        #archInstall.download_and_extract_pacman "$package_url_list_file_path"
-        #bl.logging.plain A $?
-        false
-    } ; true); bl.exception.exit_try $? || {
-        bl.logging.plain C
+    bl.exception.try
+        archInstall.download_and_extract_pacman "$package_url_list_file_path"
+    bl.exception.catch_single
+    {
         rm --force "$package_url_list_file_path"
         # shellcheck disable=SC2154
         bl.logging.error_exception "$bl_exception_last_traceback"
     }
-    bl.logging.plain B
     rm --force "$package_url_list_file_path"
     # Deprecated: Create root filesystem only if not exists.
     #[ -e "${archInstall_mountpoint_path}etc/mtab" ] || \
@@ -1454,7 +1452,8 @@ archInstall_main() {
             bl.logging.error_exception Installation with pacman failed.
     else
         archInstall.generic_linux_steps || \
-            bl.logging.error_exception Installation via generic linux steps failed.
+            bl.logging.error_exception \
+                Installation via generic linux steps failed.
     fi
     archInstall.tidy_up_system
     archInstall.configure || \
