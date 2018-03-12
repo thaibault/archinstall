@@ -797,11 +797,17 @@ archInstall_determine_package_dependencies() {
         duplicates without using extended regular expression and package name
         escaping.
     '
-    echo "$1"
     local package_description_file_path
     if package_description_file_path="$(
         archInstall.determine_package_description_file_path "$@"
     )"; then
+        # NOTE: We do not simple print "$1" because given (providing) names
+        # do not have to corresponding package name.
+        echo "$(
+            echo "$package_description_file_path" | \
+                sed --regexp-extended 's:^.*/([^/]+)-[0-9]+[^/]*/desc$:\1:' | \
+                    sed --regexp-extended 's/(-[0-9]+.*)+$//'
+        )"
         local package_dependency_description
         command grep \
             --null-data \
@@ -873,7 +879,7 @@ archInstall.determine_package_description_file_path() {
                     echo "$package_description_file_path" | wc --words)"
                 if (( number_of_results > 1 )); then
                     # NOTE: We want to use newer package if their are two
-                    # results.
+                    # candidates.
                     local description_file_path
                     local highest_raw_version=0
                     for description_file_path in $package_description_file_path
@@ -948,14 +954,26 @@ archInstall_download_and_extract_pacman() {
         for package_name in "${archInstall_needed_packages[@]}"; do
             local package_url="$(
                 command grep \
-                    "${package_name}-[0-9]" \
-                    "$package_url_list_file_path" | \
-                        head --lines 1
+                    "/${package_name}-[0-9]" \
+                    "$package_url_list_file_path"
             )"
+            local number_of_results="$(echo "$package_url" | wc --words)"
+            if (( number_of_results > 1 )); then
+                # NOTE: We want to use newer package if their are two results.
+                local url
+                local highest_raw_version=0
+                for url in $package_url; do
+                    local raw_version="$(bl.number.normalize_version "$url")"
+                    if (( raw_version > highest_raw_version )); then
+                        package_url="$url"
+                        highest_raw_version=$raw_version
+                    fi
+                done
+            fi
             local file_name="$(
                 echo "$package_url" | \
                     command sed 's/.*\/\([^\/][^\/]*\)$/\1/')"
-            # NOTE: We have to url decode given name.
+            # NOTE: We have to decode given url.
             file_name="$(printf '%b' "${file_name//%/\\x}")"
             # If "file_name" couldn't be determined via server determine it via
             # current package cache.
@@ -967,13 +985,15 @@ archInstall_download_and_extract_pacman() {
                         -regex "$package_name-[0-9]" | \
                             head --lines 1)"
             fi
-            if [ "$file_name" ]; then
+            if ! (
+                [ "$file_name" = '' ] || \
                 wget \
                     "$package_url" \
                     --continue \
                     --directory-prefix "${archInstall_package_cache_path}/" \
-                    --timestamping
-            else
+                    --timestamping || \
+                [ -f "${archInstall_package_cache_path}${file_name}" ]
+            ); then
                 bl.logging.error_exception \
                     "A suitable file for package \"$package_name\" could not be determined."
             fi
