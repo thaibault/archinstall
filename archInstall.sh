@@ -124,15 +124,8 @@ archInstall_common_additional_packages=(base-devel python sudo)
 # NOTE: Path has to be end with a system specified delimiter.
 archInstall_mountpoint_path=/mnt/
 # After determining dependencies a list like this will be stored:
-# "pacman", "bash", "readline", "glibc", "libarchive", "acl", "attr", "bzip2",
-# "expat", "lzo2", "openssl", "perl", "gdbm", "sh", "db", "gcc-libs", "xz",
-# "zlib", "curl", "ca-certificates", "run-parts", "findutils", "coreutils",
-# "pam", "cracklib", "libtirpc", "libgssglue", "pambase", "gmp", "libcap",
-# "sed", "krb5", "e2fsprogs", "util-linux", "shadow", "libldap", "libsasl",
-# "keyutils", "libssh2", "gpgme", "libgpg-error", "pth", "awk", "mpfr",
-# "gnupg", "libksba", "libgcrypt", "libassuan", "pinentry", "ncurses",
-# "dirmngr", "pacman-mirrorlist", "archlinux-keyring"
-archInstall_needed_packages=(filesystem)
+# "bash", "curl", "glibc", "openssl", "pacman", "readline", "xz", "tar" ...
+archInstall_needed_packages=(filesystem pacman)
 archInstall_packages=()
 archInstall_package_source_urls=(
     https://mirror.de.leaseweb.net/archlinux
@@ -796,6 +789,10 @@ archInstall_determine_package_dependencies() {
         NOTE: We append and prepend always a whitespace to simply identify
         duplicates without using extended regular expression and package name
         escaping.
+
+        TODO
+        #>>> archInstall.determine_package_dependencies glibc
+        libnghttp2
     '
     local package_description_file_path
     if package_description_file_path="$(
@@ -813,16 +810,16 @@ archInstall_determine_package_dependencies() {
             --null-data \
             --only-matching \
             --perl-regexp \
-            '%DEPENDS%(\n.+)+' < "$package_description_file_path" | \
-                command sed /%DEPENDS%/d | \
-                    while IFS= read -r package_dependency_description
+            '%DEPENDS%(\n.+)+(\n|$)' < "$package_description_file_path" | \
+                command sed '/%DEPENDS%/d' | \
+                    while IFS='' read -r package_dependency_description
         do
             local package_name="$(
                 echo "$package_dependency_description" | \
                     command grep \
                         --extended-regexp \
                         --only-matching \
-                        '^[a-zA-Z0-9][-a-zA-Z0-9]+' | \
+                        '^[a-zA-Z0-9][-a-zA-Z0-9.]+' | \
                             sed --regexp-extended 's/^(.+)[><=].+$/\1/'
             )"
             archInstall.determine_package_dependencies \
@@ -921,14 +918,19 @@ archInstall_determine_pacmans_needed_packages() {
             --extract \
             --file "${archInstall_package_cache_path}/core.db" \
             --gzip
-        local needed_packages
-        IFS=$'\n' read -d '' -r -a needed_packages <<<"$(
-            archInstall.determine_package_dependencies \
-                pacman \
-                "$database_location" | \
-                    sort --unique
-        )"
-        archInstall_needed_packages+=("${needed_packages[@]}")
+        local package_name
+        for package_name in "${archInstall_needed_packages[@]}"; do
+            local needed_packages
+            IFS=$'\n' read -d '' -r -a needed_packages <<<"$(
+                archInstall.determine_package_dependencies \
+                    "$package_name" \
+                    "$database_location" | \
+                        sort --unique
+            )"
+            archInstall_needed_packages+=("${needed_packages[@]}")
+        done
+        IFS=' ' read -r -a archInstall_needed_packages <<< "$(
+            bl.array.unique "${archInstall_needed_packages[*]}")"
         return 0
     fi
     bl.logging.critical \
@@ -1276,6 +1278,11 @@ archInstall_make_pacman_portable() {
     local __documentation__='
         Disables signature checks and registers temporary download mirrors.
     '
+    # TODO
+    # if there's a keyring on the host, copy it into the new root, unless it exists already
+    #if [[ -d /etc/pacman.d/gnupg && ! -d "${archInstall_mountpoint_path}/etc/pacman.d/gnupg" ]]; then
+    #    cp -a /etc/pacman.d/gnupg "${archInstall_mountpoint_path}/etc/pacman.d/"
+    #fi
     # Copy systems resolv.conf to new installed system. If the native
     # "arch-chroot" is used it will mount the file into the change root
     # environment.
@@ -1296,7 +1303,8 @@ archInstall_make_pacman_portable() {
         "${archInstall_mountpoint_path}etc/pacman.conf"
     command sed \
         --in-place \
-        's/^[ \t]*SigLevel[ \t].*/SigLevel = Never/' \
+        --regexp-extended \
+        's/^[ \t]*(((Local|Remote)?File)?SigLevel)[ \t].*/\1 = Never TrustAll/g' \
         "${archInstall_mountpoint_path}etc/pacman.conf"
     bl.logging.info Register temporary mirrors to download new packages.
     archInstall.append_temporary_install_mirrors
@@ -1327,6 +1335,9 @@ archInstall_generic_linux_steps() {
     archInstall.make_pacman_portable
     archInstall.load_cache || \
         bl.logging.info No package cache was loaded.
+    bl.logging.info Update keyring.
+    archInstall.changeroot_to_mountpoint /usr/bin/pacman-key --init
+    archInstall.changeroot_to_mountpoint /usr/bin/pacman-key --refresh-keys
     bl.logging.info Update package databases.
     archInstall.changeroot_to_mountpoint \
         /usr/bin/pacman \
