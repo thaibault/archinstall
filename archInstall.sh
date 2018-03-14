@@ -794,12 +794,11 @@ archInstall_create_package_url_list() {
                 "${url}/$name/os/$archInstall_cpu_architecture" | \
                     command sed \
                         --quiet \
-                        "s|.*href=\"\\([^\"]*\.tar\.xz\\).*|${url}\\/$name\\/os\\/$archInstall_cpu_architecture\\/\\1|p" | \
+                        "s>.*href=\"\\([^\"]*.\\(tar.xz\\|db\\)\\).*>${url}/$name/os/$archInstall_cpu_architecture/\\1>p" | \
                             command sed 's:/./:/:g' | \
-                                command grep --invert-match 'sig$' | \
-                                    sort --unique \
-                                        1>>"$package_url_list_file_path" && \
-                                            break
+                                sort --unique \
+                                    >>"$package_url_list_file_path" && \
+                                        break
         done
         # NOTE: "return_code" remains with an error code if there was given one
         # in any iteration.
