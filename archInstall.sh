@@ -758,6 +758,7 @@ archInstall_create_package_url_list() {
     local __documentation__='
         Generates all web urls for needed packages.
     '
+    # TODO make everything more functional to support subshells easy
     local temporary_return_code=0
     local return_code=0
     local package_url_list_file_path="$(
@@ -772,22 +773,26 @@ archInstall_create_package_url_list() {
             wget \
                 "$url" \
                 --output-document - | \
-                    command sed --regexp-extended 's/^#Server = (http)/\1/g' | \
-                        command sed --regexp-extended '/^#.+$/d' | \
-                            command sed --regexp-extended 's/\/\$repo\/.+$//g' | \
+                    command sed \
+                        --regexp-extended 's/^#Server = (http)/\1/g' | \
+                            command sed --regexp-extended '/^#.+$/d' | \
                                 command sed \
-                                    --regexp-extended 's/(^\s+)|(\s+$)//g' | \
-                                        command sed --regexp-extended '/^$/d'
-        ) && \
-            break
+                                    --regexp-extended 's/\/\$repo\/.+$//g' | \
+                                        command sed \
+                                            --regexp-extended \
+                                            's/(^\s+)|(\s+$)//g' | \
+                                                command sed \
+                                                    --regexp-extended '/^$/d'
+        ) && break
     done
-    archInstall_package_source_urls=(
+    local package_source_urls=(
         "${url_list[@]}" "${archInstall_package_source_urls[@]}")
+    local package_urls=()
     local name
     for name in core community extra; do
         for url in "${archInstall_package_source_urls[@]}"; do
             bl.logging.info "Retrieve repository \"$name\" from \"$url\"."
-            wget \
+            mapfile -t url_list <<<$(
                 --timeout 5 \
                 --tries 1 \
                 --output-document - \
@@ -796,16 +801,17 @@ archInstall_create_package_url_list() {
                         --quiet \
                         "s>.*href=\"\\([^\"]*.\\(tar.xz\\|db\\)\\).*>${url}/$name/os/$archInstall_cpu_architecture/\\1>p" | \
                             command sed 's:/./:/:g' | \
-                                sort --unique \
-                                    >>"$package_url_list_file_path" && \
-                                        break
+                                sort --unique
+            ) && break
         done
         # NOTE: "return_code" remains with an error code if there was given one
         # in any iteration.
         (( temporary_return_code != 0 )) && \
             return_code=$temporary_return_code
+        package_urls+=("${url_list[@]}")
     done
-    echo "$package_url_list_file_path"
+    echo "${package_source_urls[@]}"
+    echo "${package_urls[@]}"
     return $return_code
 }
 alias archInstall.determine_package_dependencies=archInstall_determine_package_dependencies
@@ -1305,11 +1311,6 @@ archInstall_make_pacman_portable() {
     local __documentation__='
         Disables signature checks and registers temporary download mirrors.
     '
-    # TODO
-    # if there's a keyring on the host, copy it into the new root, unless it exists already
-    #if [[ -d /etc/pacman.d/gnupg && ! -d "${archInstall_mountpoint_path}/etc/pacman.d/gnupg" ]]; then
-    #    cp -a /etc/pacman.d/gnupg "${archInstall_mountpoint_path}/etc/pacman.d/"
-    #fi
     # Copy systems resolv.conf to new installed system. If the native
     # "arch-chroot" is used it will mount the file into the change root
     # environment.
