@@ -127,8 +127,10 @@ archInstall_mountpoint_path=/mnt/
 # "bash", "curl", "glibc", "openssl", "pacman", "readline", "xz", "tar" ...
 archInstall_needed_packages=(filesystem pacman)
 archInstall_packages=()
+archInstall_package_source_source_urls=(
+    'https://www.archlinux.org/mirrorlist/?country=DE&protocol=http&ip_version=4&use_mirror_status=on'
+)
 archInstall_package_source_urls=(
-    https://mirror.de.leaseweb.net/archlinux
     https://mirrors.kernel.org/archlinux
 )
 archInstall_unneeded_file_locations=(.INSTALL .PKGINFO var/cache/pacman)
@@ -519,7 +521,7 @@ archInstall_append_temporary_install_mirrors() {
     '
     local url
     for url in "${archInstall_package_source_urls[@]}"; do
-        echo "Server = $url/\$repo/os/$archInstall_cpu_architecture" \
+        echo "Server = $url/\$repo/os/\$arch" \
             1>>"${archInstall_mountpoint_path}etc/pacman.d/mirrorlist"
     done
 }
@@ -760,19 +762,45 @@ archInstall_create_package_url_list() {
     local return_code=0
     local package_url_list_file_path="$(
         mktemp --suffix -archInstall-package-url-list)"
-    local repository_name
-    for repository_name in core community extra; do
-        wget \
-            --quiet \
-            --output-document - \
-            "${archInstall_package_source_urls[0]}/$repository_name/os/$archInstall_cpu_architecture/" | \
-                command sed \
-                    --quiet \
-                    "s|.*href=\"\\([^\"]*\\).*|${archInstall_package_source_urls[0]}\\/$repository_name\\/os\\/$archInstall_cpu_architecture\\/\\1|p" | \
-                        command grep --invert-match 'sig$' | \
-                            sort --unique \
-                                1>>"$package_url_list_file_path"
-        temporary_return_code=$?
+    temporaryFilePath="$(mktemp --suffix=-mirrorlist)"
+    bl.logging.info Downloading latest mirror list.
+    local url_list=()
+    local url
+    for url in "${archInstall_package_source_source_urls[@]}"; do
+        bl.logging.info "Retrieve repository source url list from \"$url\"."
+        mapfile -t url_list <<<$(
+            wget \
+                "$url" \
+                --output-document - | \
+                    command sed --regexp-extended 's/^#Server = (http)/\1/g' | \
+                        command sed --regexp-extended '/^#.+$/d' | \
+                            command sed --regexp-extended 's/\/\$repo\/.+$//g' | \
+                                command sed \
+                                    --regexp-extended 's/(^\s+)|(\s+$)//g' | \
+                                        command sed --regexp-extended '/^$/d'
+        ) && \
+            break
+    done
+    archInstall_package_source_urls=(
+        "${url_list[@]}" "${archInstall_package_source_urls[@]}")
+    local name
+    for name in core community extra; do
+        for url in "${archInstall_package_source_urls[@]}"; do
+            bl.logging.info "Retrieve repository \"$name\" from \"$url\"."
+            wget \
+                --timeout 5 \
+                --tries 1 \
+                --output-document - \
+                "${url}/$name/os/$archInstall_cpu_architecture" | \
+                    command sed \
+                        --quiet \
+                        "s|.*href=\"\\([^\"]*\.tar\.xz\\).*|${url}\\/$name\\/os\\/$archInstall_cpu_architecture\\/\\1|p" | \
+                            command sed 's:/./:/:g' | \
+                                command grep --invert-match 'sig$' | \
+                                    sort --unique \
+                                        1>>"$package_url_list_file_path" && \
+                                            break
+        done
         # NOTE: "return_code" remains with an error code if there was given one
         # in any iteration.
         (( temporary_return_code != 0 )) && \
@@ -1328,10 +1356,6 @@ archInstall_generic_linux_steps() {
         bl.logging.error_exception "$bl_exception_last_traceback"
     }
     rm --force "$package_url_list_file_path"
-    # Deprecated: Create root filesystem only if not exists.
-    #[ -e "${archInstall_mountpoint_path}etc/mtab" ] || \
-    #    echo rootfs / rootfs rw 0 0 \
-    #        1>"${archInstall_mountpoint_path}etc/mtab"
     archInstall.make_pacman_portable
     archInstall.load_cache || \
         bl.logging.info No package cache was loaded.
