@@ -126,11 +126,10 @@ archInstall_mountpoint_path=/mnt/
 # After determining dependencies a list like this will be stored:
 # "bash", "curl", "glibc", "openssl", "pacman", "readline", "xz", "tar" ...
 archInstall_needed_packages=(filesystem pacman)
-archInstall_packages=()
-archInstall_package_source_source_urls=(
+archInstall_package_source_urls=(
     'https://www.archlinux.org/mirrorlist/?country=DE&protocol=http&ip_version=4&use_mirror_status=on'
 )
-archInstall_package_source_urls=(
+archInstall_package_urls=(
     https://mirrors.kernel.org/archlinux
 )
 archInstall_unneeded_file_locations=(.INSTALL .PKGINFO var/cache/pacman)
@@ -408,7 +407,8 @@ archInstall_commandline_interface() {
                 ;;
 
             '')
-                shift
+                shift || \
+                    true
                 break
                 ;;
             *)
@@ -520,7 +520,7 @@ archInstall_append_temporary_install_mirrors() {
         installation.
     '
     local url
-    for url in "${archInstall_package_source_urls[@]}"; do
+    for url in $1; do
         echo "Server = $url/\$repo/os/\$arch" \
             1>>"${archInstall_mountpoint_path}etc/pacman.d/mirrorlist"
     done
@@ -669,14 +669,16 @@ archInstall_configure() {
         archInstall.changeroot_to_mountpoint \
             /usr/bin/env bash -c 'echo root:root | $(which chpasswd)'
     fi
-    archInstall.enable_services ||
+    bl.exception.try
+        archInstall.enable_services
+    bl.exception.catch_single
         bl.logging.warn Enabling services has failed.
     local user_name
     for user_name in "${archInstall_user_names[@]}"; do
         bl.logging.info "Add user: \"$user_name\"."
         # NOTE: We could only create a home directory with right rights if we
         # are root.
-        (
+        bl.exception.try
             archInstall.changeroot_to_mountpoint \
                 useradd "$(
                     if (( UID == 0 )); then
@@ -685,10 +687,9 @@ archInstall_configure() {
                         echo --no-create-home
                     fi
                 ) --no-user-group --shell /usr/bin/bash" \
-                "$user_name" || (
-                    bl.logging.warn "Adding user \"$user_name\" failed." && \
-                        false)
-        )
+                "$user_name"
+        bl.exception.catch_single
+            bl.logging.warn "Adding user \"$user_name\" failed."
         bl.logging.info "Set password for \"$user_name\" to \"$user_name\"."
         archInstall.changeroot_to_mountpoint \
             /usr/bin/env bash -c \
@@ -702,24 +703,33 @@ archInstall_configure_pacman() {
         Disables signature checking for incoming packages.
     '
     bl.logging.info "Enable mirrors in \"$archInstall_country_with_mirrors\"."
-    local buffer_file="$(mktemp)"
-    local in_area=false
-    local line_number=0
-    local line
-    while read -r line; do
-        line_number="$((line_number + 1))"
-        if [ "$line" = "## $archInstall_country_with_mirrors" ]; then
-            in_area=true
-        elif [ "$line" = '' ]; then
-            in_area=false
-        elif $in_area && [ "${line:0:1}" = '#' ]; then
-            line="${line:1}"
-        fi
-        echo "$line"
-    done < "${archInstall_mountpoint_path}etc/pacman.d/mirrorlist" \
-        1>"$buffer_file"
-    cat "$buffer_file" \
-        1>"${archInstall_mountpoint_path}etc/pacman.d/mirrorlist"
+    local buffer_file="$(mktemp --suffix -archInstall-processed-mirrorlist)"
+    bl.exception.try
+    {
+        local in_area=false
+        local line_number=0
+        local line
+        while read -r line; do
+            line_number="$((line_number + 1))"
+            if [ "$line" = "## $archInstall_country_with_mirrors" ]; then
+                in_area=true
+            elif [ "$line" = '' ]; then
+                in_area=false
+            elif $in_area && [ "${line:0:1}" = '#' ]; then
+                line="${line:1}"
+            fi
+            echo "$line"
+        done < "${archInstall_mountpoint_path}etc/pacman.d/mirrorlist" \
+            1>"$buffer_file"
+        cat "$buffer_file" \
+            1>"${archInstall_mountpoint_path}etc/pacman.d/mirrorlist"
+    }
+    bl.exception.catch_single
+    {
+        rm --force "$buffer_file"
+        bl.logging.error_exception "$bl_exception_last_traceback"
+    }
+    rm --force "$buffer_file"
     bl.logging.info "Change signature level to \"Never\" for pacman's packages."
     command sed \
         --in-place \
@@ -753,21 +763,17 @@ archInstall_determine_auto_partitioning() {
         done
     fi
 }
-alias archInstall.create_package_url_list=archInstall_create_package_url_list
-archInstall_create_package_url_list() {
+alias archInstall.create_url_lists=archInstall_create_url_lists
+archInstall_create_url_lists() {
     local __documentation__='
         Generates all web urls for needed packages.
     '
-    # TODO make everything more functional to support subshells easy
     local temporary_return_code=0
     local return_code=0
-    local package_url_list_file_path="$(
-        mktemp --suffix -archInstall-package-url-list)"
-    temporaryFilePath="$(mktemp --suffix=-mirrorlist)"
     bl.logging.info Downloading latest mirror list.
     local url_list=()
     local url
-    for url in "${archInstall_package_source_source_urls[@]}"; do
+    for url in "${archInstall_package_source_urls[@]}"; do
         bl.logging.info "Retrieve repository source url list from \"$url\"."
         mapfile -t url_list <<<$(
             wget \
@@ -786,22 +792,23 @@ archInstall_create_package_url_list() {
         ) && break
     done
     local package_source_urls=(
-        "${url_list[@]}" "${archInstall_package_source_urls[@]}")
+        "${url_list[@]}" "${archInstall_package_urls[@]}")
     local package_urls=()
     local name
     for name in core community extra; do
-        for url in "${archInstall_package_source_urls[@]}"; do
+        for url in "${archInstall_package_urls[@]}"; do
             bl.logging.info "Retrieve repository \"$name\" from \"$url\"."
             mapfile -t url_list <<<$(
-                --timeout 5 \
-                --tries 1 \
-                --output-document - \
-                "${url}/$name/os/$archInstall_cpu_architecture" | \
-                    command sed \
-                        --quiet \
-                        "s>.*href=\"\\([^\"]*.\\(tar.xz\\|db\\)\\).*>${url}/$name/os/$archInstall_cpu_architecture/\\1>p" | \
-                            command sed 's:/./:/:g' | \
-                                sort --unique
+                wget \
+                    --timeout 5 \
+                    --tries 1 \
+                    --output-document - \
+                    "${url}/$name/os/$archInstall_cpu_architecture" | \
+                        command sed \
+                            --quiet \
+                            "s>.*href=\"\\([^\"]*.\\(tar.xz\\|db\\)\\).*>${url}/$name/os/$archInstall_cpu_architecture/\\1>p" | \
+                                command sed 's:/./:/:g' | \
+                                    sort --unique
             ) && break
         done
         # NOTE: "return_code" remains with an error code if there was given one
@@ -938,36 +945,51 @@ archInstall_determine_pacmans_needed_packages() {
     local __documentation__='
         Reads pacmans database and determine pacmans dependencies.
     '
-    local core_database_url="$(command grep 'core\.db' "$1" | head --lines 1)"
+    local core_database_url="$(
+        echo "$1" | \
+            command grep \
+                --only-matching \
+                --extended-regexp \
+                ' [^ ]+core\.db ' | \
+                    sed --regexp-extended 's/(^ *)|( *$)//g')"
     wget \
         "$core_database_url" \
         --directory-prefix "${archInstall_package_cache_path}/" \
         --timestamping
     if [ -f "${archInstall_package_cache_path}/core.db" ]; then
-        local database_location="$(
+        local database_directory_path="$(
             mktemp --directory --suffix -archInstall-core-database)"
-        tar \
-            --directory "$database_location" \
-            --extract \
-            --file "${archInstall_package_cache_path}/core.db" \
-            --gzip
-        local package_name
-        for package_name in "${archInstall_needed_packages[@]}"; do
-            local needed_packages
-            IFS=$'\n' read -d '' -r -a needed_packages <<<"$(
-                archInstall.determine_package_dependencies \
-                    "$package_name" \
-                    "$database_location" | \
-                        sort --unique
-            )"
-            archInstall_needed_packages+=("${needed_packages[@]}")
-        done
-        IFS=' ' read -r -a archInstall_needed_packages <<< "$(
-            bl.array.unique "${archInstall_needed_packages[*]}")"
+        bl.exception.try
+        {
+            local packages=()
+            tar \
+                --directory "$database_directory_path" \
+                --extract \
+                --file "${archInstall_package_cache_path}/core.db" \
+                --gzip
+            local package_name
+            for package_name in "${archInstall_needed_packages[@]}"; do
+                local needed_packages
+                mapfile -t needed_packages <<<"$(
+                    archInstall.determine_package_dependencies \
+                        "$package_name" \
+                        "$database_directory_path" | \
+                            sort --unique
+                )"
+                packages+=("${needed_packages[@]}")
+            done
+            rm --force --recursive "$database_directory_path"
+            bl.array.unique "${packages[*]}"
+        }
+        bl.exception.catch_single
+        {
+            rm --force --recursive "$database_directory_path"
+            bl.logging.error_exception "$bl_exception_last_traceback"
+        }
         return 0
     fi
     bl.logging.critical \
-        "No database file (\"${archInstall_package_cache_path}/core.db\") available."
+        "No database file (\"${archInstall_package_cache_path}/core.db\") could be found."
     return 1
 }
 alias archInstall.download_and_extract_pacman=archInstall_download_and_extract_pacman
@@ -975,23 +997,22 @@ archInstall_download_and_extract_pacman() {
     local __documentation__='
         Downloads all packages from arch linux needed to run pacman.
     '
-    local package_url_list_file_path="$1"
-    if archInstall.determine_pacmans_needed_packages \
-        "$package_url_list_file_path"
-    then
+    local needed_packages=()
+    if IFS=' ' read -r -a needed_packages <<< "$(
+        archInstall.determine_pacmans_needed_packages "$1"
+    )"; then
         bl.logging.info "Needed packages are: \"$(
-            echo "${archInstall_needed_packages[@]}" | \
+            echo "${needed_packages[@]}" | \
                 command sed 's/ /", "/g'
         )\"."
         bl.logging.info \
             "Download and extract each package into our new system located in \"$archInstall_mountpoint_path\"."
         local package_name
-        for package_name in "${archInstall_needed_packages[@]}"; do
+        for package_name in "${needed_packages[@]}"; do
             local package_url="$(
-                command grep \
-                    "/${package_name}-[0-9]" \
-                    "$package_url_list_file_path"
-            )"
+                echo "${1}" | \
+                    tr ' ' '\n' | \
+                        command grep "/${package_name}-[0-9]")"
             local number_of_results="$(echo "$package_url" | wc --words)"
             if (( number_of_results > 1 )); then
                 # NOTE: We want to use newer package if their are two results.
@@ -1335,7 +1356,14 @@ archInstall_make_pacman_portable() {
         's/^[ \t]*(((Local|Remote)?File)?SigLevel)[ \t].*/\1 = Never TrustAll/g' \
         "${archInstall_mountpoint_path}etc/pacman.conf"
     bl.logging.info Register temporary mirrors to download new packages.
-    archInstall.append_temporary_install_mirrors
+    if [ "$1" = '' ]; then
+        cp \
+            /etc/pacman.d/mirrorlist \
+            "${archInstall_mountpoint_path}etc/pacman.d/mirrorlist"
+    else
+        bl.logging.plain TODO "$1"
+        archInstall.append_temporary_install_mirrors "$1"
+    fi
 }
 # NOTE: Depends on "archInstall.make_pacman_portable"
 alias archInstall.generic_linux_steps=archInstall_generic_linux_steps
@@ -1346,30 +1374,31 @@ archInstall_generic_linux_steps() {
     '
     local return_code=0
     bl.logging.info Create a list with urls for existing packages.
-    local package_url_list_file_path="$(archInstall.create_package_url_list)"
+    local url_lists
+    mapfile -t url_lists <<<"$(archInstall.create_url_lists)"
+    archInstall.download_and_extract_pacman "${url_lists[1]}"
+    archInstall.make_pacman_portable "${url_lists[0]}"
     bl.exception.try
-        archInstall.download_and_extract_pacman "$package_url_list_file_path"
+        archInstall.load_cache
     bl.exception.catch_single
-    {
-        rm --force "$package_url_list_file_path"
-        # shellcheck disable=SC2154
-        bl.logging.error_exception "$bl_exception_last_traceback"
-    }
-    rm --force "$package_url_list_file_path"
-    archInstall.make_pacman_portable
-    archInstall.load_cache || \
         bl.logging.info No package cache was loaded.
-    bl.logging.info Update keyring.
-    archInstall.changeroot_to_mountpoint /usr/bin/pacman-key --init
-    archInstall.changeroot_to_mountpoint /usr/bin/pacman-key --refresh-keys
+    bl.logging.info Initialize keys.
+    bl.exception.try
+    {
+        archInstall.changeroot_to_mountpoint /usr/bin/pacman-key --init
+        archInstall.changeroot_to_mountpoint /usr/bin/pacman-key --refresh-keys
+    }
+    bl.exception.catch_single
+        bl.logging.warn Creating keys was not successful.
     bl.logging.info Update package databases.
-    archInstall.changeroot_to_mountpoint \
-        /usr/bin/pacman \
-        --arch "$archInstall_cpu_architecture" \
-        --refresh \
-        --sync || \
-            bl.logging.info \
-                Updating package database failed. Operating offline.
+    bl.exception.try
+        archInstall.changeroot_to_mountpoint \
+            /usr/bin/pacman \
+            --arch "$archInstall_cpu_architecture" \
+            --refresh \
+            --sync
+    bl.exception.catch_single
+        bl.logging.info Updating package database failed. Operating offline.
     bl.logging.info "Install needed packages \"$(
         echo "${archInstall_packages[@]}" | \
             command sed 's/ /", "/g'
@@ -1377,12 +1406,15 @@ archInstall_generic_linux_steps() {
     archInstall.changeroot_to_mountpoint \
         /usr/bin/pacman \
         --arch "$archInstall_cpu_architecture" \
+        --force \
         --sync \
         --needed \
         --noconfirm \
         "${archInstall_packages[@]}"
     return_code=$?
-    archInstall.cache || \
+    bl.exception.try
+        archInstall.cache
+    bl.exception.catch_single
         bl.logging.warn \
             Caching current downloaded packages and generated database \
             failed.
@@ -1465,8 +1497,7 @@ archInstall_main() {
         ...
     '
     bl.exception.activate
-    archInstall.commandline_interface "$@" || \
-        return $?
+    archInstall.commandline_interface "$@"
     archInstall_packages+=(
         "${archInstall_basic_packages[@]}"
         "${archInstall_additional_packages[@]}"
@@ -1487,37 +1518,27 @@ archInstall_main() {
         if echo "$archInstall_output_system" | \
             command grep --quiet --extended-regexp '[0-9]$'
         then
-            archInstall.format_system_partition || \
-                bl.logging.error_exception System partition creation failed.
+            archInstall.format_system_partition
         else
             archInstall.determine_auto_partitioning
-            archInstall.prepare_blockdevices || \
-                bl.logging.error_exception Preparing blockdevices failed.
+            archInstall.prepare_blockdevices
         fi
     else
         bl.logging.error_exception \
             "Could not install into \"$archInstall_output_system\"."
     fi
-    archInstall.prepare_installation || \
-        bl.logging.error_exception Preparing installation failed.
+    archInstall.prepare_installation
     if (( UID == 0 )) && ! $archInstall_prevent_using_existing_pacman && \
         hash pacman 2>/dev/null
     then
-        archInstall.with_existing_pacman || \
-            bl.logging.error_exception Installation with pacman failed.
+        archInstall.with_existing_pacman
     else
-        archInstall.generic_linux_steps || \
-            bl.logging.error_exception \
-                Installation via generic linux steps failed.
+        archInstall.generic_linux_steps
     fi
     archInstall.tidy_up_system
-    archInstall.configure || \
-        bl.logging.error_exception Configuring installed system failed.
-    archInstall.prepare_next_boot || \
-        bl.logging.error_exception Preparing reboot failed.
-    archInstall.pack_result || \
-        bl.logging.error_exception \
-            Packing system into archiv with files owned by root failed.
+    archInstall.configure
+    archInstall.prepare_next_boot
+    archInstall.pack_result
     bl.logging.info \
         "Generating operating system into \"$archInstall_output_system\" has successfully finished."
     bl.exception.deactivate
