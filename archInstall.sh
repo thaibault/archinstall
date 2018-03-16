@@ -1372,15 +1372,15 @@ archInstall_generic_linux_steps() {
         system base.
     '
     local return_code=0
+    bl.exception.try
+        archInstall.load_cache
+    bl.exception.catch_single
+        bl.logging.info No package cache was loaded.
     bl.logging.info Create a list with urls for existing packages.
     local url_lists
     mapfile -t url_lists <<<"$(archInstall.create_url_lists)"
     archInstall.download_and_extract_pacman "${url_lists[1]}"
     archInstall.make_pacman_portable "${url_lists[0]}"
-    bl.exception.try
-        archInstall.load_cache
-    bl.exception.catch_single
-        bl.logging.info No package cache was loaded.
     bl.logging.info Initialize keys.
     bl.exception.try
     {
@@ -1464,8 +1464,7 @@ archInstall_with_existing_pacman() {
             --root "$archInstall_mountpoint_path" \
             --sync \
             --noconfirm \
-            filesystem \
-            pacman
+            "${archInstall_needed_packages[@]}"
         archInstall.make_pacman_portable
         archInstall.changeroot_to_mountpoint \
             /usr/bin/pacman \
