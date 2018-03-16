@@ -727,6 +727,7 @@ archInstall_configure_pacman() {
     bl.exception.catch_single
     {
         rm --force "$buffer_file"
+        # shellcheck disable=SC2154
         bl.logging.error_exception "$bl_exception_last_traceback"
     }
     rm --force "$buffer_file"
@@ -775,7 +776,7 @@ archInstall_create_url_lists() {
     local url
     for url in "${archInstall_package_source_urls[@]}"; do
         bl.logging.info "Retrieve repository source url list from \"$url\"."
-        mapfile -t url_list <<<$(
+        mapfile -t url_list <<<"$(
             wget \
                 "$url" \
                 --output-document - | \
@@ -789,7 +790,7 @@ archInstall_create_url_lists() {
                                             's/(^\s+)|(\s+$)//g' | \
                                                 command sed \
                                                     --regexp-extended '/^$/d'
-        ) && break
+        )" && break
     done
     local package_source_urls=(
         "${url_list[@]}" "${archInstall_package_urls[@]}")
@@ -798,7 +799,7 @@ archInstall_create_url_lists() {
     for name in core community extra; do
         for url in "${archInstall_package_urls[@]}"; do
             bl.logging.info "Retrieve repository \"$name\" from \"$url\"."
-            mapfile -t url_list <<<$(
+            mapfile -t url_list <<<"$(
                 wget \
                     --timeout 5 \
                     --tries 1 \
@@ -809,7 +810,7 @@ archInstall_create_url_lists() {
                             "s>.*href=\"\\([^\"]*.\\(tar.xz\\|db\\)\\).*>${url}/$name/os/$archInstall_cpu_architecture/\\1>p" | \
                                 command sed 's:/./:/:g' | \
                                     sort --unique
-            ) && break
+            )" && break
         done
         # NOTE: "return_code" remains with an error code if there was given one
         # in any iteration.
@@ -830,9 +831,9 @@ archInstall_determine_package_dependencies() {
         duplicates without using extended regular expression and package name
         escaping.
 
-        TODO
-        #>>> archInstall.determine_package_dependencies glibc
-        libnghttp2
+        ```
+            archInstall.determine_package_dependencies glibc /path/to/db
+        ```
     '
     local package_description_file_path
     if package_description_file_path="$(
@@ -840,11 +841,9 @@ archInstall_determine_package_dependencies() {
     )"; then
         # NOTE: We do not simple print "$1" because given (providing) names
         # do not have to corresponding package name.
-        echo "$(
-            echo "$package_description_file_path" | \
-                sed --regexp-extended 's:^.*/([^/]+)-[0-9]+[^/]*/desc$:\1:' | \
-                    sed --regexp-extended 's/(-[0-9]+.*)+$//'
-        )"
+        echo "$package_description_file_path" | \
+            sed --regexp-extended 's:^.*/([^/]+)-[0-9]+[^/]*/desc$:\1:' | \
+                sed --regexp-extended 's/(-[0-9]+.*)+$//'
         local package_dependency_description
         command grep \
             --null-data \
@@ -883,7 +882,7 @@ archInstall.determine_package_description_file_path() {
     local database_directory_path="$2"
     local package_description_file_path="$(
         command grep \
-            "%PROVIDES%\n(.+\n)*$package_name\n(.+\n)*\n" \
+            "%PROVIDES%\\n(.+\\n)*$package_name\\n(.+\\n)*\\n" \
             --files-with-matches \
             --null-data \
             --perl-regexp \
@@ -893,17 +892,17 @@ archInstall.determine_package_description_file_path() {
     if [ "$package_description_file_path" = '' ]; then
         local regular_expression
         for regular_expression in \
-            "^\(.*/\)?$package_name"'$' \
-            "^\(.*/\)?$package_name"'-[0-9]+[0-9.\-]*$' \
-            "^\(.*/\)?$package_name"'-[0-9]+[0-9.a-zA-Z-]*$' \
-            "^\(.*/\)?$package_name"'-git-[0-9]+[0-9.a-zA-Z-]*$' \
-            "^\(.*/\)?$package_name"'[0-9]+-[0-9.a-zA-Z-]+\(-[0-9.a-zA-Z-]\)*$' \
-            "^\(.*/\)?[0-9]+$package_name"'[0-9]+-[0-9a-zA-Z\.]+\(-[0-9a-zA-Z\.]\)*$' \
-            "^\(.*/\)?$package_name"'-.+$' \
-            "^\(.*/\)?.+-$package_name"'-.+$' \
-            "^\(.*/\)?$package_name"'.+$' \
-            "^\(.*/\)?$package_name"'.*$' \
-            "^\(.*/\)?.*$package_name"'.*$'
+            "^\\(.*/\\)?$package_name"'$' \
+            "^\\(.*/\\)?$package_name"'-[0-9]+[0-9.\-]*$' \
+            "^\\(.*/\\)?$package_name"'-[0-9]+[0-9.a-zA-Z-]*$' \
+            "^\\(.*/\\)?$package_name"'-git-[0-9]+[0-9.a-zA-Z-]*$' \
+            "^\\(.*/\\)?$package_name"'[0-9]+-[0-9.a-zA-Z-]+\(-[0-9.a-zA-Z-]\)*$' \
+            "^\\(.*/\\)?[0-9]+$package_name"'[0-9]+-[0-9a-zA-Z\.]+\(-[0-9a-zA-Z\.]\)*$' \
+            "^\\(.*/\\)?$package_name"'-.+$' \
+            "^\\(.*/\\)?.+-$package_name"'-.+$' \
+            "^\\(.*/\\)?$package_name"'.+$' \
+            "^\\(.*/\\)?$package_name"'.*$' \
+            "^\\(.*/\\)?.*$package_name"'.*$'
         do
             package_description_file_path="$(
                 command find \
@@ -984,6 +983,7 @@ archInstall_determine_pacmans_needed_packages() {
         bl.exception.catch_single
         {
             rm --force --recursive "$database_directory_path"
+            # shellcheck disable=SC2154
             bl.logging.error_exception "$bl_exception_last_traceback"
         }
         return 0
@@ -1361,7 +1361,6 @@ archInstall_make_pacman_portable() {
             /etc/pacman.d/mirrorlist \
             "${archInstall_mountpoint_path}etc/pacman.d/mirrorlist"
     else
-        bl.logging.plain TODO "$1"
         archInstall.append_temporary_install_mirrors "$1"
     fi
 }
