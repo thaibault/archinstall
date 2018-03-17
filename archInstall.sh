@@ -132,6 +132,7 @@ archInstall_package_source_urls=(
 archInstall_package_urls=(
     https://mirrors.kernel.org/archlinux
 )
+archInstall_network_timeout_in_seconds=3
 archInstall_unneeded_file_locations=(.INSTALL .PKGINFO var/cache/pacman)
 ## region command line arguments
 archInstall_additional_packages=()
@@ -236,6 +237,9 @@ archInstall_print_commandline_option_description() {
 -j --needed-services [SERVICES [SERVICES ...]], You can give a list with additional available services (default: "${archInstall_needed_services[@]}").
 
 -t --package-cache-path PATH Define where to load and save downloaded packages (default: "$archInstall_package_cache_path").
+
+
+-l --timeout NUMBER_OF_SECONDS Defines time to wait for requests (default: $archInstall_network_timeout_in_seconds).
 EOF
 }
 alias archInstall.print_help_message=archInstall_print_help_message
@@ -403,6 +407,12 @@ archInstall_commandline_interface() {
             -t|--package-cache-path)
                 shift
                 archInstall_package_cache_path="$1"
+                shift
+                ;;
+
+            -l|--timeout)
+                shift
+                archInstall_network_timeout_in_seconds="$1"
                 shift
                 ;;
 
@@ -641,7 +651,7 @@ archInstall_configure() {
         echo -e "$archInstall_key_map_configuration_file_content" \
             1>"${archInstall_mountpoint_path}etc/vconsole.conf"
     fi
-    bl.logging.info "Set localtime \"$_LOCAL_TIME\"."
+    bl.logging.info "Set localtime \"$archInstall_local_time\"."
     if [ "$1" = true ]; then
         archInstall.changeroot_to_mountpoint \
             timedatectl \
@@ -779,7 +789,8 @@ archInstall_create_url_lists() {
         mapfile -t url_list <<<"$(
             wget \
                 "$url" \
-                --output-document - | \
+                --output-document - \
+                --timeout="$archInstall_network_timeout_in_seconds" | \
                     command sed \
                         --regexp-extended 's/^#Server = (http)/\1/g' | \
                             command sed --regexp-extended '/^#.+$/d' | \
@@ -801,7 +812,7 @@ archInstall_create_url_lists() {
             bl.logging.info "Retrieve repository \"$name\" from \"$url\"."
             mapfile -t url_list <<<"$(
                 wget \
-                    --timeout 5 \
+                    --timeout="$archInstall_network_timeout_in_seconds" \
                     --tries 1 \
                     --output-document - \
                     "${url}/$name/os/$archInstall_cpu_architecture" | \
@@ -954,6 +965,7 @@ archInstall_determine_pacmans_needed_packages() {
     wget \
         "$core_database_url" \
         --directory-prefix "${archInstall_package_cache_path}/" \
+        --timeout="$archInstall_network_timeout_in_seconds" \
         --timestamping
     if [ -f "${archInstall_package_cache_path}/core.db" ]; then
         local database_directory_path="$(
@@ -1047,6 +1059,7 @@ archInstall_download_and_extract_pacman() {
                     "$package_url" \
                     --continue \
                     --directory-prefix "${archInstall_package_cache_path}/" \
+                    --timeout="$archInstall_network_timeout_in_seconds" \
                     --timestamping || \
                 [ -f "${archInstall_package_cache_path}${file_name}" ]
             ); then
