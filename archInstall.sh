@@ -779,6 +779,7 @@ archInstall_create_url_lists() {
     local __documentation__='
         Generates all web urls for needed packages.
     '
+    local serialized_url_list
     local temporary_return_code=0
     local return_code=0
     bl.logging.info Downloading latest mirror list.
@@ -786,7 +787,7 @@ archInstall_create_url_lists() {
     local url
     for url in "${archInstall_package_source_urls[@]}"; do
         bl.logging.info "Retrieve repository source url list from \"$url\"."
-        mapfile -t url_list <<<"$(
+        if serialized_url_list="$(
             wget \
                 "$url" \
                 --output-document - \
@@ -801,7 +802,12 @@ archInstall_create_url_lists() {
                                             's/(^\s+)|(\s+$)//g' | \
                                                 command sed \
                                                     --regexp-extended '/^$/d'
-        )" && break
+        )"; then
+            mapfile -t url_list <<<"$serialized_url_list"
+        else
+            bl.logging.warn "Retrieving repository source url list from \"$url\" failed."
+        fi
+        [ "$serialized_url_list" != '' ] && break
     done
     local package_source_urls=(
         "${url_list[@]}" "${archInstall_package_urls[@]}")
@@ -810,7 +816,7 @@ archInstall_create_url_lists() {
     for name in core community extra; do
         for url in "${archInstall_package_urls[@]}"; do
             bl.logging.info "Retrieve repository \"$name\" from \"$url\"."
-            mapfile -t url_list <<<"$(
+            if serialized_url_list="$(
                 wget \
                     --timeout="$archInstall_network_timeout_in_seconds" \
                     --tries 1 \
@@ -821,7 +827,11 @@ archInstall_create_url_lists() {
                             "s>.*href=\"\\([^\"]*.\\(tar.xz\\|db\\)\\).*>${url}/$name/os/$archInstall_cpu_architecture/\\1>p" | \
                                 command sed 's:/./:/:g' | \
                                     sort --unique
-            )" && break
+            )"; then
+                mapfile -t url_list <<<"$serialized_url_list"
+            else
+                bl.logging.warn "Retrieving repository \"$name\" from \"$url\" failed."
+            fi
         done
         # NOTE: "return_code" remains with an error code if there was given one
         # in any iteration.
@@ -846,9 +856,13 @@ archInstall_determine_package_dependencies() {
             archInstall.determine_package_dependencies glibc /path/to/db
         ```
     '
+    local given_package_name="$1"
+    local database_directory_path="$2"
     local package_description_file_path
     if package_description_file_path="$(
-        archInstall.determine_package_description_file_path "$@"
+        archInstall.determine_package_description_file_path \
+            "$given_package_name" \
+            "$database_directory_path"
     )"; then
         # NOTE: We do not simple print "$1" because given (providing) names
         # do not have to corresponding package name.
@@ -856,14 +870,15 @@ archInstall_determine_package_dependencies() {
             sed --regexp-extended 's:^.*/([^/]+)-[0-9]+[^/]*/desc$:\1:' | \
                 sed --regexp-extended 's/(-[0-9]+.*)+$//'
         local package_dependency_description
-        command grep \
-            --null-data \
-            --only-matching \
-            --perl-regexp \
-            '%DEPENDS%(\n.+)+(\n|$)' < "$package_description_file_path" | \
-                command sed '/%DEPENDS%/d' | \
-                    while IFS='' read -r package_dependency_description
-        do
+        (
+            command grep \
+                --null-data \
+                --only-matching \
+                --perl-regexp \
+                '%DEPENDS%(\n.+)+(\n|$)' < "$package_description_file_path" | \
+                    command sed '/%DEPENDS%/d' || \
+                        true
+        ) | while IFS='' read -r package_dependency_description; do
             local package_name="$(
                 echo "$package_dependency_description" | \
                     command grep \
@@ -872,11 +887,13 @@ archInstall_determine_package_dependencies() {
                         '^[a-zA-Z0-9][-a-zA-Z0-9.]+' | \
                             sed --regexp-extended 's/^(.+)[><=].+$/\1/'
             )"
-            archInstall.determine_package_dependencies \
-                "$package_name" \
-                "$2" || \
-                    bl.logging.warn \
-                        "Needed package \"$package_name\" for \"$1\" couldn't be found in database in \"$2\"."
+            bl.exception.try
+                archInstall.determine_package_dependencies \
+                    "$package_name" \
+                    "$database_directory_path"
+            bl.exception.catch_single
+                bl.logging.warn \
+                    "Needed package \"$package_name\" for \"$given_package_name\" couldn't be found in database \"$database_directory_path\"."
         done
     else
         return 1
@@ -903,17 +920,17 @@ archInstall.determine_package_description_file_path() {
     if [ "$package_description_file_path" = '' ]; then
         local regular_expression
         for regular_expression in \
-            "^\\(.*/\\)?$package_name"'$' \
-            "^\\(.*/\\)?$package_name"'-[0-9]+[0-9.\-]*$' \
-            "^\\(.*/\\)?$package_name"'-[0-9]+[0-9.a-zA-Z-]*$' \
-            "^\\(.*/\\)?$package_name"'-git-[0-9]+[0-9.a-zA-Z-]*$' \
-            "^\\(.*/\\)?$package_name"'[0-9]+-[0-9.a-zA-Z-]+\(-[0-9.a-zA-Z-]\)*$' \
-            "^\\(.*/\\)?[0-9]+$package_name"'[0-9]+-[0-9a-zA-Z\.]+\(-[0-9a-zA-Z\.]\)*$' \
-            "^\\(.*/\\)?$package_name"'-.+$' \
-            "^\\(.*/\\)?.+-$package_name"'-.+$' \
-            "^\\(.*/\\)?$package_name"'.+$' \
-            "^\\(.*/\\)?$package_name"'.*$' \
-            "^\\(.*/\\)?.*$package_name"'.*$'
+            '^\(.*/\)?'"$package_name"'$' \
+            '^\(.*/\)?'"$package_name"'-[0-9]+[0-9.\-]*$' \
+            '^\(.*/\)?'"$package_name"'-[0-9]+[0-9.a-zA-Z-]*$' \
+            '^\(.*/\)?'"$package_name"'-git-[0-9]+[0-9.a-zA-Z-]*$' \
+            '^\(.*/\)?'"$package_name"'[0-9]+-[0-9.a-zA-Z-]+\(-[0-9.a-zA-Z-]\)*$' \
+            '^\(.*/\)?[0-9]+'"$package_name"'[0-9]+-[0-9a-zA-Z\.]+\(-[0-9a-zA-Z\.]\)*$' \
+            '^\(.*/\)?'"$package_name"'-.+$' \
+            '^\(.*/\)?.+-'"$package_name"'-.+$' \
+            '^\(.*/\)?'"$package_name"'.+$' \
+            '^\(.*/\)?'"$package_name"'.*$' \
+            '^\(.*/\)?.*'"$package_name"'.*$'
         do
             package_description_file_path="$(
                 command find \
@@ -955,18 +972,20 @@ archInstall_determine_pacmans_needed_packages() {
     local __documentation__='
         Reads pacmans database and determine pacmans dependencies.
     '
-    local core_database_url="$(
-        echo "$1" | \
-            command grep \
-                --only-matching \
-                --extended-regexp \
-                ' [^ ]+core\.db ' | \
-                    sed --regexp-extended 's/(^ *)|( *$)//g')"
-    wget \
-        "$core_database_url" \
-        --directory-prefix "${archInstall_package_cache_path}/" \
-        --timeout="$archInstall_network_timeout_in_seconds" \
-        --timestamping
+    if [[ "$1" != '' ]]; then
+        local core_database_url="$(
+            echo "$1" | \
+                command grep \
+                    --only-matching \
+                    --extended-regexp \
+                    ' [^ ]+core\.db ' | \
+                        sed --regexp-extended 's/(^ *)|( *$)//g')"
+        wget \
+            "$core_database_url" \
+            --directory-prefix "${archInstall_package_cache_path}/" \
+            --timeout="$archInstall_network_timeout_in_seconds" \
+            --timestamping
+    fi
     if [ -f "${archInstall_package_cache_path}/core.db" ]; then
         local database_directory_path="$(
             mktemp --directory --suffix -archInstall-core-database)"
@@ -1018,31 +1037,42 @@ archInstall_download_and_extract_pacman() {
                 command sed 's/ /", "/g'
         )\"."
         bl.logging.info \
-            "Download and extract each package into our new system located in \"$archInstall_mountpoint_path\"."
+            "Retrieve and extract each package into our new system located in \"$archInstall_mountpoint_path\"."
         local package_name
         for package_name in "${needed_packages[@]}"; do
-            local package_url="$(
-                echo "${1}" | \
-                    tr ' ' '\n' | \
-                        command grep "/${package_name}-[0-9]")"
-            local number_of_results="$(echo "$package_url" | wc --words)"
-            if (( number_of_results > 1 )); then
-                # NOTE: We want to use newer package if their are two results.
-                local url
-                local highest_raw_version=0
-                for url in $package_url; do
-                    local raw_version="$(bl.number.normalize_version "$url")"
-                    if (( raw_version > highest_raw_version )); then
-                        package_url="$url"
-                        highest_raw_version=$raw_version
-                    fi
-                done
+            local file_name
+            if [[ "$1" != '' ]]; then
+                local package_url="$(
+                    echo "$1" | \
+                        tr ' ' '\n' | \
+                            command grep "/${package_name}-[0-9]")"
+                local number_of_results="$(echo "$package_url" | wc --words)"
+                if (( number_of_results > 1 )); then
+                    # NOTE: We want to use newer package if their are two
+                    # results.
+                    local url
+                    local highest_raw_version=0
+                    for url in $package_url; do
+                        local raw_version="$(
+                            bl.number.normalize_version "$url")"
+                        if (( raw_version > highest_raw_version )); then
+                            package_url="$url"
+                            highest_raw_version=$raw_version
+                        fi
+                    done
+                fi
+                wget \
+                    "$package_url" \
+                    --continue \
+                    --directory-prefix "${archInstall_package_cache_path}/" \
+                    --timeout="$archInstall_network_timeout_in_seconds" \
+                    --timestamping
+                file_name="$(
+                    echo "$package_url" | \
+                        command sed 's/.*\/\([^\/][^\/]*\)$/\1/')"
+                # NOTE: We have to decode given url.
+                file_name="$(printf '%b' "${file_name//%/\\x}")"
             fi
-            local file_name="$(
-                echo "$package_url" | \
-                    command sed 's/.*\/\([^\/][^\/]*\)$/\1/')"
-            # NOTE: We have to decode given url.
-            file_name="$(printf '%b' "${file_name//%/\\x}")"
             # If "file_name" couldn't be determined via server determine it via
             # current package cache.
             if [ "$file_name" = '' ]; then
@@ -1052,17 +1082,26 @@ archInstall_download_and_extract_pacman() {
                         -maxdepth 1 \
                         -regex "$package_name-[0-9]" | \
                             head --lines 1)"
+                local number_of_results="$(echo "$file_name" | wc --words)"
+                if (( number_of_results > 1 )); then
+                    # NOTE: We want to use newer package if their are two
+                    # results.
+                    local name
+                    local highest_raw_version=0
+                    for name in $file_name; do
+                        local raw_version="$(
+                            bl.number.normalize_version "$name")"
+                        if (( raw_version > highest_raw_version )); then
+                            file_name="$name"
+                            highest_raw_version=$raw_version
+                        fi
+                    done
+                fi
             fi
-            if ! (
-                [ "$file_name" = '' ] || \
-                wget \
-                    "$package_url" \
-                    --continue \
-                    --directory-prefix "${archInstall_package_cache_path}/" \
-                    --timeout="$archInstall_network_timeout_in_seconds" \
-                    --timestamping || \
-                [ -f "${archInstall_package_cache_path}${file_name}" ]
-            ); then
+            if [[
+                "$file_name" = '' || \
+                ! -f "${archInstall_package_cache_path}${file_name}"
+            ]]; then
                 bl.logging.error_exception \
                     "A suitable file for package \"$package_name\" could not be determined."
             fi
@@ -1390,7 +1429,6 @@ archInstall_generic_linux_steps() {
     bl.exception.catch_single
         bl.logging.info No package cache was loaded.
     bl.logging.info Create a list with urls for existing packages.
-    local url_lists
     mapfile -t url_lists <<<"$(archInstall.create_url_lists)"
     archInstall.download_and_extract_pacman "${url_lists[1]}"
     archInstall.make_pacman_portable "${url_lists[0]}"
