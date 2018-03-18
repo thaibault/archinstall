@@ -132,7 +132,7 @@ archInstall_package_source_urls=(
 archInstall_package_urls=(
     https://mirrors.kernel.org/archlinux
 )
-archInstall_network_timeout_in_seconds=3
+archInstall_network_timeout_in_seconds=6
 archInstall_unneeded_file_locations=(.INSTALL .PKGINFO var/cache/pacman)
 ## region command line arguments
 archInstall_additional_packages=()
@@ -1040,7 +1040,7 @@ archInstall_download_and_extract_pacman() {
             "Retrieve and extract each package into our new system located in \"$archInstall_mountpoint_path\"."
         local package_name
         for package_name in "${needed_packages[@]}"; do
-            local file_name
+            local file_name=''
             if [[ "$1" != '' ]]; then
                 local package_url="$(
                     echo "$1" | \
@@ -1080,8 +1080,8 @@ archInstall_download_and_extract_pacman() {
                     command find \
                         "$archInstall_package_cache_path" \
                         -maxdepth 1 \
-                        -regex "$package_name-[0-9]" | \
-                            head --lines 1)"
+                        -regex ".*/$package_name-[0-9].*" | \
+                            sed --regexp-extended 's:^.*/([^/]+)$:\1:')"
                 local number_of_results="$(echo "$file_name" | wc --words)"
                 if (( number_of_results > 1 )); then
                     # NOTE: We want to use newer package if their are two
@@ -1089,6 +1089,12 @@ archInstall_download_and_extract_pacman() {
                     local name
                     local highest_raw_version=0
                     for name in $file_name; do
+                        bl.logging.plain A "$name"
+                        bl.exception.try
+                            bl.number.normalize_version "$name" 6
+                        bl.exception.catch_single
+                            true
+                        bl.logging.plain B
                         local raw_version="$(
                             bl.number.normalize_version "$name")"
                         if (( raw_version > highest_raw_version )); then
@@ -1490,13 +1496,15 @@ archInstall_with_existing_pacman() {
         chmod +x "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
     fi
     bl.logging.info Update package databases.
-    pacman \
-        --arch "$archInstall_cpu_architecture" \
-        --refresh \
-        --root "$archInstall_mountpoint_path" \
-        --sync || \
-            bl.logging.info \
-                Updating package database failed. Operating offline.
+    bl.exception.try
+        pacman \
+            --arch "$archInstall_cpu_architecture" \
+            --refresh \
+            --root "$archInstall_mountpoint_path" \
+            --sync
+    bl.exception.catch_single
+        bl.logging.info \
+            Updating package database failed. Operating offline.
     bl.logging.info "Install needed packages \"$(
         echo "${archInstall_packages[@]}" | \
             command sed 's/ /", "/g'
