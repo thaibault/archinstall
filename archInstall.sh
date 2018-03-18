@@ -34,6 +34,7 @@ else
     fi
 fi
 bl.module.import bashlink.changeroot
+bl.module.import bashlink.dictionary
 bl.module.import bashlink.exception
 bl.module.import bashlink.logging
 bl.module.import bashlink.number
@@ -126,6 +127,7 @@ archInstall_mountpoint_path=/mnt/
 # After determining dependencies a list like this will be stored:
 # "bash", "curl", "glibc", "openssl", "pacman", "readline", "xz", "tar" ...
 archInstall_needed_packages=(filesystem pacman)
+bl.dictionary.set archInstall_known_dependency_aliases libncursesw.so ncurses
 archInstall_package_source_urls=(
     'https://www.archlinux.org/mirrorlist/?country=DE&protocol=http&ip_version=4&use_mirror_status=on'
 )
@@ -741,12 +743,6 @@ archInstall_configure_pacman() {
         bl.logging.error_exception "$bl_exception_last_traceback"
     }
     rm --force "$buffer_file"
-    bl.logging.info "Change signature level to \"Never\" for pacman's packages."
-    command sed \
-        --in-place \
-        --regexp-extended \
-        's/^(SigLevel *= *).+$/\1Never/g' \
-        "${archInstall_mountpoint_path}etc/pacman.conf"
 }
 alias archInstall.determine_auto_partitioning=archInstall_determine_auto_partitioning
 archInstall_determine_auto_partitioning() {
@@ -839,7 +835,7 @@ archInstall_create_url_lists() {
             return_code=$temporary_return_code
         package_urls+=("${url_list[@]}")
     done
-    echo "${package_source_urls[@]}"
+    bl.array.unique "${package_source_urls[*]}"
     echo "${package_urls[@]}"
     return $return_code
 }
@@ -858,27 +854,36 @@ archInstall_determine_package_dependencies() {
     '
     local given_package_name="$1"
     local database_directory_path="$2"
+    local package_names_to_ignore=" $3 "
     local package_description_file_path
     if package_description_file_path="$(
         archInstall.determine_package_description_file_path \
             "$given_package_name" \
             "$database_directory_path"
     )"; then
+        local resolved_package_name="$(
+            echo "$package_description_file_path" | \
+                sed --regexp-extended 's:^.*/([^/]+)-[0-9]+[^/]*/desc$:\1:' | \
+                    sed --regexp-extended 's/(-[0-9]+.*)+$//')"
         # NOTE: We do not simple print "$1" because given (providing) names
         # do not have to corresponding package name.
-        echo "$package_description_file_path" | \
-            sed --regexp-extended 's:^.*/([^/]+)-[0-9]+[^/]*/desc$:\1:' | \
-                sed --regexp-extended 's/(-[0-9]+.*)+$//'
-        local package_dependency_description
-        (
+        echo "$resolved_package_name"
+        package_names_to_ignore+=" $resolved_package_name"
+        local package_dependency_descriptions
+        mapfile -t package_dependency_descriptions 2>/dev/null <<<"$(
             command grep \
                 --null-data \
                 --only-matching \
                 --perl-regexp \
-                '%DEPENDS%(\n.+)+(\n|$)' < "$package_description_file_path" | \
+                '%DEPENDS%(\n.+)+(\n|$)' \
+                <"$package_description_file_path" | \
                     command sed '/%DEPENDS%/d' || \
                         true
-        ) | while IFS='' read -r package_dependency_description; do
+        )"
+        local package_dependency_description
+        local dependent_package_names=()
+        for package_dependency_description in "${package_dependency_descriptions[@]}"
+        do
             local package_name="$(
                 echo "$package_dependency_description" | \
                     command grep \
@@ -887,10 +892,27 @@ archInstall_determine_package_dependencies() {
                         '^[a-zA-Z0-9][-a-zA-Z0-9.]+' | \
                             sed --regexp-extended 's/^(.+)[><=].+$/\1/'
             )"
+            local alias
+            if alias="$(
+                bl.dictionary.get \
+                    archInstall_known_dependency_aliases \
+                    "$package_name"
+            )"; then
+                package_name="$alias"
+            fi
+            if echo "$package_names_to_ignore" | grep --quiet " $package_name "
+            then
+                continue
+            fi
+            dependent_package_names+=("$package_name")
+        done
+        package_names_to_ignore+=" ${dependent_package_names[*]}"
+        for package_name in "${dependent_package_names[@]}"; do
             bl.exception.try
                 archInstall.determine_package_dependencies \
                     "$package_name" \
-                    "$database_directory_path"
+                    "$database_directory_path" \
+                    "$package_names_to_ignore"
             bl.exception.catch_single
                 bl.logging.warn \
                     "Needed package \"$package_name\" for \"$given_package_name\" couldn't be found in database \"$database_directory_path\"."
@@ -980,11 +1002,15 @@ archInstall_determine_pacmans_needed_packages() {
                     --extended-regexp \
                     ' [^ ]+core\.db ' | \
                         sed --regexp-extended 's/(^ *)|( *$)//g')"
-        wget \
-            "$core_database_url" \
-            --directory-prefix "${archInstall_package_cache_path}/" \
-            --timeout="$archInstall_network_timeout_in_seconds" \
-            --timestamping
+        bl.exception.try
+            wget \
+                "$core_database_url" \
+                --directory-prefix "${archInstall_package_cache_path}/" \
+                --timeout="$archInstall_network_timeout_in_seconds" \
+                --timestamping
+        bl.exception.catch_single
+            bl.logging.warn \
+                "Could not retrieve latest database file from determined url \"$core_database_url\"."
     fi
     if [ -f "${archInstall_package_cache_path}/core.db" ]; then
         local database_directory_path="$(
@@ -1028,10 +1054,13 @@ archInstall_download_and_extract_pacman() {
     local __documentation__='
         Downloads all packages from arch linux needed to run pacman.
     '
-    local needed_packages=()
-    if IFS=' ' read -r -a needed_packages <<< "$(
-        archInstall.determine_pacmans_needed_packages "$1"
-    )"; then
+    local serialized_needed_packages
+    serialized_needed_packages="$(
+        archInstall.determine_pacmans_needed_packages "$1")"
+    # shellcheck disable=SC2181
+    if [ $? = 0 ]; then
+        local needed_packages
+        IFS=' ' read -r -a needed_packages <<<"$serialized_needed_packages"
         bl.logging.info "Needed packages are: \"$(
             echo "${needed_packages[@]}" | \
                 command sed 's/ /", "/g'
@@ -1061,17 +1090,21 @@ archInstall_download_and_extract_pacman() {
                         fi
                     done
                 fi
-                wget \
-                    "$package_url" \
-                    --continue \
-                    --directory-prefix "${archInstall_package_cache_path}/" \
-                    --timeout="$archInstall_network_timeout_in_seconds" \
-                    --timestamping
-                file_name="$(
-                    echo "$package_url" | \
-                        command sed 's/.*\/\([^\/][^\/]*\)$/\1/')"
-                # NOTE: We have to decode given url.
-                file_name="$(printf '%b' "${file_name//%/\\x}")"
+                bl.exception.try
+                    wget \
+                        "$package_url" \
+                        --continue \
+                        --directory-prefix "${archInstall_package_cache_path}/" \
+                        --timeout="$archInstall_network_timeout_in_seconds" \
+                        --timestamping
+                    file_name="$(
+                        echo "$package_url" | \
+                            command sed 's/.*\/\([^\/][^\/]*\)$/\1/')"
+                    # NOTE: We have to decode given url.
+                    file_name="$(printf '%b' "${file_name//%/\\x}")"
+                bl.exception.catch_single
+                    bl.logging.warn
+                        "Could not retrieve package from determined url \"$package_url\"."
             fi
             # If "file_name" couldn't be determined via server determine it via
             # current package cache.
@@ -1089,12 +1122,10 @@ archInstall_download_and_extract_pacman() {
                     local name
                     local highest_raw_version=0
                     for name in $file_name; do
-                        bl.logging.plain A "$name"
                         bl.exception.try
                             bl.number.normalize_version "$name" 6
                         bl.exception.catch_single
                             true
-                        bl.logging.plain B
                         local raw_version="$(
                             bl.number.normalize_version "$name")"
                         if (( raw_version > highest_raw_version )); then
