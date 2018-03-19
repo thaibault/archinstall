@@ -1,0 +1,163 @@
+
+> archinstall@1.0.47 document:show /home/torben/cloud/data/public/project/repository/archInstall
+> bashlink-document ../../archInstall
+
+## Module archInstall
+This module installs a linux from scratch by the arch way. You will end up
+in ligtweigth linux with pacman as packetmanager. You can directly install
+into a given blockdevice, partition or any directory (see command line
+option "--output-system"). Note that every needed information which is not
+given via command line will be asked interactivly on start. This script is
+as unnatted it could be, which means you can relax after providing all
+needed informations in the beginning till your new system is ready to boot.
+
+Start install progress command (Assuming internet is available):
+
+```bash
+wget \
+http://torben.website/clientNode/data/distributionBundle/index.compiled.js \
+\ -O archInstall.sh && chmod +x archInstall.sh
+```
+
+Note that you only get very necessary output until you provide "--verbose"
+as commandline option.
+
+Examples:
+
+Start install progress command on first found blockdevice:
+
+```bash
+arch-install --output-system /dev/sda
+```
+
+Install directly into a given partition with verbose output:
+
+```bash
+arch-install --output-system /dev/sda1 --verbose
+```
+
+Install directly into a given directory with addtional packages included:
+
+```bash
+arch-install --output-system /dev/sda1 --verbose -f vim net-tools
+```
+### Function archInstall_add_boot_entries
+Creates an uefi boot entry.
+### Function archInstall_append_temporary_install_mirrors
+Appends temporary used mirrors to download missing packages during
+installation.
+### Function archInstall_cache
+Cache previous downloaded packages and database.
+### Function archInstall_changeroot
+This function emulates the arch linux native "arch-chroot" function.
+### Function archInstall_changeroot_to_mountpoint
+This function performs a changeroot to currently set mountpoint path.
+### Function archInstall_commandline_interface
+Provides the command line interface and interactive questions.
+
+```bash
+>>> archInstall.commandline_interface --help
++bl.doctest.contains
++bl.doctest.multiline_ellipsis
+...
+Usage: arch-install [options]
+...
+```
+### Function archInstall_configure
+Provides generic linux configuration mechanism. If new systemd programs
+are used (if first argument is "true") they could have problems in
+change root environment without and exclusive dbus connection.
+### Function archInstall_configure_pacman
+Disables signature checking for incoming packages.
+### Function archInstall_create_url_lists
+Generates all web urls for needed packages.
+### Function archInstall_determine_auto_partitioning
+Determine whether we should perform our auto partitioning mechanism.
+### Function archInstall_determine_package_dependencies
+Determines all package dependencies. Returns a list of needed packages
+for given package determined by given database.
+NOTE: We append and prepend always a whitespace to simply identify
+duplicates without using extended regular expression and package name
+escaping.
+
+```
+archInstall.determine_package_dependencies glibc /path/to/db
+```
+### Function archInstall_determine_package_description_file_path
+Determines the package directory name from given package name in given
+database folder.
+### Function archInstall_determine_pacmans_needed_packages
+Reads pacmans database and determine pacmans dependencies.
+### Function archInstall_download_and_extract_pacman
+Downloads all packages from arch linux needed to run pacman.
+### Function archInstall_enable_services
+Enable all needed services.
+### Function archInstall_format_boot_partition
+Prepares the boot partition.
+### Function archInstall_format_partitions
+Performs formating part.
+### Function archInstall_format_system_partition
+Prepares the system partition.
+### Function archInstall_generate_fstab_configuration_file
+Writes the fstab configuration file.
+### Function archInstall_generic_linux_steps
+This functions performs creating an arch linux system from any linux
+system base.
+### Function archInstall_get_hosts_content
+Provides the file content for the "/etc/hosts".
+### Function archInstall_load_cache
+Load previous downloaded packages and database.
+### Function archInstall_main
+Provides the main module scope.
+
+```bash
+>>> archInstall.main --help
++bl.doctest.multiline_ellipsis
+...
+Usage: arch-install [options]
+...
+```
+### Function archInstall_make_pacman_portable
+Disables signature checks and registers temporary download mirrors.
+### Function archInstall_make_partitions
+Performs the auto partitioning.
+### Function archInstall_pack_result
+Packs the resulting system to provide files owned by root without
+root permissions.
+### Function archInstall_prepare_blockdevices
+Prepares given block devices to make it ready for fresh installation.
+### Function archInstall_prepare_installation
+Deletes previous installed things in given output target. And creates a
+package cache directory.
+### Function archInstall_prepare_next_boot
+Reboots into fresh installed system if previous defined.
+### Function archInstall_print_commandline_option_description
+Prints descriptions about each available command line option.
+NOTE: All letters are used for short options.
+NOTE: "-k" and "--key-map-configuration" is not needed in the future.
+
+```bash
+>>> archInstall.print_commandline_option_description
++bl.doctest.contains
++bl.doctest.multiline_ellipsis
+-h --help Shows this help message.
+...
+```
+### Function archInstall_print_help_message
+Provides a help message for this module.
+
+```bash
+>>> archInstall.print_help_message
++bl.doctest.contains
++bl.doctest.multiline_ellipsis
+...
+Usage: arch-install [options]
+...
+```
+### Function archInstall_tidy_up_system
+Deletes some unneeded locations in new installs operating system.
+### Function archInstall_unmount_installed_system
+Unmount previous installed system.
+### Function archInstall_with_existing_pacman
+Installs arch linux via patched (to be able to operate offline)
+pacstrap of pacman directly.

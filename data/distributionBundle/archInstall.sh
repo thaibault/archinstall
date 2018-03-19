@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
-
 # region header
-
 # Copyright Torben Sickert (info["~at~"]torben.website) 16.12.2012
 
 # License
@@ -10,1097 +8,1269 @@
 
 # This library written by Torben Sickert stand under a creative commons naming
 # 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
-
-# archInstall provides a generic way to install an arch linux from any linux
-# environment without maintaining the install process.
-
-# Examples
-# --------
-
-# Start install progress command (Assuming internet is available):
-# >>> wget \
-# ... https://raw.github.com/archInstall/archInstall/master/archInstall.sh \
-# ...     -O archInstall.sh && chmod +x archInstall.sh && \
-# ... ./archInstall.sh --output-system /dev/sda1
-# ...
-
-# Call a global function (Configures your current system):
-# >>> source archInstall.sh --load-environment && \
-# ...     _MOUNTPOINT_PATH='/' _USER_NAMES='hans' \
-# ...     _LOCAL_TIME='Europe/Berlin' archInstallConfigure
-
-# Note that you only get very necessary output until you provide "--verbose" as
-# commandline options.
-
-# Dependencies
-# ------------
-
-# - bash (or any bash like shell with (test, shift, echo, cd))
-# - mount      - Filesystem mounter (part of util-linux).
-# - umount     - Filesystem unmounter (part of util-linux).
-# - mountpoint - See if a directory is a mountpoint (part of util-linux).
-# - blkid      - Locate or print block device attributes (part of util-linux).
-# - chroot     - Run command or interactive shell with special root directory
-#                (part of coreutils).
-# - ln         - Make links between files (part of coreutils).
-# - touch      - Change file timestamps or creates them (part of coreutils).
-# - sync       - Flushs file system buffers (part of coreutils).
-# - mktemp     - Create a temporary file or directory (part of coreutils).
-# - cat        - Concatenate files and print on the standard output (part of
-#                coreutils).
-# - uniq       - Report or omit repeated lines (part of coreutils).
-# - uname      - Prints system informations (part of coreutils).
-# - rm         - Remove files or directories (part of coreutils).
-# - sed        - Stream editor for filtering and transforming text.
-# - wget       - The non-interactive network downloader.
-# - xz         - Compress or decompress .xz and lzma files.
-# - tar        - The GNU version of the tar archiving utility.
-# - grep       - Searches the named input files (or standard input if no files
-#                are named, or if a single hyphen-minus (-) is given as file
-#                name) for lines containing a match to the given PATTERN. By
-#                default, grep prints the matching lines.
-# - which      - Shows the full path of (shell) commands.
-
-# Dependencies for blockdevice integration
-# ----------------------------------------
-
-# - blockdev   - Call block device ioctls from the command line (part of
-#                util-linux).
-# - efibootmgr - Manipulate the EFI Boot Manager (part of efibootmgr).
-# - gdisk      - Interactive GUID partition table (GPT) manipulator (part of
-#                gptfdisk).
-# - btrfs      - Control a btrfs filesystem (part of btrfs-progs).
-
-# Optional dependencies
-# ---------------------
-
-# for smart dos filesystem labeling, installing without root permissions or
-# automatic network configuration.
-
-# - dosfslabel  - Handle dos file systems (part of dosfstools).
-# - arch-chroot - Performs an arch chroot with api file system binding (part
-#                 of arch-install-scripts).
-# - fakeroot    - Run a command in an environment faking root privileges for
-#                 file manipulation.
-# - fakechroot  - Wraps some c-lib functions to enable programs like "chroot"
-#                 running without root privileges.
-# - os-prober   - Detects presence of other operating systems.
-# - ip          - Determines network adapter (part of iproute2).
-
-__NAME__='archInstall'
-
 # endregion
-
-archInstall() {
-    # Provides the main module scope.
-
-    # region properties
-
-    ## region command line arguments
-
-    local _SCOPE='local' && \
-    if [[ $(echo "\"$@\"" | grep --extended-regexp \
-        '(^"| )(-l|--load-environment)("$| )') != '' ]]
+# shellcheck disable=SC1004,SC2016,SC2034,SC2155
+# region import
+if [ -f "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh" ]; then
+    # shellcheck disable=SC1090
+    source "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh"
+elif [ -f "/usr/lib/bashlink/module.sh" ]; then
+    # shellcheck disable=SC1091
+    source "/usr/lib/bashlink/module.sh"
+else
+    archInstall_bashlink_path="$(mktemp --directory --suffix -bashlink)/bashlink/"
+    mkdir "$archInstall_bashlink_path"
+    if wget \
+        https://goo.gl/UKF5JG \
+        --output-document "${archInstall_bashlink_path}module.sh" \
+        --quiet
     then
-        local _SCOPE='export'
+        bl_module_retrieve_remote_modules=true
+        # shellcheck disable=SC1090
+        source "${archInstall_bashlink_path}/module.sh"
+    else
+        echo Needed bashlink library not found 1>&2
+        exit 1
     fi
-    # NOTE: We have to reset this variable in wrapped context to set best
-    # wrapper name prefixed default.
-    "$_SCOPE" _PACKAGE_CACHE_PATH="${__NAME__}PackageCache" && \
-    # NOTE: Only initialize environment if current scope wasn't set yet.
-    if [ "$_VERBOSE" == '' ]; then
-        "$_SCOPE" _VERBOSE='no'
-        "$_SCOPE" _LOAD_ENVIRONMENT='no'
+fi
+bl.module.import bashlink.changeroot
+bl.module.import bashlink.dictionary
+bl.module.import bashlink.exception
+bl.module.import bashlink.logging
+bl.module.import bashlink.number
+bl.module.import bashlink.tools
+# endregion
+# region variables
+archInstall__documentation__='
+    This module installs a linux from scratch by the arch way. You will end up
+    in ligtweigth linux with pacman as packetmanager. You can directly install
+    into a given blockdevice, partition or any directory (see command line
+    option "--output-system"). Note that every needed information which is not
+    given via command line will be asked interactivly on start. This script is
+    as unnatted it could be, which means you can relax after providing all
+    needed informations in the beginning till your new system is ready to boot.
 
-        local userNames=()
-        "$_SCOPE" _USER_NAMES="${userNames[*]}"
-        "$_SCOPE" _HOSTNAME=''
+    Start install progress command (Assuming internet is available):
 
-        # NOTE: Possible constant values are "i686" or "x86_64".
-        "$_SCOPE" _CPU_ARCHITECTURE="$(uname -m)" # Possible: x86_64, i686, arm, any
-        "$_SCOPE" _OUTPUT_SYSTEM="$__NAME__"
+    ```bash
+        wget \
+            http://torben.website/clientNode/data/distributionBundle/index.compiled.js \
+            \ -O archInstall.sh && chmod +x archInstall.sh
+    ```
 
-        # NOTE: This properties aren't needed in the future with supporting
-        # localectl program.
-        "$_SCOPE" _LOCAL_TIME='Europe/Berlin'
-        "$_SCOPE" _KEYBOARD_LAYOUT='de-latin1'
-        "$_SCOPE" _KEY_MAP_CONFIGURATION_FILE_CONTENT="KEYMAP=${_KEYBOARD_LAYOUT}\nFONT=Lat2-Terminus16\nFONT_MAP="
-        # NOTE: Each value which is present in "/etc/pacman.d/mirrorlist" is ok.
-        "$_SCOPE" _COUNTRY_WITH_MIRRORS='Germany'
+    Note that you only get very necessary output until you provide "--verbose"
+    as commandline option.
 
-        "$_SCOPE" _AUTOMATIC_REBOOT='yes'
-        "$_SCOPE" _PREVENT_USING_PACSTRAP='no'
-        "$_SCOPE" _PREVENT_USING_NATIVE_ARCH_CHANGE_ROOT='no'
-        "$_SCOPE" _AUTO_PARTITIONING=''
+    Examples:
 
-        "$_SCOPE" _BOOT_PARTITION_LABEL='uefiBoot'
-        "$_SCOPE" _SYSTEM_PARTITION_LABEL='system'
+    Start install progress command on first found blockdevice:
 
-        "$_SCOPE" _BOOT_ENTRY_LABEL='archLinux'
-        "$_SCOPE" _FALLBACK_BOOT_ENTRY_LABEL='archLinuxFallback'
+    ```bash
+        arch-install --output-system /dev/sda
+    ```
 
-        # NOTE: A FAT32 partition has to be at least 512 MB large.
-        "$_SCOPE" _BOOT_SPACE_IN_MEGA_BYTE=512
-        "$_SCOPE" _NEEDED_SYSTEM_SPACE_IN_MEGA_BYTE=512
+    Install directly into a given partition with verbose output:
 
-        "$_SCOPE" _INSTALL_COMMON_ADDITIONAL_PACKAGES='no'
-        local additionalPackages=()
-        "$_SCOPE" _ADDITIONAL_PACKAGES="${additionalPackages[*]}"
-        local neededServices=()
-        "$_SCOPE" _NEEDED_SERVICES="${neededServices[*]}"
+    ```bash
+        arch-install --output-system /dev/sda1 --verbose
+    ```
 
-    ## endregion
+    Install directly into a given directory with addtional packages included:
 
-        local dependencies=(bash test shift echo cd \
-            mount umount mountpoint blkid chroot echo ln touch sync mktemp \
-            cat uniq uname rm sed wget xz tar grep)
-        "$_SCOPE" _DEPENDENCIES="${dependencies[*]}"
-        local blockIntegrationDependencies=(blockdev efibootmgr gdisk btrfs)
-        "$_SCOPE" _BLOCK_INTEGRATION_DEPENDENCIES="${blockIntegrationDependencies[*]}"
-        # Define where to mount temporary new filesystem.
-        # NOTE: Path has to be end with a system specified delimiter.
-        "$_SCOPE" _MOUNTPOINT_PATH='/mnt/'
-        # After determining dependencies a list like this will be stored:
-        # "pacman", "bash", "readline", "glibc", "libarchive", "acl", "attr",
-        # "bzip2", "expat", "lzo2", "openssl", "perl", "gdbm", "sh", "db",
-        # "gcc-libs", "xz", "zlib", "curl", "ca-certificates", "run-parts",
-        # "findutils", "coreutils", "pam", "cracklib", "libtirpc",
-        # "libgssglue", "pambase", "gmp", "libcap", "sed", "krb5", "e2fsprogs",
-        # "util-linux", "shadow", "libldap", "libsasl", "keyutils", "libssh2",
-        # "gpgme", "libgpg-error", "pth", "awk", "mpfr", "gnupg", "libksba",
-        # "libgcrypt", "libassuan", "pinentry", "ncurses", "dirmngr",
-        # "pacman-mirrorlist", "archlinux-keyring"
-        local neededPackages=(filesystem)
-        "$_SCOPE" _NEEDED_PACKAGES="${neededPackages[*]}"
-        local packagesSourceUrls=(
-            'http://mirror.de.leaseweb.net/archlinux' \
-            'http://archlinux.limun.org' 'http://mirrors.kernel.org/archlinux')
-        "$_SCOPE" _PACKAGE_SOURCE_URLS="${packagesSourceUrls[*]}"
-        local basicPackages=(base ifplugd)
-        "$_SCOPE" _BASIC_PACKAGES="${basicPackages[*]}"
-        local commonAdditionalPackages=(base-devel sudo python)
-        "$_SCOPE" _COMMON_ADDITIONAL_PACKAGES="${commonAdditionalPackages[*]}"
-        local packages=()
-        "$_SCOPE" _PACKAGES="${packages[*]}"
-        local unneededFileLocations=(.INSTALL .PKGINFO var/cache/pacman)
-        "$_SCOPE" _UNNEEDED_FILE_LOCATIONS="${unneededFileLocations[*]}"
-        "$_SCOPE" _STANDARD_OUTPUT=/dev/null
-        "$_SCOPE" _ERROR_OUTPUT=/dev/null
-        # This list should be in the order they should be mounted after use.
-        # NOTE: Mount binds has to be declared as absolute paths.
-        local neededMountpoints=(/proc /sys /sys/firmware/efi/efivars /dev \
-            /dev/pts /dev/shm /run /tmp)
-        "$_SCOPE" _NEEDED_MOUNTPOINTS="${neededMountpoints[*]}"
-    fi
+    ```bash
+        arch-install --output-system /dev/sda1 --verbose -f vim net-tools
+    ```
+'
+archinstall__dependencies__=(
+    bash
+    blkid
+    cat
+    chroot
+    grep
+    ln
+    mktemp
+    mount
+    mountpoint
+    rm
+    sed
+    sort
+    sync
+    touch
+    tar
+    uname
+    which
+    wget
+    xz
+)
+archinstall__optional_dependencies__=(
+    # Dependencies for blockdevice integration
+    'blockdev: Call block device ioctls from the command line (part of util-linux).'
+    'btrfs: Control a btrfs filesystem (part of btrfs-progs).'
+    'efibootmgr: Manipulate the EFI Boot Manager (part of efibootmgr).'
+    'gdisk: Interactive GUID partition table (GPT) manipulator (part of gptfdisk).'
+    # Native arch install script helper.
+    'arch-chroot: Performs an arch chroot with api file system binding (part of package "arch-install-scripts").'
+    # Needed for smart dos filesystem labeling, installing without root
+    # permissions or automatic network configuration.
+    'dosfslabel: Handle dos file systems (part of dosfstools).'
+    'fakeroot: Run a command in an environment faking root privileges for file manipulation.'
+    'fakechroot: Wraps some c-lib functions to enable programs like "chroot" running without root privileges.'
+    'ip: Determines network adapter (part of iproute2).'
+    'os-prober: Detects presence of other operating systems.'
+    'pacstrap: Installs arch linux from an existing linux system (part of package "arch-install-scripts").'
+)
+archInstall_basic_packages=(base ifplugd)
+archInstall_common_additional_packages=(base-devel python sudo)
+# Defines where to mount temporary new filesystem.
+# NOTE: Path has to be end with a system specified delimiter.
+archInstall_mountpoint_path=/mnt/
+# After determining dependencies a list like this will be stored:
+# "bash", "curl", "glibc", "openssl", "pacman", "readline", "xz", "tar" ...
+archInstall_needed_packages=(filesystem pacman)
+bl.dictionary.set archInstall_known_dependency_aliases libncursesw.so ncurses
+archInstall_package_source_urls=(
+    'https://www.archlinux.org/mirrorlist/?country=DE&protocol=http&ip_version=4&use_mirror_status=on'
+)
+archInstall_package_urls=(
+    https://mirrors.kernel.org/archlinux
+)
+archInstall_network_timeout_in_seconds=6
+archInstall_unneeded_file_locations=(.INSTALL .PKGINFO var/cache/pacman)
+## region command line arguments
+archInstall_additional_packages=()
+archInstall_add_common_additional_packages=false
+archInstall_automatic_reboot=false
+archInstall_auto_partitioning=true
+archInstall_boot_entry_label=archLinux
+archInstall_boot_partition_label=uefiBoot
+# NOTE: A FAT32 partition has to be at least 512 MB large.
+archInstall_boot_space_in_mega_byte=512
+# NOTE: Each value which is present in "/etc/pacman.d/mirrorlist" is ok.
+archInstall_country_with_mirrors=Germany
+# NOTE: Possible constant values are "i686", "x86_64" "arm" or "any".
+archInstall_cpu_architecture="$(uname -m)"
+archInstall_fallback_boot_entry_label=archLinuxFallback
+archInstall_host_name=''
+archInstall_keyboard_layout=de-latin1
+archInstall_key_map_configuration_file_content="KEYMAP=${archInstall_keyboard_layout}"$'\nFONT=Lat2-Terminus16\nFONT_MAP='
+# NOTE: This properties aren't needed in the future with supporting "localectl"
+# program.
+archInstall_local_time=EUROPE/Berlin
+archInstall_needed_services=()
+archInstall_needed_system_space_in_mega_byte=512
+archInstall_output_system=archInstall
+archInstall_package_cache_path=archInstallPackageCache
+archInstall_prevent_using_native_arch_changeroot=false
+archInstall_prevent_using_existing_pacman=false
+archInstall_system_partition_label=system
+archInstall_user_names=()
+## endregion
+# endregion
+# region functions
+## region command line interface
+alias archInstall.print_commandline_option_description=archInstall_print_commandline_option_description
+archInstall_print_commandline_option_description() {
+    local __documentation__='
+        Prints descriptions about each available command line option.
+        NOTE: All letters are used for short options.
+        NOTE: "-k" and "--key-map-configuration" is not needed in the future.
 
-    # endregion
+        >>> archInstall.print_commandline_option_description
+        +bl.doctest.contains
+        +bl.doctest.multiline_ellipsis
+        -h --help Shows this help message.
+        ...
+    '
+    bl.logging.cat << EOF
+-h --help Shows this help message.
 
-    # region functions
+-v --verbose Tells you what is going on.
 
-    ## region command line interface
+-d --debug Gives you any output from all tools which are used (default: "false").
 
-    archInstallPrintUsageMessage() {
-        # Prints a description about how to use this program.
-    cat << EOF
-$__NAME__ installs a linux from scratch by the arch way. You will end up in
-ligtweigth linux with pacman as packetmanager.
-You can directly install into a given blockdevice, partition or
-any directory (see command line option "--output-system").
-Note that every needed information which isn't given via command line
-will be asked interactivly on start. This script is as unnatted it could
-be, which means you can relax after providing all needed informations in
-the beginning till your new system is ready to boot.
+
+-u --user-names [USER_NAMES [USER_NAMES ...]], Defines user names for new system (default: "${archInstall_user_names[@]}").
+
+-n --host-name HOST_NAME Defines name for new system (default: "$archInstall_host_name").
+
+
+-c --cpu-architecture CPU_ARCHITECTURE Defines architecture (default: "$archInstall_cpu_architecture").
+
+-o --output-system OUTPUT_SYSTEM Defines where to install new operating system. You can provide a full disk or patition via blockdevice such as "/dev/sda" or "/dev/sda1". You can also provide a diretory path such as "/tmp/lifesystem" (default: "$archInstall_output_system").
+
+
+-x --local-time LOCAL_TIME Local time for you system (default: "$archInstall_local_time").
+
+-b --keyboard-layout LAYOUT Defines needed keyboard layout (default: "$archInstall_keyboard_layout").
+
+-k --key-map-configuration FILE_CONTENT Keyboard map configuration (default: "$archInstall_key_map_configuration_file_content").
+
+-m --country-with-mirrors COUNTRY Country for enabling servers to get packages from (default: "$archInstall_country_with_mirrors").
+
+
+-r --no-reboot Prevents to reboot after finishing installation.
+
+-p --prevent-using-existing-pacman Ignores presence of pacman to use it for install operating system (default: "$archInstall_prevent_using_existing_pacman").
+
+-y --prevent-using-native-arch-chroot Ignores presence of "arch-chroot" to use it for chroot into newly created operating system (default: "$archInstall_prevent_using_native_arch_changeroot").
+
+-a --auto-paritioning Defines to do partitioning on founded block device automatic.
+
+
+-e --boot-partition-label LABEL Partition label for uefi boot partition (default: "$archInstall_boot_partition_label").
+
+-g --system-partition-label LABEL Partition label for system partition (default: "$archInstall_system_partition_label").
+
+
+-i --boot-entry-label LABEL Boot entry label (default: "$archInstall_boot_entry_label").
+
+-s --fallback-boot-entry-label LABEL Fallback boot entry label (default: "$archInstall_fallback_boot_entry_label").
+
+
+-w --boot-space-in-mega-byte NUMBER In case if selected auto partitioning you can define the minimum space needed for your boot partition (default: "$archInstall_boot_space_in_mega_byte megabyte"). This partition is used for kernel and initramfs only.
+
+-q --needed-system-space-in-mega-byte NUMBER In case if selected auto partitioning you can define the minimum space needed for your system partition (default: "$archInstall_needed_system_space_in_mega_byte megabyte"). This partition is used for the whole operating system.
+
+
+-z --install-common-additional-packages, (default: "$archInstall_add_common_additional_packages") If present the following packages will be installed: "${archInstall_common_additional_packages[*]}".
+
+-f --additional-packages [PACKAGES [PACKAGES ...]], You can give a list with additional available packages (default: "${archInstall_additional_packages[@]}").
+
+-j --needed-services [SERVICES [SERVICES ...]], You can give a list with additional available services (default: "${archInstall_needed_services[@]}").
+
+-t --package-cache-path PATH Define where to load and save downloaded packages (default: "$archInstall_package_cache_path").
+
+
+-l --timeout NUMBER_OF_SECONDS Defines time to wait for requests (default: $archInstall_network_timeout_in_seconds).
 EOF
-    }
-    archInstallPrintUsageExamples() {
-        # Prints a description about how to use this program by providing examples.
-        cat << EOF
-    # Start install progress command on first found blockdevice:
-    >>> $0 --output-system /dev/sda
+}
+alias archInstall.print_help_message=archInstall_print_help_message
+archInstall_print_help_message() {
+    local __documentation__='
+        Provides a help message for this module.
 
-    # Install directly into a given partition with verbose output:
-    >>> $0 --output-system /dev/sda1 --verbose
+        >>> archInstall.print_help_message
+        +bl.doctest.contains
+        +bl.doctest.multiline_ellipsis
+        ...
+        Usage: arch-install [options]
+        ...
+    '
+    bl.logging.plain $'\nUsage: arch-install [options]\n'
+    bl.logging.plain "$archInstall__documentation__"
+    bl.logging.plain $'\nOption descriptions:\n'
+    archInstall.print_commandline_option_description "$@"
+    bl.logging.plain
+}
+# NOTE: Depends on "archInstall.print_commandline_option_description" and
+# "archInstall.print_help_message".
+alias archInstall.commandline_interface=archInstall_commandline_interface
+archInstall_commandline_interface() {
+    local __documentation__='
+        Provides the command line interface and interactive questions.
 
-    # Install directly into a given directory with addtional packages included:
-    >>> $0 --output-system /dev/sda1 --verbose -f vim net-tools
-EOF
-    }
-    archInstallPrintCommandLineOptionDescription() {
-        # Prints descriptions about each available command line option.
-        # NOTE; All letters are used for short options.
-        # NOTE: "-k" and "--key-map-configuration" isn't needed in the future.
-        cat << EOF
-    -h --help Shows this help message.
+        >>> archInstall.commandline_interface --help
+        +bl.doctest.contains
+        +bl.doctest.multiline_ellipsis
+        ...
+        Usage: arch-install [options]
+        ...
+    '
+    bl.logging.set_commands_level debug
+    while true; do
+        case "$1" in
+            -h|--help)
+                shift
+                archInstall.print_help_message "$0"
+                exit 0
+                ;;
+            -v|--verbose)
+                shift
+                bl.logging.set_level info
+                ;;
+            -d|--debug)
+                shift
+                bl.logging.set_level debug
+                ;;
 
-    -v --verbose Tells you what is going on (default: "$_VERBOSE").
-
-    -d --debug Gives you any output from all tools which are used
-        (default: "$_DEBUG").
-
-    -l --load-environment Simple load the install arch linux scope without
-        doing anything else.
-
-
-    -u --user-names [USER_NAMES [USER_NAMES ...]], Defines user names for new
-         system (default: "${_USER_NAMES[*]}").
-
-    -n --host-name HOST_NAME Defines name for new system
-        (default: "$_HOSTNAME").
-
-
-    -c --cpu-architecture CPU_ARCHITECTURE Defines architecture
-        (default: "$_CPU_ARCHITECTURE").
-
-    -o --output-system OUTPUT_SYSTEM Defines where to install new operating
-        system. You can provide a full disk or patition via blockdevice such as
-        "/dev/sda" or "/dev/sda1". You can also provide a diretory path such as
-        "/tmp/lifesystem" (default: "$_OUTPUT_SYSTEM").
-
-
-    -x --local-time LOCAL_TIME Local time for you system
-        (default: "$_LOCAL_TIME").
-
-    -b --keyboard-layout LAYOUT Defines needed keyboard layout
-        (default: "$_KEYBOARD_LAYOUT").
-
-    -k --key-map-configuration FILE_CONTENT Keyboard map configuration
-        (default: "$_KEY_MAP_CONFIGURATION_FILE_CONTENT").
-
-    -m --country-with-mirrors COUNTRY Country for enabling servers to get
-        packages from (default: "$_COUNTRY_WITH_MIRRORS").
-
-
-    -r --no-reboot Prevents to reboot after finishing installation.
-
-    -p --prevent-using-pacstrap Ignores presence of pacstrap to use it for
-        install operating system (default: "$_PREVENT_USING_PACSTRAP").
-
-    -y --prevent-using-native-arch-chroot Ignores presence of "arch-chroot"
-        to use it for chroot into newly created operating system
-        (default: "$_PREVENT_USING_NATIVE_ARCH_CHANGE_ROOT").
-
-    -a --auto-paritioning Defines to do partitioning on founded block device
-        automatic.
-
-
-    -e --boot-partition-label LABEL Partition label for uefi boot partition
-        (default: "$_BOOT_PARTITION_LABEL").
-
-    -g --system-partition-label LABEL Partition label for system partition
-        (default: "$_SYSTEM_PARTITION_LABEL").
-
-
-    -i --boot-entry-label LABEL Boot entry label
-        (default: "$_BOOT_ENTRY_LABEL").
-    -s --fallback-boot-entry-label LABEL Fallback boot entry label
-        (default: "$_FALLBACK_BOOT_ENTRY_LABEL").
-
-
-    -w --boot-space-in-mega-byte NUMBER In case if selected auto partitioning
-        you can define the minimum space needed for your boot partition
-        (default: "$_BOOT_SPACE_IN_MEGA_BYTE MegaByte"). This partition
-        is used for kernel and initramfs only.
-
-    -q --needed-system-space-in-mega-byte NUMBER In case if selected auto
-        partitioning you can define the minimum space needed for your system
-        partition (default: "$_NEEDED_SYSTEM_SPACE_IN_MEGA_BYTE MegaByte").
-        This partition is used for the whole operating system.
-
-
-    -z --install-common-additional-packages,
-        If present the following packages will be installed:
-        "${_COMMON_ADDITIONAL_PACKAGES[*]}".
-
-    -f --additional-packages [PACKAGES [PACKAGES ...]], You can give a list
-        with additional available packages (default: "${_ADDITIONAL_PACKAGES[*]}").
-
-    -j --needed-services [SERVICES [SERVICES ...]], You can give a list
-        with additional available services (default: "${_NEEDED_SERVICES[*]}").
-
-    -t --package-cache-path PATH Define where to load and save downloaded
-        packages (default: "$_PACKAGE_CACHE_PATH").
-EOF
-    }
-    archInstallPrintHelpMessage() {
-        # Provides a help message for this module.
-        echo -e "\nUsage: $0 [options]\n"
-        archInstallPrintUsageMessage "$@"
-        echo -e '\nExamples:\n'
-        archInstallPrintUsageExamples "$@"
-        echo -e '\nOption descriptions:\n'
-        archInstallPrintCommandLineOptionDescription "$@"
-        echo
-    }
-    archInstallCommandLineInterface() {
-        # Provides the command line interface and interactive questions.
-        while true; do
-            case "$1" in
-                -h|--help)
+            -u|--user-names)
+                shift
+                while [[ "$1" =~ ^[^-].+$ ]]; do
+                    archInstall_user_names+=("$1")
                     shift
-                    archInstallPrintHelpMessage "$0"
-                    exit 0
-                    ;;
-                -v|--verbose)
-                    shift
-                    _VERBOSE='yes'
-                    ;;
-                -d|--debug)
-                    shift
-                    _STANDARD_OUTPUT=/dev/stdout
-                    _ERROR_OUTPUT=/dev/stderr
-                    ;;
-                -l|--load-environment)
-                    shift
-                    _LOAD_ENVIRONMENT='yes'
-                    ;;
-
-                -u|--user-names)
-                    shift
-                    while [[ "$1" =~ ^[^-].+$ ]]; do
-                        _USER_NAMES+=" $1"
-                        shift
-                    done
-                    ;;
-                -n|--host-name)
-                    shift
-                    _HOSTNAME="$1"
-                    shift
-                    ;;
-
-                -c|--cpu-architecture)
-                    shift
-                    _CPU_ARCHITECTURE="$1"
-                    shift
-                    ;;
-                -o|--output-system)
-                    shift
-                    _OUTPUT_SYSTEM="$1"
-                    shift
-                    ;;
-
-                -x|--local-time)
-                    shift
-                    _LOCAL_TIME="$1"
-                    shift
-                    ;;
-                -b|--keyboard-layout)
-                    shift
-                    _KEYBOARD_LAYOUT="$1"
-                    shift
-                    ;;
-                -k|--key-map-configuation)
-                    shift
-                    _KEY_MAP_CONFIGURATION_FILE_CONTENT="$1"
-                    shift
-                    ;;
-                -m|--country-with-mirrors)
-                    shift
-                    _COUNTRY_WITH_MIRRORS="$1"
-                    shift
-                    ;;
-
-                -r|--no-reboot)
-                    shift
-                    _AUTOMATIC_REBOOT='no'
-                    ;;
-                -a|--auto-partitioning)
-                    shift
-                    _AUTO_PARTITIONING='yes'
-                    ;;
-                -p|--prevent-using-pacstrap)
-                    shift
-                    _PREVENT_USING_PACSTRAP='yes'
-                    ;;
-                -y|--prevent-using-native-arch-chroot)
-                    shift
-                    _PREVENT_USING_NATIVE_ARCH_CHANGE_ROOT='yes'
-                    ;;
-
-                -e|--boot-partition-label)
-                    shift
-                    _BOOT_PARTITION_LABEL="$1"
-                    shift
-                    ;;
-                -g|--system-partition-label)
-                    shift
-                    _SYSTEM_PARTITION_LABEL="$1"
-                    shift
-                    ;;
-
-                -i|--boot-entry-label)
-                    shift
-                    _BOOT_ENTRY_LABEL="$1"
-                    shift
-                    ;;
-                -s|--fallback-boot-entry-label)
-                    shift
-                    _FALLBACK_BOOT_ENTRY_LABEL="$1"
-                    shift
-                    ;;
-
-                -w|--boot-space-in-mega-byte)
-                    shift
-                    _BOOT_SPACE_IN_MEGA_BYTE="$1"
-                    shift
-                    ;;
-                -q|--needed-system-space-in-mega-byte)
-                    shift
-                    _NEEDED_SYSTEM_IN_MEGA_BYTE="$1"
-                    shift
-                    ;;
-
-                -z|--install-common-additional-packages)
-                    shift
-                    _INSTALL_COMMON_ADDITIONAL_PACKAGES='no'
-                    ;;
-                -f|--additional-packages)
-                    shift
-                    while [[ "$1" =~ ^[^-].+$ ]]; do
-                        _ADDITIONAL_PACKAGES+=" $1"
-                        shift
-                    done
-                    ;;
-                -j|--needed-services)
-                    shift
-                    while [[ "$1" =~ ^[^-].+$ ]]; do
-                        _NEEDED_SERVICES+=" $1"
-                        shift
-                    done
-                    ;;
-                -t|--package-cache-path)
-                    shift
-                    _PACKAGE_CACHE_PATH="$1"
-                    shift
-                    ;;
-
-                '')
-                    shift
-                    break
-                    ;;
-                *)
-                    archInstallLog 'critical' \
-                        "Given argument: \"$1\" is not available." '\n' && \
-                    if [[ "$_SCOPE" == 'local' ]]; then
-                        archInstallPrintHelpMessage "$0"
-                    fi
-                    return 1
-            esac
-        done
-        if [[ "$UID" != '0' ]] && ! (
-            hash fakeroot 1>"$_STANDARD_OUTPUT" 2>/dev/null && \
-            hash fakechroot 1>"$_STANDARD_OUTPUT" 2>/dev/null && \
-            ([ -e "$_OUTPUT_SYSTEM" ] && [ -d "$_OUTPUT_SYSTEM" ]))
-        then
-            archInstallLog 'critical' \
-                "You have to run this script as \"root\" not as \"${USER}\". You can alternatively install \"fakeroot\", \"fakechroot\" and install into a directory."
-            exit 2
-        fi
-        if [[ "$0" == *"${__NAME__}.sh" ]]; then
-            if [ ! "$_HOSTNAME" ]; then
-                while true; do
-                    echo -n 'Please set hostname for new system: ' && \
-                    read _HOSTNAME
-                    if [[ $(echo "$_HOSTNAME" |\
-                          tr '[A-Z]' '[a-z]') != '' ]]; then
-                        break
-                    fi
                 done
-            fi
+                ;;
+            -n|--host-name)
+                shift
+                archInstall_host_name="$1"
+                shift
+                ;;
+
+            -c|--cpu-architecture)
+                shift
+                archInstall_cpu_architecture="$1"
+                shift
+                ;;
+            -o|--output-system)
+                shift
+                archInstall_output_system="$1"
+                shift
+                ;;
+
+            -x|--local-time)
+                shift
+                archInstall_local_time="$1"
+                shift
+                ;;
+            -b|--keyboard-layout)
+                shift
+                archInstall_keyboard_layout="$1"
+                shift
+                ;;
+            -k|--key-map-configuation)
+                shift
+                archInstall_key_map_configuration_file_content="$1"
+                shift
+                ;;
+            -m|--country-with-mirrors)
+                shift
+                archInstall_country_with_mirrors="$1"
+                shift
+                ;;
+
+            -r|--reboot)
+                shift
+                archInstall_automatic_reboot=true
+                ;;
+            -a|--auto-partitioning)
+                shift
+                archInstall_auto_partitioning=true
+                ;;
+            -p|--prevent-using-existing-pacman)
+                shift
+                archInstall_prevent_using_existing_pacman=true
+                ;;
+            -y|--prevent-using-native-arch-chroot)
+                shift
+                archInstall_prevent_using_native_arch_changeroot=true
+                ;;
+
+            -e|--boot-partition-label)
+                shift
+                archInstall_boot_partition_label="$1"
+                shift
+                ;;
+            -g|--system-partition-label)
+                shift
+                archInstall_system_partition_label="$1"
+                shift
+                ;;
+
+            -i|--boot-entry-label)
+                shift
+                archInstall_boot_entry_label="$1"
+                shift
+                ;;
+            -s|--fallback-boot-entry-label)
+                shift
+                archInstall_fallback_boot_entry_label="$1"
+                shift
+                ;;
+
+            -w|--boot-space-in-mega-byte)
+                shift
+                archInstall_boot_space_in_mega_byte="$1"
+                shift
+                ;;
+            -q|--needed-system-space-in-mega-byte)
+                shift
+                archInstall_needed_system_space_in_mega_byte="$1"
+                shift
+                ;;
+
+            -z|--add-common-additional-packages)
+                shift
+                archInstall_add_common_additional_packages=false
+                ;;
+            -f|--additional-packages)
+                shift
+                while [[ "$1" =~ ^[^-].+$ ]]; do
+                    archInstall_additional_packages+=("$1")
+                    shift
+                done
+                ;;
+            -j|--needed-services)
+                shift
+                while [[ "$1" =~ ^[^-].+$ ]]; do
+                    archInstall_needed_services+=("$1")
+                    shift
+                done
+                ;;
+            -t|--package-cache-path)
+                shift
+                archInstall_package_cache_path="$1"
+                shift
+                ;;
+
+            -l|--timeout)
+                shift
+                archInstall_network_timeout_in_seconds="$1"
+                shift
+                ;;
+
+            '')
+                shift || \
+                    true
+                break
+                ;;
+            *)
+                logging.critical "Given argument: \"$1\" is not available."
+                archInstall.print_help_message "$0"
+                return 1
+        esac
+    done
+    if [[ "$UID" != 0 ]] && ! (
+        hash fakeroot 2>/dev/null && \
+        hash fakechroot 2>/dev/null && \
+        ([ -e "$archInstall_output_system" ] && \
+        [ -d "$archInstall_output_system" ]))
+    then
+        bl.logging.critical \
+            "You have to run this script as \"root\" not as \"${USER}\". You can alternatively install \"fakeroot\", \"fakechroot\" and install into a directory."
+        exit 2
+    fi
+    if bl.tools.is_main; then
+        if [ "$archInstall_host_name" = '' ]; then
+            while true; do
+                bl.logging.plain -n 'Please set hostname for new system: '
+                read -r archInstall_host_name
+                if [[ "$(
+                    echo "$archInstall_host_name" | \
+                        tr '[:upper:]' '[:lower:]'
+                )" != '' ]]; then
+                    break
+                fi
+            done
         fi
-        return 0
-    }
-    archInstallLog() {
-        # Handles logging messages. Returns non zero and exit on log level
-        # error to support chaining the message into toolchain.
-        #
-        # Examples:
-        #
-        # >>> archInstallLog test
-        # info: test
-        # >>> archInstallLog debug message
-        # debug: message
-        # >>> archInstallLog info message '\n'
-        #
-        # info: message
-        local loggingType='info' && \
-        local message="$1" && \
-        if [ "$2" ]; then
-            loggingType="$1"
-            message="$2"
-        fi
-        if [ "$_VERBOSE" == 'yes' ] || [ "$loggingType" == 'error' ] || \
-           [ "$loggingType" == 'critical' ]; then
-            if [ "$3" ]; then
-                echo -e -n "$3"
-            fi
-            echo -e "${loggingType}: $message"
-        fi
-        if [ "$loggingType" == 'error' ]; then
-            exit 1
-        fi
-        return 0
-    }
-
-    ## endregion
-
-    ## region install arch linux steps.
-
-    archInstallWithPacstrap() {
-        # Installs arch linux via pacstrap.
-        archInstallLoadCache
-        archInstallLog \
-            'Patch pacstrap to handle offline installations.' && \
-        cat $(which pacstrap) | sed --regexp-extended \
-            's/(pacman.+-(S|-sync))(y|--refresh)/\1/g' \
-            1>${_PACKAGE_CACHE_PATH}/patchedOfflinePacman.sh \
-            2>"$_STANDARD_OUTPUT" && \
-        chmod +x "${_PACKAGE_CACHE_PATH}/patchedOfflinePacman.sh" \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-        archInstallLog 'Update package databases.' && \
-        (pacman --arch "$_CPU_ARCHITECTURE" --sync --refresh \
-            --root "$_MOUNTPOINT_PATH" 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT" || true) && \
-        archInstallLog \
-            "Install needed packages \"$(echo "${_PACKAGES[*]}" | sed \
-            --regexp-extended 's/(^ +| +$)//g' | sed \
-            's/ /", "/g')\" to \"$_OUTPUT_SYSTEM\"."
-        # NOTE: "${_PACKAGES[*]}" shouldn't be in quotes to get pacstrap
-        # working.
-        "${_PACKAGE_CACHE_PATH}/patchedOfflinePacman.sh" -d \
-            "$_MOUNTPOINT_PATH" ${_PACKAGES[*]} --force 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT" && \
-        rm "${_PACKAGE_CACHE_PATH}/patchedOfflinePacman.sh" \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        local returnCode=$?
-        (archInstallCache || archInstallLog 'warning' \
-            'Caching current downloaded packages and generated database failed.')
-        return $returnCode
-    }
-    archInstallGenericLinuxSteps() {
-        # This functions performs creating an arch linux system from any linux
-        # system base.
-        archInstallLog 'Create a list with urls for needed packages.' && \
-        archInstallDownloadAndExtractPacman \
-            $(archInstallCreatePackageUrlList) && \
-        # Create root filesystem only if not exists.
-        (test -e "${_MOUNTPOINT_PATH}etc/mtab" 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT" || echo "rootfs / rootfs rw 0 0" \
-            1>"${_MOUNTPOINT_PATH}etc/mtab" 2>"$_ERROR_OUTPUT") && \
-        # Copy systems resolv.conf to new installed system.
-        # If the native "arch-chroot" is used it will mount the file into the
-        # change root environment.
-        cp '/etc/resolv.conf' "${_MOUNTPOINT_PATH}etc/" 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT" && \
-        [[ "$_PREVENT_USING_NATIVE_ARCH_CHANGE_ROOT" == 'no' ]] && \
-        hash arch-chroot 1>"$_STANDARD_OUTPUT" 2>/dev/null && \
-        mv "${_MOUNTPOINT_PATH}etc/resolv.conf" \
-            "${_MOUNTPOINT_PATH}etc/resolv.conf.old" 1>"$_STANDARD_OUTPUT" \
-            2>/dev/null
-        sed --in-place --quiet '/^[ \t]*CheckSpace/ !p' \
-            "${_MOUNTPOINT_PATH}etc/pacman.conf" 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT" && \
-        sed --in-place "s/^[ \t]*SigLevel[ \t].*/SigLevel = Never/" \
-            "${_MOUNTPOINT_PATH}etc/pacman.conf" 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT" && \
-        archInstallLog 'Create temporary mirrors to download new packages.' && \
-        archInstallAppendTemporaryInstallMirrors && \
-        (archInstallLoadCache || archInstallLog \
-             'No package cache was loaded.') && \
-        archInstallLog "Update package databases." && \
-        (archInstallChangeRootToMountPoint /usr/bin/pacman \
-            --arch "$_CPU_ARCHITECTURE" --sync --refresh \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" || true) && \
-        archInstallLog \
-            "Install needed packages \"$(echo "${_PACKAGES[*]}" | sed \
-            --regexp-extended 's/(^ +| +$)//g' | sed \
-            's/ /", "/g')\" to \"$_OUTPUT_SYSTEM\"."
-        archInstallChangeRootToMountPoint /usr/bin/pacman --arch \
-            "$_CPU_ARCHITECTURE" --sync --force --needed --noconfirm \
-            ${_PACKAGES[*]} 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        local returnCode=$? && \
-        (archInstallCache || archInstallLog 'warning' \
-            'Caching current downloaded packages and generated database failed.')
-        [[ $returnCode == 0 ]] && archInstallConfigurePacman
-        return $?
-    }
-
-    ## endregion
-
-    ## region tools
-
-    ### region change root functions
-
-    archInstallPerformDependencyCheck() {
-        # This function check if all given dependencies are present.
-        #
-        # Examples:
-        #
-        # >>> archInstallPerformDependencyCheck "mkdir pacstrap mktemp"
-        # ...
-        local dependenciesToCheck="$1" && \
-        local result=0 && \
-        local dependency && \
-        for dependency in ${dependenciesToCheck[*]}; do
-            if ! hash "$dependency" 1>"$_STANDARD_OUTPUT" 2>/dev/null; then
-                archInstallLog 'critical' \
-                    "Needed dependency \"$dependency\" isn't available." && \
-                result=1
-            fi
-        done
-        return $result
-    }
-    archInstallChangeRootToMountPoint() {
-        # This function performs a changeroot to currently set mountpoint path.
-        archInstallChangeRoot "$_MOUNTPOINT_PATH" "$@"
-        return $?
-    }
-    archInstallChangeRoot() {
-        # This function emulates the arch linux native "arch-chroot" function.
-        if [[ "$1" == '/' ]]; then
+    fi
+    return 0
+}
+## endregion
+## region helper
+### region change root functions
+alias archInstall.changeroot=archInstall_changeroot
+archInstall_changeroot() {
+    local __documentation__='
+        This function emulates the arch linux native "arch-chroot" function.
+    '
+    if ! $archInstall_prevent_using_native_arch_changeroot && \
+        hash arch-chroot 2>/dev/null
+    then
+        if [ "$1" = / ]; then
             shift
-            "$@" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-            return $?
-        else
-            if [[ "$_PREVENT_USING_NATIVE_ARCH_CHANGE_ROOT" == 'no' ]] && \
-                hash arch-chroot 1>"$_STANDARD_OUTPUT" 2>/dev/null
-            then
-                arch-chroot "$@" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-                return $?
-            fi
-            archInstallChangeRootViaMount "$@"
+            "$@"
             return $?
         fi
+        arch-chroot "$@"
         return $?
-    }
-    archInstallChangeRootViaMount() {
-        # Performs a change root by mounting needed host locations in change
-        # root environment.
-        local mountpointPath && \
-        for mountpointPath in ${_NEEDED_MOUNTPOINTS[*]}; do
-            mountpointPath="${mountpointPath:1}" && \
-            if [ ! -e "${_MOUNTPOINT_PATH}${mountpointPath}" ]; then
-                mkdir --parents "${_MOUNTPOINT_PATH}${mountpointPath}" \
-                    1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
+    fi
+    bl.changeroot "$@"
+    return $?
+}
+alias archInstall.changeroot_to_mountpoint=archInstall_changeroot_to_mountpoint
+archInstall_changeroot_to_mountpoint() {
+    local __documentation__='
+        This function performs a changeroot to currently set mountpoint path.
+    '
+    archInstall.changeroot "$archInstall_mountpoint_path" "$@"
+    return $?
+}
+### endregion
+alias archInstall.add_boot_entries=archInstall_add_boot_entries
+archInstall_add_boot_entries() {
+    local __documentation__='
+        Creates an uefi boot entry.
+    '
+    if hash efibootmgr 2>/dev/null; then
+        bl.logging.info Configure efi boot manager.
+        cat << EOF \
+            1>"${archInstall_mountpoint_path}/boot/startup.nsh"
+\\vmlinuz-linux initrd=\\initramfs-linux.img root=PARTLABEL=${archInstall_system_partition_label} rw rootflags=subvol=root quiet loglevel=2 acpi_osi="!Windows 2012"
+EOF
+        archInstall.changeroot_to_mountpoint \
+            efibootmgr \
+            --create \
+            --disk "$archInstall_output_system" \
+            -l '\vmlinuz-linux' \
+            --label "$archInstall_fallback_boot_entry_label" \
+            --part 1 \
+            --unicode \
+            "initrd=\\initramfs-linux-fallback.img root=PARTLABEL=${archInstall_system_partition_label} rw rootflags=subvol=root break=premount break=postmount acpi_osi=\"!Windows 2012\"" || \
+                bl.logging.warn \
+                    "Adding boot entry \"${archInstall_fallback_boot_entry_label}\" failed."
+        # NOTE: Boot entry to boot on next reboot should be added at last.
+        archInstall.changeroot_to_mountpoint \
+            efibootmgr \
+            --create \
+            --disk "$archInstall_output_system" \
+            -l '\vmlinuz-linux' \
+            --label "$archInstall_boot_entry_label" \
+            --part 1 \
+            --unicode \
+            "initrd=\\initramfs-linux.img root=PARTLABEL=${archInstall_system_partition_label} rw rootflags=subvol=root quiet loglevel=2 acpi_osi=\"!Windows 2012\"" || \
+                bl.logging.warn \
+                    "Adding boot entry \"${archInstall_boot_entry_label}\" failed."
+    else
+        bl.logging.warn \
+            "\"efibootmgr\" doesn't seem to be installed. Creating a boot entry failed."
+    fi
+}
+alias archInstall.append_temporary_install_mirrors=archInstall_append_temporary_install_mirrors
+archInstall_append_temporary_install_mirrors() {
+    local __documentation__='
+        Appends temporary used mirrors to download missing packages during
+        installation.
+    '
+    local url
+    for url in $1; do
+        echo "Server = $url/\$repo/os/\$arch" \
+            1>>"${archInstall_mountpoint_path}etc/pacman.d/mirrorlist"
+    done
+}
+alias archInstall.cache=archInstall_cache
+archInstall_cache() {
+    local __documentation__='
+        Cache previous downloaded packages and database.
+    '
+    bl.logging.info Cache loaded packages.
+    cp \
+        --force \
+        --preserve \
+        "${archInstall_mountpoint_path}var/cache/pacman/pkg/"*.pkg.tar.xz \
+        "${archInstall_package_cache_path}/"
+    bl.logging.info Cache loaded databases.
+    cp \
+        --force \
+        --preserve \
+        "${archInstall_mountpoint_path}var/lib/pacman/sync/"*.db \
+        "${archInstall_package_cache_path}/"
+    return $?
+}
+alias archInstall.enable_services=archInstall_enable_services
+archInstall_enable_services() {
+    local __documentation__='
+        Enable all needed services.
+    '
+    local network_device_name
+    for network_device_name in $(
+        ip addr | \
+            command grep --extended-regexp --only-matching '^[0-9]+: .+: ' | \
+                command sed --regexp-extended 's/^[0-9]+: (.+): $/\1/g'
+    ); do
+        # NOTE: We have to use `"$(which grep)"` instead of `command grep`
+        # because the latter one's return value is not catched by the wrapping
+        # test, so activated exceptions would throw on negative test here.
+        # shellcheck disable=SC2230
+        if ! echo "$network_device_name" | "$(which grep)" \
+            --extended-regexp '^(lo|loopback|localhost)$' --quiet
+        then
+            local service_name=dhcpcd
+            local connection=ethernet
+            local description='A basic dhcp connection'
+            local additional_properties=''
+            if [ "${network_device_name:0:1}" = e ]; then
+                bl.logging.info \
+                    "Enable dhcp service on wired network device \"$network_device_name\"."
+                service_name=netctl-ifplugd
+                connection=ethernet
+                description='A basic ethernet dhcp connection'
+            elif [ "${network_device_name:0:1}" = w ]; then
+                bl.logging.info \
+                    "Enable dhcp service on wireless network device \"$network_device_name\"."
+                service_name=netctl-auto
+                connection=wireless
+                description='A simple WPA encrypted wireless connection'
+                additional_properties=$'\nSecurity=wpa\nESSID='"'home'"$'\nKey='"'home'"
             fi
-            if ! mountpoint -q "${_MOUNTPOINT_PATH}${mountpointPath}"; then
-                if [ "$mountpointPath" == 'proc' ]; then
-                    mount "/${mountpointPath}" \
-                        "${_MOUNTPOINT_PATH}${mountpointPath}" --types \
-                        "$mountpointPath" --options nosuid,noexec,nodev \
-                        1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-                elif [ "$mountpointPath" == 'sys' ]; then
-                    mount "/${mountpointPath}" \
-                        "${_MOUNTPOINT_PATH}${mountpointPath}" --types sysfs \
-                        --options nosuid,noexec,nodev 1>"$_STANDARD_OUTPUT" \
-                        2>"$_ERROR_OUTPUT"
-                elif [ "$mountpointPath" == 'dev' ]; then
-                    mount udev "${_MOUNTPOINT_PATH}${mountpointPath}" --types \
-                        devtmpfs --options mode=0755,nosuid \
-                        1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-                elif [ "$mountpointPath" == 'dev/pts' ]; then
-                    mount devpts "${_MOUNTPOINT_PATH}${mountpointPath}" \
-                        --types devpts --options \
-                        mode=0620,gid=5,nosuid,noexec 1>"$_STANDARD_OUTPUT" \
-                        2>"$_ERROR_OUTPUT"
-                elif [ "$mountpointPath" == 'dev/shm' ]; then
-                    mount shm "${_MOUNTPOINT_PATH}${mountpointPath}" --types \
-                        tmpfs --options mode=1777,nosuid,nodev \
-                        1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-                elif [ "$mountpointPath" == 'run' ]; then
-                    mount "/${mountpointPath}" \
-                        "${_MOUNTPOINT_PATH}${mountpointPath}" --types tmpfs \
-                        --options nosuid,nodev,mode=0755 \
-                        1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-                elif [ "$mountpointPath" == 'tmp' ]; then
-                    mount run "${_MOUNTPOINT_PATH}${mountpointPath}" --types \
-                        tmpfs --options mode=1777,strictatime,nodev,nosuid \
-                        1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-                elif [ -f "/${mountpointPath}" ]; then
-                    mount "/${mountpointPath}" \
-                        "${_MOUNTPOINT_PATH}${mountpointPath}" --bind
-                else
-                    archInstallLog 'warning' \
-                        "Mountpoint \"/${mountpointPath}\" couldn't be handled."
-                fi
-            fi
-        done
-        archInstallPerformChangeRoot "$@"
-        local returnCode=$?
-        # Reverse mountpoint list to unmount them in reverse order.
-        local reverseNeededMountpoints && \
-        for mountpointPath in ${_NEEDED_MOUNTPOINTS[*]}; do
-            reverseNeededMountpoints="$mountpointPath ${reverseNeededMountpoints[*]}"
-        done
-        for mountpointPath in ${reverseNeededMountpoints[*]}; do
-            mountpointPath="${mountpointPath:1}" && \
-            if mountpoint -q "${_MOUNTPOINT_PATH}${mountpointPath}" || \
-                [ -f "/${mountpointPath}" ]
-            then
-                # If unmounting doesn't work try to unmount in lazy mode
-                # (when mountpoints are not needed anymore).
-                umount "${_MOUNTPOINT_PATH}${mountpointPath}" \
-                    1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" || \
-                (archInstallLog 'warning' "Unmounting \"${_MOUNTPOINT_PATH}${mountpointPath}\" fails so unmount it in force mode." && \
-                 umount -f "${_MOUNTPOINT_PATH}${mountpointPath}" \
-                     1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT") || \
-                (archInstallLog 'warning' "Unmounting \"${_MOUNTPOINT_PATH}${mountpointPath}\" in force mode fails so unmount it if mountpoint isn't busy anymore." && \
-                 umount -l "${_MOUNTPOINT_PATH}${mountpointPath}" \
-                     1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT")
-                # NOTE: "returnCode" remains with an error code if there was
-                # given one in all iterations.
-                [[ $? != 0 ]] && returnCode=$?
-            else
-                archInstallLog 'warning' \
-                    "Location \"${_MOUNTPOINT_PATH}${mountpointPath}\" should be a mountpoint but isn't."
-            fi
-        done
-        return $returnCode
-    }
-    archInstallPerformChangeRoot() {
-        # Perform the available change root program wich needs at least rights.
-        if [[ "$UID" == '0' ]]; then
-            chroot "$@" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-            return $?
-        fi
-        fakeroot fakechroot chroot "$@" 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT"
-        return $?
-    }
-
-    ### endregion
-
-    archInstallConfigure() {
-        # Provides generic linux configuration mechanism. If new systemd
-        # programs are used (if first argument is "true") they could have
-        # problems in change root environment without and exclusive dbus
-        # connection.
-        archInstallLog "Make keyboard layout permanent to \"${_KEYBOARD_LAYOUT}\"." && \
-        if [[ "$1" == 'true' ]]; then
-            archInstallChangeRootToMountPoint localectl set-keymap \
-                "$_KEYBOARD_LAYOUT" 1>"$_STANDARD_OUTPUT" \
-                2>"$_ERROR_OUTPUT" && \
-            archInstallChangeRootToMountPoint localectl set-locale \
-                LANG="en_US.utf8" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-            archInstallChangeRootToMountPoint locale-gen set-keymap \
-                "$_KEYBOARD_LAYOUT" 1>"$_STANDARD_OUTPUT" \
-                2>"$_ERROR_OUTPUT"
-        else
-            echo -e "$_KEY_MAP_CONFIGURATION_FILE_CONTENT" 1>\
-                "${_MOUNTPOINT_PATH}etc/vconsole.conf" 2>"$_ERROR_OUTPUT"
-        fi
-        archInstallLog "Set localtime \"$_LOCAL_TIME\"." && \
-        if [[ "$1" == 'true' ]]; then
-            archInstallChangeRootToMountPoint timedatectl set-timezone \
-                "$_LOCAL_TIME" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        else
-            ln --symbolic --force "/usr/share/zoneinfo/${_LOCAL_TIME}" \
-                "${_MOUNTPOINT_PATH}etc/localtime" 1>"$_STANDARD_OUTPUT" \
-                2>"$_ERROR_OUTPUT"
-        fi
-        archInstallLog "Set hostname to \"$_HOSTNAME\"." && \
-        if [[ "$1" == 'true' ]]; then
-            archInstallChangeRootToMountPoint hostnamectl set-hostname \
-                "$_HOSTNAME" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        else
-            echo -e "$_HOSTNAME" 1>"${_MOUNTPOINT_PATH}etc/hostname" \
-                2>"$_ERROR_OUTPUT"
-        fi
-        archInstallLog 'Set hosts.' && \
-        archInstallGetHostsContent "$_HOSTNAME" \
-            1>"${_MOUNTPOINT_PATH}etc/hosts" 2>"$_ERROR_OUTPUT" && \
-        if [[ "$1" != 'true' ]]; then
-            archInstallLog 'Set root password to "root".' && \
-            archInstallChangeRootToMountPoint /usr/bin/env bash -c \
-                "echo root:root | \$(which chpasswd)" 1>"$_STANDARD_OUTPUT" \
-                2>"$_ERROR_OUTPUT"
-        fi
-        archInstallEnableServices && \
-        local userName && \
-        for userName in ${_USER_NAMES[*]}; do
-            archInstallLog "Add user: \"$userName\"." && \
-            # NOTE: We could only create a home directory with right rights if
-            # we are root.
-            (archInstallChangeRootToMountPoint useradd \
-                 "$(if [[ "$UID" == '0' ]]; then
-                       echo '--create-home '
-                   else
-                       echo '--no-create-home'
-                   fi) --no-user-group --shell /usr/bin/bash" \
-                 "$userName" \
-                 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" || \
-             (archInstallLog 'warning' \
-                  "Adding user \"$userName\" failed." && false)) && \
-            archInstallLog \
-                "Set password for \"$userName\" to \"$userName\"." && \
-            archInstallChangeRootToMountPoint /usr/bin/env bash \
-                -c "echo ${userName}:${userName} | \$(which chpasswd)" \
-                1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        done
-        return $?
-    }
-    archInstallEnableServices() {
-        # Enable all needed services.
-        local networkDeviceName && \
-        for networkDeviceName in $(ip addr | grep --extended-regexp \
-            --only-matching '^[0-9]+: .+: ' | sed --regexp-extended \
-            's/^[0-9]+: (.+): $/\1/g')
-        do
-            if [[ ! "$(echo "$networkDeviceName" | grep --extended-regexp \
-                  '^(lo|loopback|localhost)$')" ]]; then
-                local serviceName='dhcpcd' && \
-                local connection='ethernet' && \
-                local description='A basic dhcp connection' && \
-                local additionalProperties='' && \
-                if [[ "${networkDeviceName:0:1}" == 'e' ]]; then
-                    archInstallLog \
-                        "Enable dhcp service on wired network device \"$networkDeviceName\"." && \
-                    serviceName='netctl-ifplugd' && \
-                    connection='ethernet' && \
-                    description='A basic ethernet dhcp connection'
-                elif [[ "${networkDeviceName:0:1}" == 'w' ]]; then
-                    archInstallLog \
-                        "Enable dhcp service on wireless network device \"$networkDeviceName\"." && \
-                    serviceName='netctl-auto' && \
-                    connection='wireless' && \
-                    description='A simple WPA encrypted wireless connection' && \
-                    additionalProperties="\nSecurity=wpa\nESSID='home'\nKey='home'"
-                fi
-            cat << EOF 1>"${_MOUNTPOINT_PATH}etc/netctl/${networkDeviceName}-dhcp" 2>"$_ERROR_OUTPUT"
+        cat << EOF 1>"${archInstall_mountpoint_path}etc/netctl/${network_device_name}-dhcp"
 Description='${description}'
-Interface=${networkDeviceName}
+Interface=${network_device_name}
 Connection=${connection}
 IP=dhcp
 ## for DHCPv6
 #IP6=dhcp
 ## for IPv6 autoconfiguration
-#IP6=stateless${additionalProperties}
+#IP6=stateless${additional_properties}
 EOF
-                ln --symbolic --force \
-                    "/usr/lib/systemd/system/${serviceName}@.service" \
-                    "${_MOUNTPOINT_PATH}etc/systemd/system/multi-user.target.wants/${serviceName}@${networkDeviceName}.service" \
-                    1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
+            ln \
+                --force \
+                --symbolic \
+                "/usr/lib/systemd/system/${service-name}@.service" \
+                "${archInstall_mountpoint_path}etc/systemd/system/multi-user.target.wants/${service_name}@${network_device_name}.service"
+        fi
+    done
+    local service_name
+    for service_name in "${archInstall_needed_services[@]}"; do
+        bl.logging.info "Enable \"$service_name\" service."
+        archInstall.changeroot_to_mountpoint \
+            systemctl \
+            enable \
+            "${service_name}.service"
+    done
+}
+alias archInstall.get_hosts_content=archInstall_get_hosts_content
+archInstall_get_hosts_content() {
+    local __documentation__='
+        Provides the file content for the "/etc/hosts".
+    '
+    cat << EOF
+#<IP-Adress> <computername.workgroup> <computernames>
+127.0.0.1    localhost.localdomain    localhost $1
+::1          ipv6-localhost           ipv6-localhost ipv6-$1
+EOF
+}
+# NOTE: Depends on "archInstall.get_hosts_content", "archInstall.enable_services"
+alias archInstall.configure=archInstall_configure
+archInstall_configure() {
+    local __documentation__='
+        Provides generic linux configuration mechanism. If new systemd programs
+        are used (if first argument is "true") they could have problems in
+        change root environment without and exclusive dbus connection.
+    '
+    bl.logging.info \
+        "Make keyboard layout permanent to \"${archInstall_keyboard_layout}\"."
+    if [ "$1" = true ]; then
+        archInstall.changeroot_to_mountpoint \
+            localectl \
+            set-keymap "$archInstall_keyboard_layout"
+        archInstall.changeroot_to_mountpoint \
+            localectl \
+            set-locale LANG=en_US.utf8
+        archInstall.changeroot_to_mountpoint \
+            locale-gen \
+            set-keymap "$archInstall_keyboard_layout"
+    else
+        echo -e "$archInstall_key_map_configuration_file_content" \
+            1>"${archInstall_mountpoint_path}etc/vconsole.conf"
+    fi
+    bl.logging.info "Set localtime \"$archInstall_local_time\"."
+    if [ "$1" = true ]; then
+        archInstall.changeroot_to_mountpoint \
+            timedatectl \
+            set-timezone "$archInstall_local_time"
+    else
+        ln \
+            --symbolic \
+            --force "/usr/share/zoneinfo/${archInstall_local_time}" \
+            "${archInstall_mountpoint_path}etc/localtime"
+    fi
+    bl.logging.info "Set hostname to \"$archInstall_host_name\"."
+    if [ "$1" = true ]; then
+        archInstall.changeroot_to_mountpoint \
+            hostnamectl \
+            set-hostname "$archInstall_host_name"
+    else
+        echo "$archInstall_host_name" \
+            1>"${archInstall_mountpoint_path}etc/hostname"
+    fi
+    bl.logging.info Set hosts.
+    archInstall.get_hosts_content "$archInstall_host_name" \
+        1>"${archInstall_mountpoint_path}etc/hosts"
+    if [[ "$1" != true ]]; then
+        bl.logging.info "Set root password to \"root\"."
+        archInstall.changeroot_to_mountpoint \
+            /usr/bin/env bash -c 'echo root:root | $(which chpasswd)'
+    fi
+    bl.exception.try
+        archInstall.enable_services
+    bl.exception.catch_single
+        bl.logging.warn Enabling services has failed.
+    local user_name
+    for user_name in "${archInstall_user_names[@]}"; do
+        bl.logging.info "Add user: \"$user_name\"."
+        # NOTE: We could only create a home directory with right rights if we
+        # are root.
+        bl.exception.try
+            archInstall.changeroot_to_mountpoint \
+                useradd "$(
+                    if (( UID == 0 )); then
+                        echo --create-home
+                    else
+                        echo --no-create-home
+                    fi
+                ) --no-user-group --shell /usr/bin/bash" \
+                "$user_name"
+        bl.exception.catch_single
+            bl.logging.warn "Adding user \"$user_name\" failed."
+        bl.logging.info "Set password for \"$user_name\" to \"$user_name\"."
+        archInstall.changeroot_to_mountpoint \
+            /usr/bin/env bash -c \
+                "echo ${user_name}:${user_name} | \$(which chpasswd)"
+    done
+    return $?
+}
+alias archInstall.configure_pacman=archInstall_configure_pacman
+archInstall_configure_pacman() {
+    local __documentation__='
+        Disables signature checking for incoming packages.
+    '
+    bl.logging.info "Enable mirrors in \"$archInstall_country_with_mirrors\"."
+    local buffer_file="$(mktemp --suffix -archInstall-processed-mirrorlist)"
+    bl.exception.try
+    {
+        local in_area=false
+        local line_number=0
+        local line
+        while read -r line; do
+            line_number="$((line_number + 1))"
+            if [ "$line" = "## $archInstall_country_with_mirrors" ]; then
+                in_area=true
+            elif [ "$line" = '' ]; then
+                in_area=false
+            elif $in_area && [ "${line:0:1}" = '#' ]; then
+                line="${line:1}"
+            fi
+            echo "$line"
+        done < "${archInstall_mountpoint_path}etc/pacman.d/mirrorlist" \
+            1>"$buffer_file"
+        cat "$buffer_file" \
+            1>"${archInstall_mountpoint_path}etc/pacman.d/mirrorlist"
+    }
+    bl.exception.catch_single
+    {
+        rm --force "$buffer_file"
+        # shellcheck disable=SC2154
+        bl.logging.error_exception "$bl_exception_last_traceback"
+    }
+    rm --force "$buffer_file"
+}
+alias archInstall.determine_auto_partitioning=archInstall_determine_auto_partitioning
+archInstall_determine_auto_partitioning() {
+    local __documentation__='
+        Determine whether we should perform our auto partitioning mechanism.
+    '
+    if ! $archInstall_auto_partitioning; then
+        while true; do
+            bl.logging.plain -n Do you want auto partioning? [yes|NO]:
+            local auto_partitioning
+            read -r auto_partitioning
+            if [ "$auto_partitioning" = '' ] || [ "$(
+                echo "$auto_partitioning" | \
+                    tr '[:upper:]' '[:lower:]'
+            )" = no ]; then
+                archInstall_auto_partitioning=false
+                break
+            elif [ "$(
+                echo "$auto_partitioning" | \
+                    tr '[:upper:]' '[:lower:]'
+            )" = yes ]; then
+                archInstall_auto_partitioning=true
+                break
             fi
         done
-        local serviceName && \
-        for serviceName in ${_NEEDED_SERVICES[*]}; do
-            archInstallLog "Enable \"$serviceName\" service."
-            archInstallChangeRootToMountPoint systemctl enable \
-                "$serviceName".service 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-            [[ $? != 0 ]] && return $?
-        done
-        return 0
-    }
-    archInstallTidyUpSystem() {
-        # Deletes some unneeded locations in new installs operating system.
-        local returnCode=0 && \
-        archInstallLog 'Tidy up new build system.' && \
-        local filePath && \
-        for filePath in ${_UNNEEDED_FILE_LOCATIONS[*]}; do
-            archInstallLog \
-                "Deleting \"${_MOUNTPOINT_PATH}$filePath\"." && \
-            rm "${_MOUNTPOINT_PATH}$filePath" --recursive \
-                --force 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-            [[ $? != 0 ]] && return $?
-        done
-        return 0
-    }
-    archInstallAppendTemporaryInstallMirrors() {
-        # Appends temporary used mirrors to download missing packages during
-        # installation.
-        local url && \
-        for url in ${_PACKAGE_SOURCE_URLS[*]}; do
-            echo "Server = $url/\$repo/os/$_CPU_ARCHITECTURE" \
-                1>>"${_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist" \
-                2>"$_ERROR_OUTPUT"
-            [[ $? != 0 ]] && return $?
-        done
-        return 0
-    }
-    archInstallPackResult() {
-        # Packs the resulting system to provide files owned by root without
-        # root permissions.
-        if [[ "$UID" != '0' ]]; then
-            archInstallLog "System will be packed into \"$_MOUNTPOINT_PATH.tar\" to provide root owned files. You have to extract this archiv as root."
-            tar cvf "$_MOUNTPOINT_PATH".tar "$_MOUNTPOINT_PATH" --owner root \
-                1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-            rm "$_MOUNTPOINT_PATH"* --recursive --force 1>"$_STANDARD_OUTPUT" \
-                2>"$_ERROR_OUTPUT"
-            return $?
-        fi
-        return 0
-    }
-    archInstallCreatePackageUrlList() {
-        # Generates all web urls for needed packages.
-        local returnCode=0
-        local listBufferFile=$(mktemp)
-        local firstPackageSourceUrl=$(echo "$_PACKAGE_SOURCE_URLS" | \
-            grep --extended-regexp --only-matching '^[^ ]+')
-        local repositoryName
-        for repositoryName in core community extra; do
-            wget --quiet --output-document - \
-                "$firstPackageSourceUrl/$repositoryName/os/$_CPU_ARCHITECTURE/" \
-                2>"$_ERROR_OUTPUT" | sed --quiet \
-                "s|.*href=\"\\([^\"]*\\).*|$firstPackageSourceUrl\\/$repositoryName\\/os\\/$_CPU_ARCHITECTURE\\/\\1|p" \
-                2>"$_ERROR_OUTPUT" | grep --invert-match 'sig$' \
-                2>"$_ERROR_OUTPUT" | uniq 1>>"$listBufferFile" \
-                2>"$_ERROR_OUTPUT"
-            # NOTE: "returnCode" remaines with an error code if there was given
-            # one in all iterations.
-            [[ $? != 0 ]] && returnCode=$?
-        done
-        echo "$listBufferFile"
-        return $returnCode
-    }
-    archInstallDeterminePacmansNeededPackages() {
-        # Reads pacmans database and determine pacman's dependencies.
-        local coreDatabaseUrl=$(grep "core\.db" "$listBufferFile" | \
-            head --lines 1)
-        wget "$coreDatabaseUrl" --timestamping --directory-prefix \
-            "${_PACKAGE_CACHE_PATH}/" 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT" && \
-        if [ -f "$_PACKAGE_CACHE_PATH/core.db" ]; then
-            local databaseLocation=$(mktemp --directory)
-            tar --gzip --extract --file "$_PACKAGE_CACHE_PATH/core.db" \
-                --directory "$databaseLocation" 1>"$_STANDARD_OUTPUT" \
-                2>"$_ERROR_OUTPUT" && \
-            archInstallDeterminePackageDependencies 'pacman' \
-                "$databaseLocation"
-            return $?
+    fi
+}
+alias archInstall.create_url_lists=archInstall_create_url_lists
+archInstall_create_url_lists() {
+    local __documentation__='
+        Generates all web urls for needed packages.
+    '
+    local serialized_url_list
+    local temporary_return_code=0
+    local return_code=0
+    bl.logging.info Downloading latest mirror list.
+    local url_list=()
+    local url
+    for url in "${archInstall_package_source_urls[@]}"; do
+        bl.logging.info "Retrieve repository source url list from \"$url\"."
+        if serialized_url_list="$(
+            wget \
+                "$url" \
+                --output-document - \
+                --timeout="$archInstall_network_timeout_in_seconds" | \
+                    command sed \
+                        --regexp-extended 's/^#Server = (http)/\1/g' | \
+                            command sed --regexp-extended '/^#.+$/d' | \
+                                command sed \
+                                    --regexp-extended 's/\/\$repo\/.+$//g' | \
+                                        command sed \
+                                            --regexp-extended \
+                                            's/(^\s+)|(\s+$)//g' | \
+                                                command sed \
+                                                    --regexp-extended '/^$/d'
+        )"; then
+            mapfile -t url_list <<<"$serialized_url_list"
         else
-            archInstallLog 'error' \
-                "No database file (\"$_PACKAGE_CACHE_PATH/core.db\") available."
+            bl.logging.warn "Retrieving repository source url list from \"$url\" failed."
         fi
-    }
-    archInstallDeterminePackageDependencies() {
-        # Determines all package dependencies. Returns a list of needed
-        # packages for given package determined by given database.
-        # NOTE: We append and prepend always a whitespace to simply identify
-        # duplicates without using extended regular expression and packname
-        # escaping.
-        _NEEDED_PACKAGES+=" $1 " && \
-        _NEEDED_PACKAGES="$(echo "$_NEEDED_PACKAGES" | sed --regexp-extended \
-            's/ +/ /g')" && \
-        local returnCode=0 && \
-        local \
-            packageDirectoryPath=$(archInstallDeterminePackageDirectoryName \
-            "$@") && \
-        if [ "$packageDirectoryPath" ]; then
-            local packageDependencyDescription && \
-            for packageDependencyDescription in $(cat \
-                "${packageDirectoryPath}depends" | grep --perl-regexp \
-                --null-data --only-matching '%DEPENDS%(\n.+)+' | grep \
-                --extended-regexp --invert-match '^%.+%$')
-            do
-                local packageName=$(echo "$packageDependencyDescription" | \
-                    grep --extended-regexp --only-matching '^[-a-zA-Z0-9]+')
-                if ! echo "$_NEEDED_PACKAGES" 2>"$_ERROR_OUTPUT" | grep \
-                    " $packageName " 1>/dev/null 2>/dev/null
-                then
-                    archInstallDeterminePackageDependencies "$packageName" \
-                        "$2" recursive || \
-                    archInstallLog 'warning' \
-                        "Needed package \"$packageName\" for \"$1\" couldn't be found in database in \"$2\"."
-                fi
-            done
-        else
-            returnCode=1
-        fi
-        # Trim resulting list.
-        if [[ ! "$3" ]]; then
-            _NEEDED_PACKAGES="$(echo "${_NEEDED_PACKAGES}" | sed \
-                --regexp-extended 's/(^ +| +$)//g')"
-        fi
-        return $returnCode
-    }
-    archInstallDeterminePackageDirectoryName() {
-        # Determines the package directory name from given package name in
-        # given database.
-        local packageDirectoryPath=$(grep "%PROVIDES%\n(.+\n)*$1\n(.+\n)*\n" \
-            --perl-regexp --null-data "$2" --recursive --files-with-matches | \
-            grep --extended-regexp '/depends$' | sed 's/depends$//' | head \
-            --lines 1)
-        if [ ! "$packageDirectoryPath" ]; then
-            local regexPattern
-            for packageDirectoryPattern in \
-                "^$1-([0-9a-zA-Z\.]+-[0-9a-zA-Z\.])$" \
-                "^$1[0-9]+-([0-9a-zA-Z\.]+-[0-9a-zA-Z\.])$" \
-                "^[0-9]+$1[0-9]+-([0-9a-zA-Z\.]+-[0-9a-zA-Z\.])$" \
-                "^[0-9a-zA-Z]*acm[0-9a-zA-Z]*-([0-9a-zA-Z\.]+-[0-9a-zA-Z\.])$"
-            do
-                local packageDirectoryName=$(ls -1 "$2" | grep \
-                    --extended-regexp "$packageDirectoryPattern")
-                if [ "$packageDirectoryName" ]; then
-                    break
-                fi
-            done
-            if [ "$packageDirectoryName" ]; then
-                packageDirectoryPath="$2/$packageDirectoryName/"
+        [ "$serialized_url_list" != '' ] && break
+    done
+    local package_source_urls=(
+        "${url_list[@]}" "${archInstall_package_urls[@]}")
+    local package_urls=()
+    local name
+    for name in core community extra; do
+        for url in "${archInstall_package_urls[@]}"; do
+            bl.logging.info "Retrieve repository \"$name\" from \"$url\"."
+            if serialized_url_list="$(
+                wget \
+                    --timeout="$archInstall_network_timeout_in_seconds" \
+                    --tries 1 \
+                    --output-document - \
+                    "${url}/$name/os/$archInstall_cpu_architecture" | \
+                        command sed \
+                            --quiet \
+                            "s>.*href=\"\\([^\"]*.\\(tar.xz\\|db\\)\\).*>${url}/$name/os/$archInstall_cpu_architecture/\\1>p" | \
+                                command sed 's:/./:/:g' | \
+                                    sort --unique
+            )"; then
+                mapfile -t url_list <<<"$serialized_url_list"
+            else
+                bl.logging.warn "Retrieving repository \"$name\" from \"$url\" failed."
             fi
-        fi
-        echo "$packageDirectoryPath"
-        return $?
-    }
-    archInstallDownloadAndExtractPacman() {
-        # Downloads all packages from arch linux needed to run pacman.
-        local listBufferFile="$1" && \
-        if archInstallDeterminePacmansNeededPackages "$listBufferFile"; then
-            archInstallLog \
-                "Needed packages are: \"$(echo "${_NEEDED_PACKAGES[*]}" | sed \
-                's/ /", "/g')\"." && \
-            archInstallLog \
-                "Download and extract each package into our new system located in \"$_MOUNTPOINT_PATH\"." && \
-            local packageName && \
-            for packageName in ${_NEEDED_PACKAGES[*]}; do
-                local packageUrl=$(grep "$packageName-[0-9]" \
-                    "$listBufferFile" | head --lines 1)
-                local fileName=$(echo $packageUrl \
-                    | sed 's/.*\/\([^\/][^\/]*\)$/\1/')
-                # If "fileName" couldn't be determined via server determine it
-                # via current package cache.
-                if [ ! "$fileName" ]; then
-                    fileName=$(ls $_PACKAGE_CACHE_PATH | grep \
-                        "$packageName-[0-9]" | head --lines 1)
+        done
+        # NOTE: "return_code" remains with an error code if there was given one
+        # in any iteration.
+        (( temporary_return_code != 0 )) && \
+            return_code=$temporary_return_code
+        package_urls+=("${url_list[@]}")
+    done
+    bl.array.unique "${package_source_urls[*]}"
+    echo "${package_urls[@]}"
+    return $return_code
+}
+alias archInstall.determine_package_dependencies=archInstall_determine_package_dependencies
+archInstall_determine_package_dependencies() {
+    local __documentation__='
+        Determines all package dependencies. Returns a list of needed packages
+        for given package determined by given database.
+        NOTE: We append and prepend always a whitespace to simply identify
+        duplicates without using extended regular expression and package name
+        escaping.
+
+        ```
+            archInstall.determine_package_dependencies glibc /path/to/db
+        ```
+    '
+    local given_package_name="$1"
+    local database_directory_path="$2"
+    local package_names_to_ignore=" $3 "
+    local package_description_file_path
+    if package_description_file_path="$(
+        archInstall.determine_package_description_file_path \
+            "$given_package_name" \
+            "$database_directory_path"
+    )"; then
+        local resolved_package_name="$(
+            echo "$package_description_file_path" | \
+                sed --regexp-extended 's:^.*/([^/]+)-[0-9]+[^/]*/desc$:\1:' | \
+                    sed --regexp-extended 's/(-[0-9]+.*)+$//')"
+        # NOTE: We do not simple print "$1" because given (providing) names
+        # do not have to corresponding package name.
+        echo "$resolved_package_name"
+        package_names_to_ignore+=" $resolved_package_name"
+        local package_dependency_descriptions
+        mapfile -t package_dependency_descriptions 2>/dev/null <<<"$(
+            command grep \
+                --null-data \
+                --only-matching \
+                --perl-regexp \
+                '%DEPENDS%(\n.+)+(\n|$)' \
+                <"$package_description_file_path" | \
+                    command sed '/%DEPENDS%/d' || \
+                        true
+        )"
+        local package_dependency_description
+        local dependent_package_names=()
+        for package_dependency_description in "${package_dependency_descriptions[@]}"
+        do
+            local package_name="$(
+                echo "$package_dependency_description" | \
+                    command grep \
+                        --extended-regexp \
+                        --only-matching \
+                        '^[a-zA-Z0-9][-a-zA-Z0-9.]+' | \
+                            sed --regexp-extended 's/^(.+)[><=].+$/\1/'
+            )"
+            local alias
+            if alias="$(
+                bl.dictionary.get \
+                    archInstall_known_dependency_aliases \
+                    "$package_name"
+            )"; then
+                package_name="$alias"
+            fi
+            if echo "$package_names_to_ignore" | grep --quiet " $package_name "
+            then
+                continue
+            fi
+            dependent_package_names+=("$package_name")
+        done
+        package_names_to_ignore+=" ${dependent_package_names[*]}"
+        for package_name in "${dependent_package_names[@]}"; do
+            bl.exception.try
+                archInstall.determine_package_dependencies \
+                    "$package_name" \
+                    "$database_directory_path" \
+                    "$package_names_to_ignore"
+            bl.exception.catch_single
+                bl.logging.warn \
+                    "Needed package \"$package_name\" for \"$given_package_name\" couldn't be found in database \"$database_directory_path\"."
+        done
+    else
+        return 1
+    fi
+    return 0
+}
+alias archInstall.determine_package_description_file_path=archInstall_determine_package_description_file_path
+archInstall.determine_package_description_file_path() {
+    local __documentation__='
+        Determines the package directory name from given package name in given
+        database folder.
+    '
+    local package_name="$1"
+    local database_directory_path="$2"
+    local package_description_file_path="$(
+        command grep \
+            "%PROVIDES%\\n(.+\\n)*$package_name\\n(.+\\n)*\\n" \
+            --files-with-matches \
+            --null-data \
+            --perl-regexp \
+            --recursive \
+            "$database_directory_path"
+    )"
+    if [ "$package_description_file_path" = '' ]; then
+        local regular_expression
+        for regular_expression in \
+            '^\(.*/\)?'"$package_name"'$' \
+            '^\(.*/\)?'"$package_name"'-[0-9]+[0-9.\-]*$' \
+            '^\(.*/\)?'"$package_name"'-[0-9]+[0-9.a-zA-Z-]*$' \
+            '^\(.*/\)?'"$package_name"'-git-[0-9]+[0-9.a-zA-Z-]*$' \
+            '^\(.*/\)?'"$package_name"'[0-9]+-[0-9.a-zA-Z-]+\(-[0-9.a-zA-Z-]\)*$' \
+            '^\(.*/\)?[0-9]+'"$package_name"'[0-9]+-[0-9a-zA-Z\.]+\(-[0-9a-zA-Z\.]\)*$' \
+            '^\(.*/\)?'"$package_name"'-.+$' \
+            '^\(.*/\)?.+-'"$package_name"'-.+$' \
+            '^\(.*/\)?'"$package_name"'.+$' \
+            '^\(.*/\)?'"$package_name"'.*$' \
+            '^\(.*/\)?.*'"$package_name"'.*$'
+        do
+            package_description_file_path="$(
+                command find \
+                    "$database_directory_path" \
+                    -maxdepth 1 \
+                    -regex "$regular_expression"
+            )"
+            if [[ "$package_description_file_path" != '' ]]; then
+                local number_of_results="$(
+                    echo "$package_description_file_path" | wc --words)"
+                if (( number_of_results > 1 )); then
+                    # NOTE: We want to use newer package if their are two
+                    # candidates.
+                    local description_file_path
+                    local highest_raw_version=0
+                    for description_file_path in $package_description_file_path
+                    do
+                        local raw_version="$(
+                            bl.number.normalize_version \
+                                "$description_file_path")"
+                        if (( raw_version > highest_raw_version )); then
+                            package_description_file_path="$description_file_path"
+                            highest_raw_version=$raw_version
+                        fi
+                    done
                 fi
-                if [ "$fileName" ]; then
-                    wget "$packageUrl" --timestamping --continue \
-                        --directory-prefix "${_PACKAGE_CACHE_PATH}/" \
-                        1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-                else
-                    archInstallLog \
-                        'error' "A suitable file for package \"$packageName\" could not be determined."
-                fi
-                archInstallLog "Install package \"$fileName\" manually." && \
-                xz --decompress --to-stdout "$_PACKAGE_CACHE_PATH/$fileName" \
-                    2>"$_ERROR_OUTPUT" | tar --extract --directory \
-                    "$_MOUNTPOINT_PATH" 1>"$_STANDARD_OUTPUT" \
-                    2>"$_ERROR_OUTPUT"
-                local returnCode=$? && [[ $returnCode != 0 ]] && \
-                    return $returnCode
+                echo "${package_description_file_path}/desc"
+                return
+            fi
+        done
+    else
+        echo "$package_description_file_path"
+        return
+    fi
+    return 1
+}
+alias archInstall.determine_pacmans_needed_packages=archInstall_determine_pacmans_needed_packages
+archInstall_determine_pacmans_needed_packages() {
+    local __documentation__='
+        Reads pacmans database and determine pacmans dependencies.
+    '
+    if [[ "$1" != '' ]]; then
+        local core_database_url="$(
+            echo "$1" | \
+                command grep \
+                    --only-matching \
+                    --extended-regexp \
+                    ' [^ ]+core\.db ' | \
+                        sed --regexp-extended 's/(^ *)|( *$)//g')"
+        bl.exception.try
+            wget \
+                "$core_database_url" \
+                --directory-prefix "${archInstall_package_cache_path}/" \
+                --timeout="$archInstall_network_timeout_in_seconds" \
+                --timestamping
+        bl.exception.catch_single
+            bl.logging.warn \
+                "Could not retrieve latest database file from determined url \"$core_database_url\"."
+    fi
+    if [ -f "${archInstall_package_cache_path}/core.db" ]; then
+        local database_directory_path="$(
+            mktemp --directory --suffix -archInstall-core-database)"
+        bl.exception.try
+        {
+            local packages=()
+            tar \
+                --directory "$database_directory_path" \
+                --extract \
+                --file "${archInstall_package_cache_path}/core.db" \
+                --gzip
+            local package_name
+            for package_name in "${archInstall_needed_packages[@]}"; do
+                local needed_packages
+                mapfile -t needed_packages <<<"$(
+                    archInstall.determine_package_dependencies \
+                        "$package_name" \
+                        "$database_directory_path" | \
+                            sort --unique
+                )"
+                packages+=("${needed_packages[@]}")
             done
-        else
-            return $?
-        fi
+            rm --force --recursive "$database_directory_path"
+            bl.array.unique "${packages[*]}"
+        }
+        bl.exception.catch_single
+        {
+            rm --force --recursive "$database_directory_path"
+            # shellcheck disable=SC2154
+            bl.logging.error_exception "$bl_exception_last_traceback"
+        }
         return 0
-    }
-    archInstallMakePartitions() {
-        # Performs the auto partitioning.
-        if [[ $(echo "$_AUTO_PARTITIONING" | tr '[A-Z]' '[a-z]') == 'yes' ]]
-        then
-            archInstallLog 'Check block device size.' && \
-            local blockDeviceSpaceInMegaByte=$(($(blockdev --getsize64 \
-                "$_OUTPUT_SYSTEM") * 1024 ** 2)) && \
-            if [[ $(($_NEEDED_SYSTEM_SPACE_IN_MEGA_BYTE + \
-                  $_BOOT_SPACE_IN_MEGA_BYTE)) -le \
-                  $blockDeviceSpaceInMegaByte ]]; then
-                archInstallLog 'Create boot and system partitions.' && \
-                gdisk "$_OUTPUT_SYSTEM" << EOF \
-                    1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
+    fi
+    bl.logging.critical \
+        "No database file (\"${archInstall_package_cache_path}/core.db\") could be found."
+    return 1
+}
+alias archInstall.download_and_extract_pacman=archInstall_download_and_extract_pacman
+archInstall_download_and_extract_pacman() {
+    local __documentation__='
+        Downloads all packages from arch linux needed to run pacman.
+    '
+    local serialized_needed_packages
+    serialized_needed_packages="$(
+        archInstall.determine_pacmans_needed_packages "$1")"
+    # shellcheck disable=SC2181
+    if [ $? = 0 ]; then
+        local needed_packages
+        IFS=' ' read -r -a needed_packages <<<"$serialized_needed_packages"
+        bl.logging.info "Needed packages are: \"$(
+            echo "${needed_packages[@]}" | \
+                command sed 's/ /", "/g'
+        )\"."
+        bl.logging.info \
+            "Retrieve and extract each package into our new system located in \"$archInstall_mountpoint_path\"."
+        local package_name
+        for package_name in "${needed_packages[@]}"; do
+            local file_name=''
+            if [[ "$1" != '' ]]; then
+                local package_url="$(
+                    echo "$1" | \
+                        tr ' ' '\n' | \
+                            command grep "/${package_name}-[0-9]")"
+                local number_of_results="$(echo "$package_url" | wc --words)"
+                if (( number_of_results > 1 )); then
+                    # NOTE: We want to use newer package if their are two
+                    # results.
+                    local url
+                    local highest_raw_version=0
+                    for url in $package_url; do
+                        local raw_version="$(
+                            bl.number.normalize_version "$url")"
+                        if (( raw_version > highest_raw_version )); then
+                            package_url="$url"
+                            highest_raw_version=$raw_version
+                        fi
+                    done
+                fi
+                bl.exception.try
+                    wget \
+                        "$package_url" \
+                        --continue \
+                        --directory-prefix "${archInstall_package_cache_path}/" \
+                        --timeout="$archInstall_network_timeout_in_seconds" \
+                        --timestamping
+                    file_name="$(
+                        echo "$package_url" | \
+                            command sed 's/.*\/\([^\/][^\/]*\)$/\1/')"
+                    # NOTE: We have to decode given url.
+                    file_name="$(printf '%b' "${file_name//%/\\x}")"
+                bl.exception.catch_single
+                    bl.logging.warn
+                        "Could not retrieve package from determined url \"$package_url\"."
+            fi
+            # If "file_name" couldn't be determined via server determine it via
+            # current package cache.
+            if [ "$file_name" = '' ]; then
+                file_name="$(
+                    command find \
+                        "$archInstall_package_cache_path" \
+                        -maxdepth 1 \
+                        -regex ".*/$package_name-[0-9].*" | \
+                            sed --regexp-extended 's:^.*/([^/]+)$:\1:')"
+                local number_of_results="$(echo "$file_name" | wc --words)"
+                if (( number_of_results > 1 )); then
+                    # NOTE: We want to use newer package if their are two
+                    # results.
+                    local name
+                    local highest_raw_version=0
+                    for name in $file_name; do
+                        bl.exception.try
+                            bl.number.normalize_version "$name" 6
+                        bl.exception.catch_single
+                            true
+                        local raw_version="$(
+                            bl.number.normalize_version "$name")"
+                        if (( raw_version > highest_raw_version )); then
+                            file_name="$name"
+                            highest_raw_version=$raw_version
+                        fi
+                    done
+                fi
+            fi
+            if [[
+                "$file_name" = '' || \
+                ! -f "${archInstall_package_cache_path}${file_name}"
+            ]]; then
+                bl.logging.error_exception \
+                    "A suitable file for package \"$package_name\" could not be determined."
+            fi
+            bl.logging.info "Install package \"$file_name\" manually."
+            xz \
+                --decompress \
+                --to-stdout \
+                "$archInstall_package_cache_path/$file_name" | \
+                    tar \
+                        --directory "$archInstall_mountpoint_path" \
+                        --extract || \
+                            return $?
+        done
+    else
+        return 1
+    fi
+}
+alias archInstall.format_boot_partition=archInstall_format_boot_partition
+archInstall_format_boot_partition() {
+    local __documentation__='
+        Prepares the boot partition.
+    '
+    bl.logging.info Make boot partition.
+    mkfs.vfat \
+        -F 32 \
+        "${archInstall_output_system}1"
+    if hash dosfslabel 2>/dev/null; then
+        dosfslabel \
+            "${archInstall_output_system}1" \
+            "$archInstall_boot_partition_label"
+    else
+        bl.logging.warn \
+            "\"dosfslabel\" doesn't seem to be installed. Creating a boot partition label failed."
+    fi
+}
+alias archInstall.format_partitions=archInstall_format_partitions
+archInstall_format_partitions() {
+    local __documentation__='
+        Performs formating part.
+    '
+    archInstall.format_system_partition
+    archInstall.format_boot_partition
+}
+alias archInstall.format_system_partition=archInstall_format_system_partition
+archInstall_format_system_partition() {
+    local __documentation__='
+        Prepares the system partition.
+    '
+    local output_device="$archInstall_output_system"
+    if [ -b "${archInstall_output_system}2" ]; then
+        output_device="${archInstall_output_system}2"
+    fi
+    bl.logging.info "Make system partition at \"$output_device\"."
+    mkfs.btrfs \
+        --force \
+        --label "$archInstall_system_partition_label" \
+        "$output_device"
+    bl.logging.info "Creating a root sub volume in \"$output_device\"."
+    mount \
+        PARTLABEL="$archInstall_system_partition_label" \
+        "$archInstall_mountpoint_path"
+    btrfs subvolume create "${archInstall_mountpoint_path}root"
+    umount "$archInstall_mountpoint_path"
+}
+alias archInstall.generate_fstab_configuration_file=archInstall_generate_fstab_configuration_file
+archInstall_generate_fstab_configuration_file() {
+    local __documentation__='
+        Writes the fstab configuration file.
+    '
+    bl.logging.info Generate fstab config.
+    if hash genfstab 2>/dev/null; then
+        # NOTE: Mountpoint shouldn't have a path separator at the end.
+        genfstab \
+            -L \
+            -p "${archInstall_mountpoint_path%?}" \
+            1>>"${archInstall_mountpoint_path}etc/fstab"
+    else
+        cat << EOF 1>>"${archInstall_mountpoint_path}etc/fstab"
+# Added during installation.
+# <file system>                    <mount point> <type> <options>                                                                                            <dump> <pass>
+# "compress=lzo" has lower compression ratio by better cpu performance.
+PARTLABEL=$archInstall_system_partition_label /             btrfs  relatime,ssd,discard,space_cache,autodefrag,inode_cache,subvol=root,compress=zlib                    0      0
+PARTLABEL=$archInstall_boot_partition_label   /boot/        vfat   rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro 0      0
+EOF
+    fi
+}
+alias archInstall.load_cache=archInstall_load_cache
+archInstall_load_cache() {
+    local __documentation__='
+        Load previous downloaded packages and database.
+    '
+    bl.logging.info Load cached databases.
+    mkdir --parents "${archInstall_mountpoint_path}var/lib/pacman/sync"
+    cp \
+        --no-clobber \
+        --preserve \
+        "$archInstall_package_cache_path"/*.db \
+        "${archInstall_mountpoint_path}var/lib/pacman/sync/" \
+            2>/dev/null
+    bl.logging.info Load cached packages.
+    mkdir \
+        --parents \
+        "${archInstall_mountpoint_path}var/cache/pacman/pkg"
+    cp \
+        --no-clobber \
+        --preserve \
+        "$archInstall_package_cache_path"/*.pkg.tar.xz \
+        "${archInstall_mountpoint_path}var/cache/pacman/pkg/" \
+            2>/dev/null
+}
+alias archInstall.make_partitions=archInstall_make_partitions
+archInstall_make_partitions() {
+    local __documentation__='
+        Performs the auto partitioning.
+    '
+    if $archInstall_auto_partitioning; then
+        bl.logging.info Check block device size.
+        local blockdevice_space_in_mega_byte="$(("$(
+            blockdev --getsize64 "$archInstall_output_system"
+        )" * 1024 ** 2))"
+        if [[ $((
+            archInstall_needed_system_space_in_mega_byte + \
+            archInstall_boot_space_in_mega_byte
+        )) -le $blockdevice_space_in_mega_byte ]]; then
+            bl.logging.info Create boot and system partitions.
+            gdisk "$archInstall_output_system" << EOF \
 o
 Y
 n
 
 
-${_BOOT_SPACE_IN_MEGA_BYTE}M
+${archInstall_boot_space_in_mega_byte}M
 ef00
 n
 
@@ -1109,359 +1279,369 @@ n
 
 c
 1
-$_BOOT_PARTITION_LABEL
+$archInstall_boot_partition_label
 c
 2
-$_SYSTEM_PARTITION_LABEL
+$archInstall_system_partition_label
 w
 Y
 EOF
-                # NOTE: "gdisk" returns an error code even if it runs
-                # successfully.
-                true
-            else
-                archInstallLog 'error' "Not enough space on \"$_OUTPUT_SYSTEM\" (\"$blockDeviceSpaceInByte\" byte). We need at least \"$(($_NEEDED_SYSTEM_SPACE_IN_BYTE + $_BOOT_SPACE_IN_BYTE))\" byte."
-            fi
+            # NOTE: "gdisk" returns an error code even if it runs successfully.
+            true
         else
-            archInstallLog \
-                "At least you have to create two partitions. The first one will be used as boot partition labeled to \"${_BOOT_PARTITION_LABEL}\" and second one will be used as system partition and labeled to \"${_SYSTEM_PARTITION_LABEL}\". Press Enter to continue." && \
-            read && \
-            archInstallLog 'Show blockdevices. Press Enter to continue.' && \
-            lsblk && \
-            read && \
-            archInstallLog 'Create partitions manually.' && \
-            gdisk "$_OUTPUT_SYSTEM"
-        fi
-        return $?
-    }
-    archInstallGenerateFstabConfigurationFile() {
-        # Writes the fstab configuration file.
-        archInstallLog 'Generate fstab config.' && \
-        if hash genfstab 1>"$_STANDARD_OUTPUT" 2>/dev/null; then
-            # NOTE: Mountpoint shouldn't have a path separator at the end.
-            genfstab -L -p "${_MOUNTPOINT_PATH%?}" \
-                1>>"${_MOUNTPOINT_PATH}etc/fstab" 2>"$_ERROR_OUTPUT"
-        else
-            cat << EOF 1>>"${_MOUNTPOINT_PATH}etc/fstab" 2>"$_ERROR_OUTPUT"
-# Added during installation.
-# <file system>                    <mount point> <type> <options>                                                                                            <dump> <pass>
-# "compress=lzo" has lower compression ratio by better cpu performance.
-PARTLABEL=$_SYSTEM_PARTITION_LABEL /             btrfs  relatime,ssd,discard,space_cache,autodefrag,inode_cache,subvol=root,compress=zlib                    0      0
-PARTLABEL=$_BOOT_PARTITION_LABEL   /boot/        vfat   rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro 0      0
-EOF
-        fi
-        return $?
-    }
-    archInstallUnmountInstalledSystem() {
-        # Unmount previous installed system.
-        archInstallLog 'Unmount installed system.' && \
-        sync 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-        cd / 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-        umount "${_MOUNTPOINT_PATH}/boot" 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT"
-        umount "$_MOUNTPOINT_PATH" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        return $?
-    }
-    archInstallPrepareNextBoot() {
-        # Reboots into fresh installed system if previous defined.
-        if [ -b "$_OUTPUT_SYSTEM" ]; then
-            archInstallGenerateFstabConfigurationFile && \
-            archInstallAddBootEntries
-            archInstallUnmountInstalledSystem
-            local returnCode=$? && \
-            if [[ $returnCode == 0 ]] && \
-               [[ $(echo "$_AUTOMATIC_REBOOT" | tr '[A-Z]' '[a-z]') != 'no' ]]
-            then
-                archInstallLog 'Reboot into new operating system.'
-                systemctl reboot 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" || \
-                reboot 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-                return $?
-            fi
-            return $returnCode
-        fi
-        return $?
-    }
-    archInstallConfigurePacman() {
-        # Disables signature checking for incoming packages.
-        archInstallLog "Enable mirrors in \"$_COUNTRY_WITH_MIRRORS\"."
-        local bufferFile=$(mktemp)
-        local inArea=false
-        local lineNumber=0
-        local line
-        while read line; do
-            lineNumber=$(($lineNumber + 1)) && \
-            if [[ "$line" == "## $_COUNTRY_WITH_MIRRORS" ]]; then
-                inArea=true
-            elif [[ "$line" == '' ]]; then
-                inArea=false
-            elif $inArea && [[ ${line:0:1} == '#' ]]; then
-                line=${line:1}
-            fi
-            echo "$line"
-        done < "${_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist" 1>"$bufferFile"
-        cat "$bufferFile" 1>"${_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist" \
-            2>"$_ERROR_OUTPUT" && \
-        archInstallLog \
-            "Change signature level to \"Never\" for pacman's packages." && \
-        sed --regexp-extended --in-place 's/^(SigLevel *= *).+$/\1Never/g' \
-            "${_MOUNTPOINT_PATH}etc/pacman.conf" 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT"
-        return $?
-    }
-    archInstallDetermineAutoPartitioning() {
-        # Determine whether we should perform our auto partitioning mechanism.
-        if [ ! "$_AUTO_PARTITIONING" ]; then
-            while true; do
-                echo -n 'Do you want auto partioning? [yes|NO]: ' && \
-                read _AUTO_PARTITIONING
-                if [[ "$_AUTO_PARTITIONING" == '' ]] || \
-                   [[ $(echo "$_AUTO_PARTITIONING" | \
-                      tr '[A-Z]' '[a-z]') == 'no' ]]; then
-                    break
-                elif [[ $(echo "$_AUTO_PARTITIONING" | \
-                        tr '[A-Z]' '[a-z]') == 'yes' ]]; then
-                    break
-                fi
-            done
-        fi
-        return 0
-    }
-    archInstallGetHostsContent() {
-        # Provides the file content for the "/etc/hosts".
-        cat << EOF
-#<IP-Adress> <computername.workgroup> <computernames>
-127.0.0.1    localhost.localdomain    localhost $1
-::1          ipv6-localhost           ipv6-localhost ipv6-$1
-EOF
-    }
-    archInstallPrepareBlockdevices() {
-        # Prepares given block devices to make it ready for fresh installation.
-        archInstallLog \
-            "Unmount needed devices and devices pointing to our temporary system mount point \"$_MOUNTPOINT_PATH\"."
-        umount -f "${_OUTPUT_SYSTEM}"* 1>"$_STANDARD_OUTPUT" 2>/dev/null
-        umount -f "$_MOUNTPOINT_PATH" 1>"$_STANDARD_OUTPUT" 2>/dev/null
-        swapoff "${_OUTPUT_SYSTEM}"* 1>"$_STANDARD_OUTPUT" 2>/dev/null
-        archInstallLog \
-            'Make partitions. Make a boot and system partition.' && \
-        archInstallMakePartitions && \
-        archInstallLog 'Format partitions.' && \
-        archInstallFormatPartitions
-        return $?
-    }
-    archInstallFormatSystemPartition() {
-        # Prepares the system partition.
-        local outputDevice="$_OUTPUT_SYSTEM" && \
-        if [ -b "${_OUTPUT_SYSTEM}2" ]; then
-            outputDevice="${_OUTPUT_SYSTEM}2"
-        fi
-        archInstallLog \
-            "Make system partition at \"$outputDevice\"." && \
-        mkfs.btrfs --force --label "$_SYSTEM_PARTITION_LABEL" "$outputDevice" \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-        archInstallLog \
-            "Creating a root sub volume in \"$outputDevice\"." && \
-        mount PARTLABEL="$_SYSTEM_PARTITION_LABEL" "$_MOUNTPOINT_PATH" \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-        btrfs subvolume create "${_MOUNTPOINT_PATH}root" \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-        umount "$_MOUNTPOINT_PATH" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        return $?
-    }
-    archInstallFormatBootPartition() {
-        # Prepares the boot partition.
-        archInstallLog 'Make boot partition.' && \
-        mkfs.vfat -F 32 "${_OUTPUT_SYSTEM}1" \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-        if hash dosfslabel 1>"$_STANDARD_OUTPUT" 2>/dev/null; then
-            dosfslabel "${_OUTPUT_SYSTEM}1" "$_BOOT_PARTITION_LABEL" \
-                1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        else
-            archInstallLog 'warning' \
-                "\"dosfslabel\" doesn't seem to be installed. Creating a boot partition label failed."
-        fi
-        return $?
-    }
-    archInstallFormatPartitions() {
-        # Performs formating part.
-        archInstallFormatSystemPartition && \
-        archInstallFormatBootPartition
-        return $?
-    }
-    archInstallAddBootEntries() {
-        # Creates an uefi boot entry.
-        if hash efibootmgr 1>"$_STANDARD_OUTPUT" 2>/dev/null; then
-            archInstallLog 'Configure efi boot manager.' && \
-            cat << EOF 1>"${_MOUNTPOINT_PATH}/boot/startup.nsh" 2>"$_ERROR_OUTPUT"
-\vmlinuz-linux initrd=\initramfs-linux.img root=PARTLABEL=${_SYSTEM_PARTITION_LABEL} rw rootflags=subvol=root quiet loglevel=2 acpi_osi="!Windows 2012"
-EOF
-            archInstallChangeRootToMountPoint efibootmgr --create --disk \
-                "$_OUTPUT_SYSTEM" --part 1 -l '\vmlinuz-linux' --label \
-                "$_FALLBACK_BOOT_ENTRY_LABEL" --unicode \
-                "initrd=\initramfs-linux-fallback.img root=PARTLABEL=${_SYSTEM_PARTITION_LABEL} rw rootflags=subvol=root break=premount break=postmount acpi_osi=\"!Windows 2012\"" \
-                1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" || \
-            archInstallLog 'warning' \
-                "Adding boot entry \"${_FALLBACK_BOOT_ENTRY_LABEL}\" failed."
-            # NOTE: Boot entry to boot on next reboot should be added at last.
-            archInstallChangeRootToMountPoint efibootmgr --create --disk \
-                "$_OUTPUT_SYSTEM" --part 1 -l '\vmlinuz-linux' --label \
-                "$_BOOT_ENTRY_LABEL" --unicode \
-                "initrd=\initramfs-linux.img root=PARTLABEL=${_SYSTEM_PARTITION_LABEL} rw rootflags=subvol=root quiet loglevel=2 acpi_osi=\"!Windows 2012\"" \
-                1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" || \
-            archInstallLog 'warning' \
-                "Adding boot entry \"${_BOOT_ENTRY_LABEL}\" failed."
-        else
-            archInstallLog 'warning' \
-                "\"efibootmgr\" doesn't seem to be installed. Creating a boot entry failed."
-        fi
-        return $?
-    }
-    archInstallLoadCache() {
-        # Load previous downloaded packages and database.
-        archInstallLog 'Load cached databases.' && \
-        mkdir --parents \
-            "$_MOUNTPOINT_PATH"var/lib/pacman/sync \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-        cp --no-clobber --preserve "$_PACKAGE_CACHE_PATH"/*.db \
-            "$_MOUNTPOINT_PATH"var/lib/pacman/sync/ \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        archInstallLog 'Load cached packages.' && \
-        mkdir --parents "$_MOUNTPOINT_PATH"var/cache/pacman/pkg \
-            1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT" && \
-        cp --no-clobber --preserve "$_PACKAGE_CACHE_PATH"/*.pkg.tar.xz \
-            "$_MOUNTPOINT_PATH"var/cache/pacman/pkg/ 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT"
-        return $?
-    }
-    archInstallCache() {
-        # Cache previous downloaded packages and database.
-        archInstallLog 'Cache loaded packages.'
-        cp --force --preserve \
-            "$_MOUNTPOINT_PATH"var/cache/pacman/pkg/*.pkg.tar.xz \
-            "$_PACKAGE_CACHE_PATH"/ 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT" && \
-        archInstallLog 'Cache loaded databases.' && \
-        cp --force --preserve \
-            "$_MOUNTPOINT_PATH"var/lib/pacman/sync/*.db \
-            "$_PACKAGE_CACHE_PATH"/ 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        return $?
-    }
-    archInstallPrepareInstallation() {
-        # Deletes previous installed things in given output target. And creates
-        # a package cache directory.
-        mkdir --parents "$_PACKAGE_CACHE_PATH" 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT" && \
-        if [ -b "$_OUTPUT_SYSTEM" ]; then
-            archInstallLog 'Mount system partition.' && \
-            mount PARTLABEL="$_SYSTEM_PARTITION_LABEL" -o subvol=root \
-                "$_MOUNTPOINT_PATH" 1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        fi
-        archInstallLog \
-            "Clear previous installations in \"$_MOUNTPOINT_PATH\"." && \
-        rm "$_MOUNTPOINT_PATH"* --recursive --force 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT" && \
-        if [ -b "$_OUTPUT_SYSTEM" ]; then
-            archInstallLog \
-                "Mount boot partition in \"${_MOUNTPOINT_PATH}boot/\"." && \
-            mkdir --parents "${_MOUNTPOINT_PATH}boot/" && \
-            mount PARTLABEL="$_BOOT_PARTITION_LABEL" \
-                "${_MOUNTPOINT_PATH}boot/" 1>"$_STANDARD_OUTPUT" \
-                2>"$_ERROR_OUTPUT" && \
-            rm "${_MOUNTPOINT_PATH}boot/"* --recursive --force \
-                1>"$_STANDARD_OUTPUT" 2>"$_ERROR_OUTPUT"
-        fi
-        archInstallLog 'Set filesystem rights.' && \
-        chmod 755 "$_MOUNTPOINT_PATH" 1>"$_STANDARD_OUTPUT" \
-            2>"$_ERROR_OUTPUT" && \
-        local returnCode=$?
-        # Make a uniqe array.
-        _PACKAGES=$(echo "${_PACKAGES[*]}" | tr ' ' '\n' | sort -u | tr '\n' \
-            ' ')
-        return $returnCode
-    }
+            bl.logging.critical \
+                "Not enough space on \"$archInstall_output_system\" (\"$blockdevice_space_in_mega_byte\" megabyte). We need at least \"$((archInstall_needed_system_space_in_mega_byte + archInstall_boot_space_in_mega_byte))\" megabyte."
 
-    ## endregion
-
-    # endregion
-
-    # region controller
-
-    if [[ "$0" == *"${__NAME__}.sh" ]]; then
-        archInstallPerformDependencyCheck "${_DEPENDENCIES[*]}" || \
-            archInstallLog 'error' 'Satisfying main dependencies failed.'
-        archInstallCommandLineInterface "$@" || return $?
-        _PACKAGES="${_BASIC_PACKAGES[*]} ${_ADDITIONAL_PACKAGES[*]}" && \
-        if [ "$_INSTALL_COMMON_ADDITIONAL_PACKAGES" == 'yes' ]; then
-            _PACKAGES+=' '${_COMMON_ADDITIONAL_PACKAGES[*]}
         fi
-        if [ ! -e "$_OUTPUT_SYSTEM" ]; then
-            mkdir --parents "$_OUTPUT_SYSTEM" 1>"$_STANDARD_OUTPUT" \
-                2>"$_ERROR_OUTPUT"
-        fi
-        if [ -d "$_OUTPUT_SYSTEM" ]; then
-            _MOUNTPOINT_PATH="$_OUTPUT_SYSTEM" && \
-            if [[ ! "$_MOUNTPOINT_PATH" =~ .*/$ ]]; then
-                _MOUNTPOINT_PATH+='/'
-            fi
-        elif [ -b "$_OUTPUT_SYSTEM" ]; then
-            _PACKAGES+=' efibootmgr' && \
-            archInstallPerformDependencyCheck \
-                "${_BLOCK_INTEGRATION_DEPENDENCIES[*]}" || \
-            archInstallLog 'error' \
-                'Satisfying block device dependencies failed.' && \
-            if echo "$_OUTPUT_SYSTEM" | grep --quiet --extended-regexp '[0-9]$'
-            then
-                archInstallFormatSystemPartition || \
-                archInstallLog 'error' 'System partition creation failed.'
-            else
-                archInstallDetermineAutoPartitioning && \
-                archInstallPrepareBlockdevices || \
-                archInstallLog 'error' 'Preparing blockdevices failed.'
-            fi
-        else
-            archInstallLog 'error' \
-                "Could not install into an existing file \"$_OUTPUT_SYSTEM\"."
-        fi
-        archInstallPrepareInstallation || \
-        archInstallLog 'error' 'Preparing installation failed.'
-        if [[ "$UID" == 0 ]] && [[ "$_PREVENT_USING_PACSTRAP" == 'no' ]] && \
-            hash pacstrap 1>"$_STANDARD_OUTPUT" 2>/dev/null
-        then
-            archInstallWithPacstrap || \
-            archInstallLog 'error' 'Installation with pacstrap failed.'
-        else
-            archInstallGenericLinuxSteps || \
-            archInstallLog 'error' \
-                'Installation via generic linux steps failed.'
-        fi
-        archInstallTidyUpSystem && \
-        archInstallConfigure || \
-        archInstallLog 'error' 'Configuring installed system failed.'
-        archInstallPrepareNextBoot || \
-        archInstallLog 'error' 'Preparing reboot failed.'
-        archInstallPackResult || \
-        archInstallLog 'error' \
-            'Packing system into archiv with files owned by root failed.'
-        archInstallLog \
-            "Generating operating system into \"$_OUTPUT_SYSTEM\" has successfully finished."
+    else
+        bl.logging.info \
+            "At least you have to create two partitions. The first one will be used as boot partition labeled to \"${archInstall_boot_partition_label}\" and second one will be used as system partition and labeled to \"${archInstall_system_partition_label}\". Press Enter to continue."
+        read -r
+        bl.logging.info Show blockdevices. Press Enter to continue.
+        lsblk
+        read -r
+        bl.logging.info Create partitions manually.
+        gdisk "$archInstall_output_system"
     fi
-    return 0
-
-    # endregion
-
 }
+alias archInstall.pack_result=archInstall_pack_result
+archInstall_pack_result() {
+    local __documentation__='
+        Packs the resulting system to provide files owned by root without
+        root permissions.
+    '
+    if (( UID != 0 )); then
+        bl.logging.info \
+            "System will be packed into \"$archInstall_mountpoint_path.tar\" to provide root owned files. You have to extract this archiv as root."
+        tar \
+            cvf \
+            "${archInstall_mountpoint_path}.tar" \
+            "$archInstall_mountpoint_path" \
+            --owner root \
+        rm \
+            "$archInstall_mountpoint_path"* \
+            --force \
+            --recursive
+        return $?
+    fi
+}
+alias archInstall.prepare_blockdevices=archInstall_prepare_blockdevices
+archInstall_prepare_blockdevices() {
+    local __documentation__='
+        Prepares given block devices to make it ready for fresh installation.
+    '
+    bl.logging.info \
+        "Unmount needed devices and devices pointing to our temporary system mount point \"$archInstall_mountpoint_path\"."
+    umount -f "${archInstall_output_system}"* 2>/dev/null
+    umount -f "$archInstall_mountpoint_path" 2>/dev/null
+    swapoff "${archInstall_output_system}"* 2>/dev/null
+    bl.logging.info Make partitions. Make a boot and system partition.
+    archInstall.make_partitions
+    bl.logging.info Format partitions.
+    archInstall.format_partitions
+}
+alias archInstall.prepare_installation=archInstall_prepare_installation
+archInstall_prepare_installation() {
+    local __documentation__='
+        Deletes previous installed things in given output target. And creates a
+        package cache directory.
+    '
+    mkdir --parents "$archInstall_package_cache_path"
+    if [ -b "$archInstall_output_system" ]; then
+        bl.logging.info Mount system partition.
+        mount \
+            PARTLABEL="$archInstall_system_partition_label" \
+            -o subvol=root \
+            "$archInstall_mountpoint_path"
+    fi
+    bl.logging.info \
+        "Clear previous installations in \"$archInstall_mountpoint_path\"."
+    rm "$archInstall_mountpoint_path"* --force --recursive
+    if [ -b "$archInstall_output_system" ]; then
+        bl.logging.info \
+            "Mount boot partition in \"${archInstall_mountpoint_path}boot/\"."
+        mkdir --parents "${archInstall_mountpoint_path}boot/"
+        mount \
+            PARTLABEL="$archInstall_boot_partition_label" \
+            "${archInstall_mountpoint_path}boot/"
+        rm "${archInstall_mountpoint_path}boot/"* --force --recursive
+    fi
+    bl.logging.info Set filesystem rights.
+    chmod 755 "$archInstall_mountpoint_path"
+    # Make an unique array.
+    read -r -a archInstall_packages <<< "$(
+        bl.array.unique "${archInstall_packages[@]}")"
+}
+alias archInstall.prepare_next_boot=archInstall_prepare_next_boot
+archInstall_prepare_next_boot() {
+    local __documentation__='
+        Reboots into fresh installed system if previous defined.
+    '
+    if [ -b "$archInstall_output_system" ]; then
+        archInstall.generate_fstab_configuration_file
+        archInstall.add_boot_entries
+        archInstall.unmount_installed_system
+        if $archInstall_automatic_reboot; then
+            bl.logging.info Reboot into new operating system.
+            systemctl reboot &>/dev/null || reboot
+        fi
+    fi
+}
+alias archInstall.tidy_up_system=archInstall_tidy_up_system
+archInstall_tidy_up_system() {
+    local __documentation__='
+        Deletes some unneeded locations in new installs operating system.
+    '
+    bl.logging.info Tidy up new build system.
+    local file_path
+    for file_path in "${archInstall_unneeded_file_locations[@]}"; do
+        bl.logging.info \
+            "Deleting \"${archInstall_mountpoint_path}${file_path}\"."
+        rm \
+            "${archInstall_mountpoint_path}$file_path" \
+            --force \
+            --recursive
+    done
+}
+alias archInstall.unmount_installed_system=archInstall_unmount_installed_system
+archInstall_unmount_installed_system() {
+    local __documentation__='
+        Unmount previous installed system.
+    '
+    bl.logging.info Unmount installed system.
+    sync
+    cd / && \
+    umount "${archInstall_mountpoint_path}/boot"
+    umount "$archInstall_mountpoint_path"
+}
+## endregion
+## region install arch linux steps.
+alias archInstall.make_pacman_portable=archInstall_make_pacman_portable
+archInstall_make_pacman_portable() {
+    local __documentation__='
+        Disables signature checks and registers temporary download mirrors.
+    '
+    # Copy systems resolv.conf to new installed system. If the native
+    # "arch-chroot" is used it will mount the file into the change root
+    # environment.
+    cp /etc/resolv.conf "${archInstall_mountpoint_path}etc/"
+    if \
+        ! "$archInstall_prevent_using_native_arch_changeroot" && \
+        hash arch-chroot 2>/dev/null
+    then
+        mv \
+            "${archInstall_mountpoint_path}etc/resolv.conf" \
+            "${archInstall_mountpoint_path}etc/resolv.conf.old" \
+                2>/dev/null
+    fi
+    command sed \
+        --in-place \
+        --quiet \
+        '/^[ \t]*CheckSpace/ !p' \
+        "${archInstall_mountpoint_path}etc/pacman.conf"
+    command sed \
+        --in-place \
+        --regexp-extended \
+        's/^[ \t]*(((Local|Remote)?File)?SigLevel)[ \t].*/\1 = Never TrustAll/g' \
+        "${archInstall_mountpoint_path}etc/pacman.conf"
+    bl.logging.info Register temporary mirrors to download new packages.
+    if [ "$1" = '' ]; then
+        cp \
+            /etc/pacman.d/mirrorlist \
+            "${archInstall_mountpoint_path}etc/pacman.d/mirrorlist"
+    else
+        archInstall.append_temporary_install_mirrors "$1"
+    fi
+}
+# NOTE: Depends on "archInstall.make_pacman_portable"
+alias archInstall.generic_linux_steps=archInstall_generic_linux_steps
+archInstall_generic_linux_steps() {
+    local __documentation__='
+        This functions performs creating an arch linux system from any linux
+        system base.
+    '
+    local return_code=0
+    bl.exception.try
+        archInstall.load_cache
+    bl.exception.catch_single
+        bl.logging.info No package cache was loaded.
+    bl.logging.info Create a list with urls for existing packages.
+    mapfile -t url_lists <<<"$(archInstall.create_url_lists)"
+    archInstall.download_and_extract_pacman "${url_lists[1]}"
+    archInstall.make_pacman_portable "${url_lists[0]}"
+    bl.logging.info Initialize keys.
+    bl.exception.try
+    {
+        archInstall.changeroot_to_mountpoint /usr/bin/pacman-key --init
+        archInstall.changeroot_to_mountpoint /usr/bin/pacman-key --refresh-keys
+    }
+    bl.exception.catch_single
+        bl.logging.warn Creating keys was not successful.
+    bl.logging.info Update package databases.
+    bl.exception.try
+        archInstall.changeroot_to_mountpoint \
+            /usr/bin/pacman \
+            --arch "$archInstall_cpu_architecture" \
+            --refresh \
+            --sync
+    bl.exception.catch_single
+        bl.logging.info Updating package database failed. Operating offline.
+    bl.logging.info "Install needed packages \"$(
+        echo "${archInstall_packages[@]}" | \
+            command sed 's/ /", "/g'
+    )\" to \"$archInstall_output_system\"."
+    archInstall.changeroot_to_mountpoint \
+        /usr/bin/pacman \
+        --arch "$archInstall_cpu_architecture" \
+        --force \
+        --sync \
+        --needed \
+        --noconfirm \
+        "${archInstall_packages[@]}"
+    return_code=$?
+    bl.exception.try
+        archInstall.cache
+    bl.exception.catch_single
+        bl.logging.warn \
+            Caching current downloaded packages and generated database \
+            failed.
+    (( return_code == 0 )) && \
+        archInstall.configure_pacman
+    return $return_code
+}
+alias archInstall.with_existing_pacman=archInstall_with_existing_pacman
+archInstall_with_existing_pacman() {
+    local __documentation__='
+        Installs arch linux via patched (to be able to operate offline)
+        pacstrap of pacman directly.
+    '
+    local return_code=0
+    archInstall.load_cache
+    if hash pacstrap &>/dev/null; then
+        bl.logging.info Patch pacstrap to handle offline installations.
+        command sed \
+            --regexp-extended \
+            's/(pacman.+-(S|-sync))(y|--refresh)/\1/g' \
+                <"$(command -v pacstrap)" \
+                1>"${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
+        chmod +x "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
+    fi
+    bl.logging.info Update package databases.
+    bl.exception.try
+        pacman \
+            --arch "$archInstall_cpu_architecture" \
+            --refresh \
+            --root "$archInstall_mountpoint_path" \
+            --sync
+    bl.exception.catch_single
+        bl.logging.info \
+            Updating package database failed. Operating offline.
+    bl.logging.info "Install needed packages \"$(
+        echo "${archInstall_packages[@]}" | \
+            command sed 's/ /", "/g'
+    )\" to \"$archInstall_output_system\"."
+    if [ -f "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh" ]
+    then
+        "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh" \
+            -d "$archInstall_mountpoint_path" \
+            "${archInstall_packages[@]}" \
+            --force
+        return_code=$?
+        rm "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
+    else
+        pacman \
+            --force \
+            --root "$archInstall_mountpoint_path" \
+            --sync \
+            --noconfirm \
+            "${archInstall_needed_packages[@]}"
+        archInstall.make_pacman_portable
+        archInstall.changeroot_to_mountpoint \
+            /usr/bin/pacman \
+            --arch "$archInstall_cpu_architecture" \
+            --force \
+            --sync \
+            --needed \
+            --noconfirm \
+            "${archInstall_packages[@]}"
+        return_code=$?
+    fi
+    archInstall.cache || \
+        bl.logging.warn \
+            Caching current downloaded packages and generated database failed.
+    return $return_code
+}
+## endregion
+## region controller
+alias archInstall.main=archInstall_main
+archInstall_main() {
+    local __documentation__='
+        Provides the main module scope.
 
-# region footer
-
-if [[ "$0" == *"${__NAME__}.sh" || $(echo "$@" | grep --extended-regexp \
-    '(^| )(-l|--load-environment)($| )') ]]; then
-    "$__NAME__" "$@"
-fi
-
+        >>> archInstall.main --help
+        +bl.doctest.multiline_ellipsis
+        ...
+        Usage: arch-install [options]
+        ...
+    '
+    bl.exception.activate
+    archInstall.commandline_interface "$@"
+    archInstall_packages+=(
+        "${archInstall_basic_packages[@]}"
+        "${archInstall_additional_packages[@]}"
+    )
+    if $archInstall_add_common_additional_packages; then
+        archInstall_packages+=("${archInstall_common_additional_packages[@]}")
+    fi
+    if [ ! -e "$archInstall_output_system" ]; then
+        mkdir --parents "$archInstall_output_system"
+    fi
+    if [ -d "$archInstall_output_system" ]; then
+        archInstall_mountpoint_path="$archInstall_output_system"
+        if [[ ! "$archInstall_mountpoint_path" =~ .*/$ ]]; then
+            archInstall_mountpoint_path+=/
+        fi
+    elif [ -b "$archInstall_output_system" ]; then
+        archInstall_packages+=(efibootmgr)
+        if echo "$archInstall_output_system" | \
+            command grep --quiet --extended-regexp '[0-9]$'
+        then
+            archInstall.format_system_partition
+        else
+            archInstall.determine_auto_partitioning
+            archInstall.prepare_blockdevices
+        fi
+    else
+        bl.logging.error_exception \
+            "Could not install into \"$archInstall_output_system\"."
+    fi
+    archInstall.prepare_installation
+    if (( UID == 0 )) && ! $archInstall_prevent_using_existing_pacman && \
+        hash pacman 2>/dev/null
+    then
+        archInstall.with_existing_pacman
+    else
+        archInstall.generic_linux_steps
+    fi
+    archInstall.tidy_up_system
+    archInstall.configure
+    archInstall.prepare_next_boot
+    archInstall.pack_result
+    bl.logging.info \
+        "Generating operating system into \"$archInstall_output_system\" has successfully finished."
+    bl.exception.deactivate
+}
+## endregion
 # endregion
-
+if bl.tools.is_main; then
+    archInstall.main "$@"
+    [ -d "$archInstall_bashlink_path" ] && \
+        rm --recursive "$archInstall_bashlink_path"
+    # shellcheck disable=SC2154
+    [ -d "$bl_module_remote_module_cache_path" ] && \
+        rm --recursive "$bl_module_remote_module_cache_path"
+fi
 # region vim modline
-
 # vim: set tabstop=4 shiftwidth=4 expandtab:
 # vim: foldmethod=marker foldmarker=region,endregion:
-
 # endregion
