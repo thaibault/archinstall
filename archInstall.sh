@@ -1233,22 +1233,28 @@ archInstall_load_cache() {
     '
     bl.logging.info Load cached databases.
     mkdir --parents "${archInstall_mountpoint_path}var/lib/pacman/sync"
-    cp \
-        --no-clobber \
-        --preserve \
-        "$archInstall_package_cache_path"/*.db \
-        "${archInstall_mountpoint_path}var/lib/pacman/sync/" \
-            2>/dev/null
+    bl.exception.try
+        cp \
+            --no-clobber \
+            --preserve \
+            "$archInstall_package_cache_path"/*.db \
+            "${archInstall_mountpoint_path}var/lib/pacman/sync/" \
+                2>/dev/null
+    bl.exception.catch_single
+        bl.logging.info No local database available to load from cache.
     bl.logging.info Load cached packages.
     mkdir \
         --parents \
         "${archInstall_mountpoint_path}var/cache/pacman/pkg"
-    cp \
-        --no-clobber \
-        --preserve \
-        "$archInstall_package_cache_path"/*.pkg.tar.xz \
-        "${archInstall_mountpoint_path}var/cache/pacman/pkg/" \
-            2>/dev/null
+    bl.exception.try
+        cp \
+            --no-clobber \
+            --preserve \
+            "$archInstall_package_cache_path"/*.pkg.tar.xz \
+            "${archInstall_mountpoint_path}var/cache/pacman/pkg/" \
+                2>/dev/null
+    bl.exception.catch_single
+        bl.logging.info No local packages available to load from cache.
 }
 alias archInstall.make_partitions=archInstall_make_partitions
 archInstall_make_partitions() {
