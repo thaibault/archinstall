@@ -1264,7 +1264,8 @@ archInstall_make_partitions() {
             archInstall_boot_space_in_mega_byte
         )) -le $blockdevice_space_in_mega_byte ]]; then
             bl.logging.info Create boot and system partitions.
-            gdisk "$archInstall_output_system" << EOF \
+            # NOTE: "gdisk" returns an error code even if it runs successfully.
+            gdisk "$archInstall_output_system" || true << EOF \
 o
 Y
 n
@@ -1286,12 +1287,9 @@ $archInstall_system_partition_label
 w
 Y
 EOF
-            # NOTE: "gdisk" returns an error code even if it runs successfully.
-            true
         else
             bl.logging.critical \
                 "Not enough space on \"$archInstall_output_system\" (\"$blockdevice_space_in_mega_byte\" megabyte). We need at least \"$((archInstall_needed_system_space_in_mega_byte + archInstall_boot_space_in_mega_byte))\" megabyte."
-
         fi
     else
         bl.logging.info \
