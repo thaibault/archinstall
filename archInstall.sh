@@ -1174,14 +1174,6 @@ archInstall_format_boot_partition() {
             "\"dosfslabel\" doesn't seem to be installed. Creating a boot partition label failed."
     fi
 }
-alias archInstall.format_partitions=archInstall_format_partitions
-archInstall_format_partitions() {
-    local __documentation__='
-        Performs formating part.
-    '
-    archInstall.format_system_partition
-    archInstall.format_boot_partition
-}
 alias archInstall.format_system_partition=archInstall_format_system_partition
 archInstall_format_system_partition() {
     local __documentation__='
@@ -1202,6 +1194,15 @@ archInstall_format_system_partition() {
         "$archInstall_mountpoint_path"
     btrfs subvolume create "${archInstall_mountpoint_path}root"
     umount "$archInstall_mountpoint_path"
+}
+# NOTE: Depends on "archInstall.format_system_partition"
+alias archInstall.format_partitions=archInstall_format_partitions
+archInstall_format_partitions() {
+    local __documentation__='
+        Performs formating part.
+    '
+    archInstall.format_system_partition
+    archInstall.format_boot_partition
 }
 alias archInstall.generate_fstab_configuration_file=archInstall_generate_fstab_configuration_file
 archInstall_generate_fstab_configuration_file() {
@@ -1264,8 +1265,7 @@ archInstall_make_partitions() {
             archInstall_boot_space_in_mega_byte
         )) -le $blockdevice_space_in_mega_byte ]]; then
             bl.logging.info Create boot and system partitions.
-            # NOTE: "gdisk" returns an error code even if it runs successfully.
-            gdisk "$archInstall_output_system" || true << EOF \
+            gdisk "$archInstall_output_system" << EOF
 o
 Y
 n
