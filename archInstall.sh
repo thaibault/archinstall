@@ -1332,10 +1332,13 @@ archInstall_prepare_blockdevices() {
     '
     bl.logging.info \
         "Unmount needed devices and devices pointing to our temporary system mount point \"$archInstall_mountpoint_path\"."
-    umount -f "${archInstall_output_system}"* 2>/dev/null
-    umount -f "$archInstall_mountpoint_path" 2>/dev/null
-    swapoff "${archInstall_output_system}"* 2>/dev/null
-    bl.logging.info Make partitions. Make a boot and system partition.
+    umount -f "${archInstall_output_system}"* 2>/dev/null || \
+        true
+    umount -f "$archInstall_mountpoint_path" 2>/dev/null || \
+        true
+    swapoff "${archInstall_output_system}"* 2>/dev/null || \
+        true
+    bl.logging.info Make partitions: Create a boot and system partition.
     archInstall.make_partitions
     bl.logging.info Format partitions.
     archInstall.format_partitions
