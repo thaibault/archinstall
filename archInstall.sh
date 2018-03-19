@@ -491,7 +491,7 @@ archInstall_add_boot_entries() {
     local __documentation__='
         Creates an uefi boot entry.
     '
-    if hash efibootmgr 2>/dev/null; then
+    if archInstall.changeroot_to_mountpoint hash efibootmgr 2>/dev/null; then
         bl.logging.info Configure efi boot manager.
         cat << EOF \
             1>"${archInstall_mountpoint_path}/boot/startup.nsh"
@@ -1375,10 +1375,21 @@ archInstall_prepare_installation() {
     fi
     bl.logging.info Set filesystem rights.
     chmod 755 "$archInstall_mountpoint_path"
-    # Make an unique array.
     read -r -a archInstall_packages <<< "$(
         bl.array.unique "${archInstall_packages[@]}")"
 }
+alias archInstall.unmount_installed_system=archInstall_unmount_installed_system
+archInstall_unmount_installed_system() {
+    local __documentation__='
+        Unmount previous installed system.
+    '
+    bl.logging.info Unmount installed system.
+    sync
+    cd / && \
+    umount "${archInstall_mountpoint_path}/boot"
+    umount "$archInstall_mountpoint_path"
+}
+# NOTE: Depends on "archInstall.unmount_installed_system"
 alias archInstall.prepare_next_boot=archInstall_prepare_next_boot
 archInstall_prepare_next_boot() {
     local __documentation__='
@@ -1409,17 +1420,6 @@ archInstall_tidy_up_system() {
             --force \
             --recursive
     done
-}
-alias archInstall.unmount_installed_system=archInstall_unmount_installed_system
-archInstall_unmount_installed_system() {
-    local __documentation__='
-        Unmount previous installed system.
-    '
-    bl.logging.info Unmount installed system.
-    sync
-    cd / && \
-    umount "${archInstall_mountpoint_path}/boot"
-    umount "$archInstall_mountpoint_path"
 }
 ## endregion
 ## region install arch linux steps.
