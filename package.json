@@ -35,8 +35,8 @@
   },
   "scripts": {
     "clear": "rm --recursive apiDocumentation &>/dev/null || true",
-    "document": "mkdir --parents apiDocumentation/archInstall/latest && bashlink-document archInstall 1>apiDocumentation/archInstall/latest/index.html",
-    "document:show": "bashlink-document archInstall",
+    "document": "mkdir --parents apiDocumentation/archInstall/latest && npm run document:show 1>apiDocumentation/archInstall/latest/index.html",
+    "document:show": "bashlink-document ../../archInstall",
     "document:show:error": "bashlink-document archInstall 1>/dev/null",
     "lint": "hash shellcheck && shellcheck -x *.sh || echo Please install \"shellcheck\". || true",
     "lint:given": "shellcheck -x",
