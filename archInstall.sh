@@ -1357,8 +1357,6 @@ archInstall_prepare_blockdevices() {
     local __documentation__='
         Prepares given block devices to make it ready for fresh installation.
     '
-    bl.logging.info \
-        "Unmount needed devices and devices pointing to our temporary system mount point \"$archInstall_mountpoint_path\"."
     umount -f "${archInstall_output_system}"* 2>/dev/null || \
         true
     umount -f "$archInstall_mountpoint_path" 2>/dev/null || \
@@ -1410,18 +1408,6 @@ archInstall_prepare_installation() {
     read -r -a archInstall_packages <<< "$(
         bl.array.unique "${archInstall_packages[*]}")"
 }
-alias archInstall.unmount_installed_system=archInstall_unmount_installed_system
-archInstall_unmount_installed_system() {
-    local __documentation__='
-        Unmount previous installed system.
-    '
-    bl.logging.info Unmount installed system.
-    sync
-    cd / && \
-    umount "${archInstall_mountpoint_path}/boot"
-    umount "$archInstall_mountpoint_path"
-}
-# NOTE: Depends on "archInstall.unmount_installed_system"
 alias archInstall.prepare_next_boot=archInstall_prepare_next_boot
 archInstall_prepare_next_boot() {
     local __documentation__='
@@ -1430,7 +1416,7 @@ archInstall_prepare_next_boot() {
     if [ -b "$archInstall_output_system" ]; then
         archInstall.generate_fstab_configuration_file
         archInstall.add_boot_entries
-        archInstall.unmount_installed_system
+        archInstall.prepare_blockdevices
         if $archInstall_automatic_reboot; then
             bl.logging.info Reboot into new operating system.
             systemctl reboot &>/dev/null || reboot
