@@ -390,7 +390,7 @@ archInstall_commandline_interface() {
 
             -z|--add-common-additional-packages)
                 shift
-                archInstall_add_common_additional_packages=false
+                archInstall_add_common_additional_packages=true
                 ;;
             -f|--additional-packages)
                 shift
