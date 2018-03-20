@@ -49,15 +49,15 @@ Simply load the newest version from:
 [archInstall](https://raw.githubusercontent.com/archInstall/archInstall/master/archInstall.sh)
 
 ```bash
+>>> wget https://goo.gl/bPAqXB -O archInstall.sh && chmod +x archInstall.sh
+```
+
+oder ohne Link-Shortener:
+
+```bash
 >>> wget \
     http://torben.website/archInstall/data/distributionBundle/archInstall.sh && \
     chmod +x archInstall.sh
-```
-
-oder mit Link-Shortener:
-
-```bash
->>> wget https://goo.gl/bPAqXB -O archInstall.sh && chmod +x archInstall.sh
 ```
 
 archInstall ist das zentrale Modul um eine Reihe von Aufgaben im Zuge der
