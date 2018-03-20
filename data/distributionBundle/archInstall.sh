@@ -1191,8 +1191,10 @@ archInstall_format_system_partition() {
         --label "$archInstall_system_partition_label" \
         "$output_device"
     bl.logging.info "Creating a root sub volume in \"$output_device\"."
+    # NOTES: It is more reliable if we do not use the partition label here if
+    # if some pre or post processing by other tools will be done.
     mount \
-        PARTLABEL="$archInstall_system_partition_label" \
+        "$output_device" \
         "$archInstall_mountpoint_path"
     btrfs subvolume create "${archInstall_mountpoint_path}root"
     umount "$archInstall_mountpoint_path"
