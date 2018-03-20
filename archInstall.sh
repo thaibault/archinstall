@@ -1344,10 +1344,6 @@ archInstall_prepare_blockdevices() {
         true
     swapoff "${archInstall_output_system}"* 2>/dev/null || \
         true
-    bl.logging.info Make partitions: Create a boot and system partition.
-    archInstall.make_partitions
-    bl.logging.info Format partitions.
-    archInstall.format_partitions
 }
 alias archInstall.prepare_installation=archInstall_prepare_installation
 archInstall_prepare_installation() {
@@ -1589,6 +1585,7 @@ archInstall_main() {
         fi
     elif [ -b "$archInstall_output_system" ]; then
         archInstall_packages+=(efibootmgr)
+        archInstall.prepare_blockdevices
         # NOTE: We have to use `"$(which grep)"` instead of `command grep`
         # because the latter one's return value is not catched by the wrapping
         # test, so activated exceptions would throw on negative test here.
@@ -1599,7 +1596,10 @@ archInstall_main() {
             archInstall.format_system_partition
         else
             archInstall.determine_auto_partitioning
-            archInstall.prepare_blockdevices
+            bl.logging.info Make partitions: Create a boot and system partition.
+            archInstall.make_partitions
+            bl.logging.info Format partitions.
+            archInstall.format_partitions
         fi
     else
         bl.logging.error_exception \
