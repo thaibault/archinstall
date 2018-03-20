@@ -163,6 +163,7 @@ archInstall_package_cache_path=archInstallPackageCache
 archInstall_prevent_using_native_arch_changeroot=false
 archInstall_prevent_using_existing_pacman=false
 archInstall_system_partition_label=system
+archInstall_system_partition_installation_only=false
 archInstall_user_names=()
 ## endregion
 # endregion
@@ -240,6 +241,8 @@ archInstall_print_commandline_option_description() {
 
 -t --package-cache-path PATH Define where to load and save downloaded packages (default: "$archInstall_package_cache_path").
 
+
+-S --system-partition-installation-only Interpret given input as single partition to use as target only (Will be determined automatically if not set explicitely).
 
 -l --timeout NUMBER_OF_SECONDS Defines time to wait for requests (default: $archInstall_network_timeout_in_seconds).
 EOF
@@ -412,6 +415,11 @@ archInstall_commandline_interface() {
                 shift
                 ;;
 
+            -S|--system-partition-installation-only)
+                shift
+                archInstall_system_partition_installation_only=true
+                ;;
+
             -l|--timeout)
                 shift
                 archInstall_network_timeout_in_seconds="$1"
@@ -452,6 +460,17 @@ archInstall_commandline_interface() {
                 fi
             done
         fi
+    fi
+    # NOTE: We have to use `"$(which grep)"` instead of `command grep` because
+    # the latter one's return value is not catched by the wrapping test, so
+    # activated exceptions would throw on negative test here.
+    # shellcheck disable=SC2230
+    if \
+        ! $archInstall_system_partition_installation_only && \
+        echo "$archInstall_output_system" | \
+            "$(which grep)" --quiet --extended-regexp '[0-9]$'
+    then
+        archInstall_system_partition_installation_only=true
     fi
     return 0
 }
@@ -1356,15 +1375,28 @@ archInstall_prepare_installation() {
     mkdir --parents "$archInstall_package_cache_path"
     if [ -b "$archInstall_output_system" ]; then
         bl.logging.info Mount system partition.
-        mount \
-            PARTLABEL="$archInstall_system_partition_label" \
-            -o subvol=root \
-            "$archInstall_mountpoint_path"
+        if $archInstall_system_partition_installation_only; then
+            # NOTE: It is more reliable to use the specified partition since
+            # auto partitioning could be turned off and labels set wrong.
+            mount \
+                "$archInstall_output_system" \
+                -o subvol=root \
+                "$archInstall_mountpoint_path"
+        else
+            mount \
+                PARTLABEL="$archInstall_system_partition_label" \
+                -o subvol=root \
+                "$archInstall_mountpoint_path"
+        fi
     fi
     bl.logging.info \
         "Clear previous installations in \"$archInstall_mountpoint_path\"."
-    rm "$archInstall_mountpoint_path"* --force --recursive
-    if [ -b "$archInstall_output_system" ]; then
+    rm "$archInstall_mountpoint_path"* --force --recursive &>/dev/null || \
+        true
+    if \
+        ! $archInstall_system_partition_installation_only && \
+        [ -b "$archInstall_output_system" ]
+    then
         bl.logging.info \
             "Mount boot partition in \"${archInstall_mountpoint_path}boot/\"."
         mkdir --parents "${archInstall_mountpoint_path}boot/"
@@ -1590,13 +1622,7 @@ archInstall_main() {
         archInstall.prepare_blockdevices
         bl.exception.try
         {
-            # NOTE: We have to use `"$(which grep)"` instead of `command grep`
-            # because the latter one's return value is not catched by the wrapping
-            # test, so activated exceptions would throw on negative test here.
-            # shellcheck disable=SC2230
-            if echo "$archInstall_output_system" | \
-                "$(which grep)" --quiet --extended-regexp '[0-9]$'
-            then
+            if $archInstall_system_partition_installation_only; then
                 archInstall.format_system_partition
             else
                 archInstall.determine_auto_partitioning
