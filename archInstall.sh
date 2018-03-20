@@ -1586,21 +1586,29 @@ archInstall_main() {
     elif [ -b "$archInstall_output_system" ]; then
         archInstall_packages+=(efibootmgr)
         archInstall.prepare_blockdevices
-        # NOTE: We have to use `"$(which grep)"` instead of `command grep`
-        # because the latter one's return value is not catched by the wrapping
-        # test, so activated exceptions would throw on negative test here.
-        # shellcheck disable=SC2230
-        if echo "$archInstall_output_system" | \
-            "$(which grep)" --quiet --extended-regexp '[0-9]$'
-        then
-            archInstall.format_system_partition
-        else
-            archInstall.determine_auto_partitioning
-            bl.logging.info Make partitions: Create a boot and system partition.
-            archInstall.make_partitions
-            bl.logging.info Format partitions.
-            archInstall.format_partitions
-        fi
+        bl.exception.try
+        {
+            # NOTE: We have to use `"$(which grep)"` instead of `command grep`
+            # because the latter one's return value is not catched by the wrapping
+            # test, so activated exceptions would throw on negative test here.
+            # shellcheck disable=SC2230
+            if echo "$archInstall_output_system" | \
+                "$(which grep)" --quiet --extended-regexp '[0-9]$'
+            then
+                archInstall.format_system_partition
+            else
+                archInstall.determine_auto_partitioning
+                bl.logging.info Make partitions: Create a boot and system partition.
+                archInstall.make_partitions
+                bl.logging.info Format partitions.
+                archInstall.format_partitions
+            fi
+        }
+        bl.exception.catch_single
+        {
+            archInstall.prepare_blockdevices
+            bl.logging.error_exception "$bl_exception_last_traceback"
+        }
     else
         bl.logging.error_exception \
             "Could not install into \"$archInstall_output_system\"."
