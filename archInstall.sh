@@ -491,7 +491,9 @@ archInstall_add_boot_entries() {
     local __documentation__='
         Creates an uefi boot entry.
     '
-    if archInstall.changeroot_to_mountpoint hash efibootmgr 2>/dev/null; then
+    if archInstall.changeroot_to_mountpoint bash -c 'hash efibootmgr' \
+        2>/dev/null
+    then
         bl.logging.info Configure efi boot manager.
         cat << EOF \
             1>"${archInstall_mountpoint_path}/boot/startup.nsh"
