@@ -1467,11 +1467,6 @@ archInstall_generic_linux_steps() {
         This functions performs creating an arch linux system from any linux
         system base.
     '
-    local return_code=0
-    bl.exception.try
-        archInstall.load_cache
-    bl.exception.catch_single
-        bl.logging.info No package cache was loaded.
     bl.logging.info Create a list with urls for existing packages.
     mapfile -t url_lists <<<"$(archInstall.create_url_lists)"
     archInstall.download_and_extract_pacman "${url_lists[1]}"
@@ -1505,16 +1500,7 @@ archInstall_generic_linux_steps() {
         --needed \
         --noconfirm \
         "${archInstall_packages[@]}"
-    return_code=$?
-    bl.exception.try
-        archInstall.cache
-    bl.exception.catch_single
-        bl.logging.warn \
-            Caching current downloaded packages and generated database \
-            failed.
-    (( return_code == 0 )) && \
-        archInstall.configure_pacman
-    return $return_code
+    return $?
 }
 alias archInstall.with_existing_pacman=archInstall_with_existing_pacman
 archInstall_with_existing_pacman() {
@@ -1522,17 +1508,6 @@ archInstall_with_existing_pacman() {
         Installs arch linux via patched (to be able to operate offline)
         pacstrap of pacman directly.
     '
-    local return_code=0
-    archInstall.load_cache
-    if hash pacstrap &>/dev/null; then
-        bl.logging.info Patch pacstrap to handle offline installations.
-        command sed \
-            --regexp-extended \
-            's/(pacman.+-(S|-sync))(y|--refresh)/\1/g' \
-                <"$(command -v pacstrap)" \
-                1>"${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
-        chmod +x "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
-    fi
     bl.logging.info Update package databases.
     bl.exception.try
         pacman \
@@ -1547,36 +1522,38 @@ archInstall_with_existing_pacman() {
         echo "${archInstall_packages[@]}" | \
             command sed 's/ /", "/g'
     )\" to \"$archInstall_output_system\"."
-    if [ -f "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh" ]
-    then
+    if hash pacstrap &>/dev/null; then
+        bl.logging.info Patch pacstrap to handle offline installations.
+        command sed \
+            --regexp-extended \
+            's/(pacman.+-(S|-sync))(y|--refresh)/\1/g' \
+                <"$(command -v pacstrap)" \
+                1>"${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
+        chmod +x "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
         "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh" \
             -d "$archInstall_mountpoint_path" \
             "${archInstall_packages[@]}" \
             --force
-        return_code=$?
+        local return_code=$?
         rm "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
-    else
-        pacman \
-            --force \
-            --root "$archInstall_mountpoint_path" \
-            --sync \
-            --noconfirm \
-            "${archInstall_needed_packages[@]}"
-        archInstall.make_pacman_portable
-        archInstall.changeroot_to_mountpoint \
-            /usr/bin/pacman \
-            --arch "$archInstall_cpu_architecture" \
-            --force \
-            --sync \
-            --needed \
-            --noconfirm \
-            "${archInstall_packages[@]}"
-        return_code=$?
+        return $return_code
     fi
-    archInstall.cache || \
-        bl.logging.warn \
-            Caching current downloaded packages and generated database failed.
-    return $return_code
+    pacman \
+        --force \
+        --root "$archInstall_mountpoint_path" \
+        --sync \
+        --noconfirm \
+        "${archInstall_needed_packages[@]}"
+    archInstall.make_pacman_portable
+    archInstall.changeroot_to_mountpoint \
+        /usr/bin/pacman \
+        --arch "$archInstall_cpu_architecture" \
+        --force \
+        --sync \
+        --needed \
+        --noconfirm \
+        "${archInstall_packages[@]}"
+    return $?
 }
 ## endregion
 ## region controller
@@ -1623,6 +1600,10 @@ archInstall_main() {
             "Could not install into \"$archInstall_output_system\"."
     fi
     archInstall.prepare_installation
+    bl.exception.try
+        archInstall.load_cache
+    bl.exception.catch_single
+        bl.logging.info No package cache was loaded.
     if (( UID == 0 )) && ! $archInstall_prevent_using_existing_pacman && \
         hash pacman 2>/dev/null
     then
@@ -1630,6 +1611,15 @@ archInstall_main() {
     else
         archInstall.generic_linux_steps
     fi
+    local return_code=$?
+    bl.exception.try
+        archInstall.cache
+    bl.exception.catch_single
+        bl.logging.warn \
+            Caching current downloaded packages and generated database \
+            failed.
+    (( return_code == 0 )) && \
+        archInstall.configure_pacman
     archInstall.tidy_up_system
     archInstall.configure
     archInstall.prepare_next_boot
