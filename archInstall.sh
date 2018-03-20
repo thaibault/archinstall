@@ -18,19 +18,23 @@ elif [ -f "/usr/lib/bashlink/module.sh" ]; then
     # shellcheck disable=SC1091
     source "/usr/lib/bashlink/module.sh"
 else
-    archInstall_bashlink_path="$(mktemp --directory --suffix -bashlink)/bashlink/"
-    mkdir "$archInstall_bashlink_path"
-    if wget \
-        https://goo.gl/UKF5JG \
-        --output-document "${archInstall_bashlink_path}module.sh" \
-        --quiet
-    then
-        bl_module_retrieve_remote_modules=true
-        # shellcheck disable=SC1090
-        source "${archInstall_bashlink_path}/module.sh"
-    else
-        echo Needed bashlink library not found 1>&2
-        exit 1
+    archInstall_bashlink_path="${archInstall_package_cache_path}/bashlink/"
+    mkdir --parents "$archInstall_bashlink_path"
+    # TODO test offline.
+    bl_module_retrieve_remote_modules=true
+    if ! [ -f "${archInstall_bashlink_path}module.sh" ]; then
+        if \
+            wget \
+            https://goo.gl/UKF5JG \
+            --output-document "${archInstall_bashlink_path}module.sh" \
+            --quiet
+        then
+            # shellcheck disable=SC1090
+            source "${archInstall_bashlink_path}/module.sh"
+        else
+            echo Needed bashlink library not found 1>&2
+            exit 1
+        fi
     fi
 fi
 bl.module.import bashlink.changeroot
@@ -159,7 +163,6 @@ archInstall_local_time=EUROPE/Berlin
 archInstall_needed_services=()
 archInstall_needed_system_space_in_mega_byte=512
 archInstall_output_system=archInstall
-archInstall_package_cache_path=archInstallPackageCache
 archInstall_prevent_using_native_arch_changeroot=false
 archInstall_prevent_using_existing_pacman=false
 archInstall_system_partition_label=system
@@ -577,6 +580,16 @@ archInstall_cache() {
         --preserve \
         "${archInstall_mountpoint_path}var/lib/pacman/sync/"*.db \
         "${archInstall_package_cache_path}/"
+    if \
+        [[ "$archInstall_bashlink_path" != '' ]] && \
+        [ -d "$archInstall_bashlink_path" ]
+    then
+        cp \
+            --force \
+            --recursive \
+            "${archInstall_bashlink_path}/bashlink" \
+            "${archInstall_package_cache_path}/"
+    fi
     return $?
 }
 alias archInstall.enable_services=archInstall_enable_services
