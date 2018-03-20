@@ -289,7 +289,7 @@ archInstall_commandline_interface() {
                 ;;
             -v|--verbose)
                 shift
-                if bl.logging.is_enabled info; then
+                if ! bl.logging.is_enabled info; then
                     bl.logging.set_level info
                 fi
                 ;;
