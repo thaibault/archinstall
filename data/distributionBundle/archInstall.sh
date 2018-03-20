@@ -186,7 +186,7 @@ archInstall_print_commandline_option_description() {
 
 -v --verbose Tells you what is going on.
 
--d --debug Gives you any output from all tools which are used (default: "false").
+-d --debug Gives you any output from all tools which are used.
 
 
 -u --user-names [USER_NAMES [USER_NAMES ...]], Defines user names for new system (default: "${archInstall_user_names[@]}").
@@ -208,7 +208,7 @@ archInstall_print_commandline_option_description() {
 -m --country-with-mirrors COUNTRY Country for enabling servers to get packages from (default: "$archInstall_country_with_mirrors").
 
 
--r --no-reboot Prevents to reboot after finishing installation.
+-r --reboot Reboot after finishing installation.
 
 -p --prevent-using-existing-pacman Ignores presence of pacman to use it for install operating system (default: "$archInstall_prevent_using_existing_pacman").
 
