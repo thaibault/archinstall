@@ -1376,7 +1376,7 @@ archInstall_prepare_installation() {
     bl.logging.info Set filesystem rights.
     chmod 755 "$archInstall_mountpoint_path"
     read -r -a archInstall_packages <<< "$(
-        bl.array.unique "${archInstall_packages[@]}")"
+        bl.array.unique "${archInstall_packages[*]}")"
 }
 alias archInstall.unmount_installed_system=archInstall_unmount_installed_system
 archInstall_unmount_installed_system() {
