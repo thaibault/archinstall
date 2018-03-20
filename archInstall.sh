@@ -1589,8 +1589,12 @@ archInstall_main() {
         fi
     elif [ -b "$archInstall_output_system" ]; then
         archInstall_packages+=(efibootmgr)
+        # NOTE: We have to use `"$(which grep)"` instead of `command grep`
+        # because the latter one's return value is not catched by the wrapping
+        # test, so activated exceptions would throw on negative test here.
+        # shellcheck disable=SC2230
         if echo "$archInstall_output_system" | \
-            command grep --quiet --extended-regexp '[0-9]$'
+            "$(which grep)" --quiet --extended-regexp '[0-9]$'
         then
             archInstall.format_system_partition
         else
