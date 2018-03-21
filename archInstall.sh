@@ -586,16 +586,6 @@ archInstall_cache() {
         --preserve \
         "${archInstall_mountpoint_path}var/lib/pacman/sync/"*.db \
         "$archInstall_cache_path"
-    if \
-        [[ "$archInstall_bashlink_path" != '' ]] && \
-        [ -d "$archInstall_bashlink_path" ]
-    then
-        cp \
-            --force \
-            --recursive \
-            "${archInstall_bashlink_path}/bashlink" \
-            "$archInstall_cache_path"
-    fi
     return $?
 }
 alias archInstall.enable_services=archInstall_enable_services
