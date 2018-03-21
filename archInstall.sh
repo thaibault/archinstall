@@ -30,13 +30,13 @@ else
     bl_module_remote_module_cache_path="${archInstall_cache_path}bashlink"
     mkdir --parents "$bl_module_remote_module_cache_path"
     bl_module_retrieve_remote_modules=true
-    if ! \
-        [ -f "${bl_module_remote_module_cache_path}/module.sh" ] && \
+    if ! (
+        [ -f "${bl_module_remote_module_cache_path}/module.sh" ] || \
         wget \
             https://goo.gl/UKF5JG \
             --output-document "${bl_module_remote_module_cache_path}/module.sh" \
             --quiet
-    then
+    ); then
         echo Needed bashlink library could not be retrieved. 1>&2
         exit 1
     fi
@@ -878,6 +878,7 @@ archInstall_create_url_lists() {
         package_urls+=("${url_list[@]}")
     done
     bl.array.unique "${package_source_urls[*]}"
+    echo
     echo "${package_urls[@]}"
     return $return_code
 }
@@ -1133,6 +1134,7 @@ archInstall_download_and_extract_pacman() {
                     done
                 fi
                 bl.exception.try
+                {
                     wget \
                         "$package_url" \
                         --continue \
@@ -1144,9 +1146,10 @@ archInstall_download_and_extract_pacman() {
                             command sed 's/.*\/\([^\/][^\/]*\)$/\1/')"
                     # NOTE: We have to decode given url.
                     file_name="$(printf '%b' "${file_name//%/\\x}")"
+                }
                 bl.exception.catch_single
-                    bl.logging.warn
-                        "Could not retrieve package from determined url \"$package_url\"."
+                    bl.logging.warn \
+                        "Could not retrieve package \"$package_name\" from url \"$package_url\"."
             fi
             # If "file_name" couldn't be determined via server determine it via
             # current package cache.
