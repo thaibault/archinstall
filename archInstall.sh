@@ -24,31 +24,31 @@ else
                 --regexp-extended \
                 's/(^| )(-t|--cache-path)(=| +)(.+[^ ])($| +-)/\4/'
     )"
-    [ $? = 0 ] && \
+    [ "$archInstall_cache_path" = "$*" ] && \
         archInstall_cache_path=archInstallCache
-    archInstall_bashlink_path="${archInstall_cache_path}/bashlink/"
-    mkdir --parents "$archInstall_bashlink_path"
+    archInstall_cache_path="${archInstall_cache_path%/}/"
+    bl_module_remote_module_cache_path="${archInstall_cache_path}bashlink"
+    mkdir --parents "$bl_module_remote_module_cache_path"
     bl_module_retrieve_remote_modules=true
-    if [ -f "${archInstall_bashlink_path}module.sh" ]; then
-        # shellcheck disable=SC1090
-        source "${archInstall_bashlink_path}/module.sh"
-    elif wget \
-        https://goo.gl/UKF5JG \
-        --output-document "${archInstall_bashlink_path}module.sh" \
-        --quiet
+    if ! \
+        [ -f "${bl_module_remote_module_cache_path}/module.sh" ] && \
+        wget \
+            https://goo.gl/UKF5JG \
+            --output-document "${bl_module_remote_module_cache_path}/module.sh" \
+            --quiet
     then
-        # shellcheck disable=SC1090
-        source "${archInstall_bashlink_path}/module.sh"
-    else
-        echo Needed bashlink library not found 1>&2
+        echo Needed bashlink library could not be retrieved. 1>&2
         exit 1
     fi
+    # shellcheck disable=SC1090
+    source "${bl_module_remote_module_cache_path}/module.sh"
 fi
 bl.module.import bashlink.changeroot
 bl.module.import bashlink.dictionary
 bl.module.import bashlink.exception
 bl.module.import bashlink.logging
 bl.module.import bashlink.number
+bl.module.import bashlink.path
 bl.module.import bashlink.tools
 # endregion
 # region variables
@@ -423,7 +423,7 @@ archInstall_commandline_interface() {
                 ;;
             -t|--cache-path)
                 shift
-                archInstall_cache_path="$1"
+                archInstall_cache_path="${1%/}/"
                 shift
                 ;;
 
@@ -580,13 +580,13 @@ archInstall_cache() {
         --force \
         --preserve \
         "${archInstall_mountpoint_path}var/cache/pacman/pkg/"*.pkg.tar.xz \
-        "${archInstall_cache_path}/"
+        "$archInstall_cache_path"
     bl.logging.info Cache loaded databases.
     cp \
         --force \
         --preserve \
         "${archInstall_mountpoint_path}var/lib/pacman/sync/"*.db \
-        "${archInstall_cache_path}/"
+        "$archInstall_cache_path"
     if \
         [[ "$archInstall_bashlink_path" != '' ]] && \
         [ -d "$archInstall_bashlink_path" ]
@@ -595,7 +595,7 @@ archInstall_cache() {
             --force \
             --recursive \
             "${archInstall_bashlink_path}/bashlink" \
-            "${archInstall_cache_path}/"
+            "$archInstall_cache_path"
     fi
     return $?
 }
@@ -1048,14 +1048,14 @@ archInstall_determine_pacmans_needed_packages() {
         bl.exception.try
             wget \
                 "$core_database_url" \
-                --directory-prefix "${archInstall_cache_path}/" \
+                --directory-prefix "$archInstall_cache_path" \
                 --timeout="$archInstall_network_timeout_in_seconds" \
                 --timestamping
         bl.exception.catch_single
             bl.logging.warn \
                 "Could not retrieve latest database file from determined url \"$core_database_url\"."
     fi
-    if [ -f "${archInstall_cache_path}/core.db" ]; then
+    if [ -f "${archInstall_cache_path}core.db" ]; then
         local database_directory_path="$(
             mktemp --directory --suffix -archInstall-core-database)"
         bl.exception.try
@@ -1064,7 +1064,7 @@ archInstall_determine_pacmans_needed_packages() {
             tar \
                 --directory "$database_directory_path" \
                 --extract \
-                --file "${archInstall_cache_path}/core.db" \
+                --file "${archInstall_cache_path}core.db" \
                 --gzip
             local package_name
             for package_name in "${archInstall_needed_packages[@]}"; do
@@ -1089,7 +1089,7 @@ archInstall_determine_pacmans_needed_packages() {
         return 0
     fi
     bl.logging.critical \
-        "No database file (\"${archInstall_cache_path}/core.db\") could be found."
+        "No database file (\"${archInstall_cache_path}core.db\") could be found."
     return 1
 }
 alias archInstall.download_and_extract_pacman=archInstall_download_and_extract_pacman
@@ -1137,7 +1137,7 @@ archInstall_download_and_extract_pacman() {
                     wget \
                         "$package_url" \
                         --continue \
-                        --directory-prefix "${archInstall_cache_path}/" \
+                        --directory-prefix "$archInstall_cache_path" \
                         --timeout="$archInstall_network_timeout_in_seconds" \
                         --timestamping
                     file_name="$(
@@ -1189,7 +1189,7 @@ archInstall_download_and_extract_pacman() {
             xz \
                 --decompress \
                 --to-stdout \
-                "$archInstall_cache_path/$file_name" | \
+                "${archInstall_cache_path}$file_name" | \
                     tar \
                         --directory "$archInstall_mountpoint_path" \
                         --extract || \
@@ -1282,7 +1282,7 @@ archInstall_load_cache() {
         cp \
             --no-clobber \
             --preserve \
-            "$archInstall_cache_path"/*.db \
+            "$archInstall_cache_path"*.db \
             "${archInstall_mountpoint_path}var/lib/pacman/sync/" \
                 2>/dev/null
     bl.exception.catch_single
@@ -1295,7 +1295,7 @@ archInstall_load_cache() {
         cp \
             --no-clobber \
             --preserve \
-            "$archInstall_cache_path"/*.pkg.tar.xz \
+            "$archInstall_cache_path"*.pkg.tar.xz \
             "${archInstall_mountpoint_path}var/cache/pacman/pkg/" \
                 2>/dev/null
     bl.exception.catch_single
@@ -1568,14 +1568,14 @@ archInstall_with_existing_pacman() {
             --regexp-extended \
             's/(pacman.+-(S|-sync))(y|--refresh)/\1/g' \
                 <"$(command -v pacstrap)" \
-                1>"${archInstall_cache_path}/patchedOfflinePacstrap.sh"
-        chmod +x "${archInstall_cache_path}/patchedOfflinePacstrap.sh"
-        "${archInstall_cache_path}/patchedOfflinePacstrap.sh" \
+                1>"${archInstall_cache_path}patchedOfflinePacstrap.sh"
+        chmod +x "${archInstall_cache_path}patchedOfflinePacstrap.sh"
+        "${archInstall_cache_path}patchedOfflinePacstrap.sh" \
             -d "$archInstall_mountpoint_path" \
             "${archInstall_packages[@]}" \
             --force
         local return_code=$?
-        rm "${archInstall_cache_path}/patchedOfflinePacstrap.sh"
+        rm "${archInstall_cache_path}patchedOfflinePacstrap.sh"
         return $return_code
     fi
     pacman \
@@ -1682,11 +1682,6 @@ archInstall_main() {
 # endregion
 if bl.tools.is_main; then
     archInstall.main "$@"
-    [ -d "$archInstall_bashlink_path" ] && \
-        rm --recursive "$archInstall_bashlink_path"
-    # shellcheck disable=SC2154
-    [ -d "$bl_module_remote_module_cache_path" ] && \
-        rm --recursive "$bl_module_remote_module_cache_path"
 fi
 # region vim modline
 # vim: set tabstop=4 shiftwidth=4 expandtab:
