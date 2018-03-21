@@ -48,7 +48,6 @@ bl.module.import bashlink.dictionary
 bl.module.import bashlink.exception
 bl.module.import bashlink.logging
 bl.module.import bashlink.number
-bl.module.import bashlink.path
 bl.module.import bashlink.tools
 # endregion
 # region variables
