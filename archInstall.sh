@@ -1460,19 +1460,8 @@ archInstall_make_pacman_portable() {
     local __documentation__='
         Disables signature checks and registers temporary download mirrors.
     '
-    # Copy systems resolv.conf to new installed system. If the native
-    # "arch-chroot" is used it will mount the file into the change root
-    # environment.
+    # Copy systems resolv.conf to new installed system.
     cp /etc/resolv.conf "${archInstall_mountpoint_path}etc/"
-    if \
-        ! "$archInstall_prevent_using_native_arch_changeroot" && \
-        hash arch-chroot 2>/dev/null
-    then
-        mv \
-            "${archInstall_mountpoint_path}etc/resolv.conf" \
-            "${archInstall_mountpoint_path}etc/resolv.conf.old" \
-                2>/dev/null
-    fi
     command sed \
         --in-place \
         --quiet \
