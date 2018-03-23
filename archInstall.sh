@@ -443,8 +443,8 @@ archInstall_commandline_interface() {
                 break
                 ;;
             *)
-                logging.critical "Given argument: \"$1\" is not available."
-                archInstall.print_help_message "$0"
+                logging.error "Given argument: \"$1\" is not available."
+                archInstall.print_help_message
                 return 1
         esac
     done
