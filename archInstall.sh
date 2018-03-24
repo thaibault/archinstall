@@ -178,20 +178,20 @@ archInstall_user_names=()
 # endregion
 # region functions
 ## region command line interface
-alias archInstall.print_commandline_option_description=archInstall_print_commandline_option_description
-archInstall_print_commandline_option_description() {
+alias archInstall.get_commandline_option_description=archInstall_get_commandline_option_description
+archInstall_get_commandline_option_description() {
     local __documentation__='
         Prints descriptions about each available command line option.
         NOTE: All letters are used for short options.
         NOTE: "-k" and "--key-map-configuration" is not needed in the future.
 
-        >>> archInstall.print_commandline_option_description
+        >>> archInstall.get_commandline_option_description
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         -h --help Shows this help message.
         ...
     '
-    bl.logging.cat << EOF
+    cat << EOF
 -h --help Shows this help message.
 
 -v --verbose Tells you what is going on.
@@ -256,12 +256,12 @@ archInstall_print_commandline_option_description() {
 -l --timeout NUMBER_OF_SECONDS Defines time to wait for requests (default: $archInstall_network_timeout_in_seconds).
 EOF
 }
-alias archInstall.print_help_message=archInstall_print_help_message
-archInstall_print_help_message() {
+alias archInstall.get_help_message=archInstall_get_help_message
+archInstall_get_help_message() {
     local __documentation__='
         Provides a help message for this module.
 
-        >>> archInstall.print_help_message
+        >>> archInstall.get_help_message
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         ...
@@ -271,11 +271,11 @@ archInstall_print_help_message() {
     bl.logging.plain $'\nUsage: arch-install [options]\n'
     bl.logging.plain "$archInstall__documentation__"
     bl.logging.plain $'\nOption descriptions:\n'
-    archInstall.print_commandline_option_description "$@"
+    bl.logging.plain "$(archInstall.get_commandline_option_description "$@")"
     bl.logging.plain
 }
-# NOTE: Depends on "archInstall.print_commandline_option_description" and
-# "archInstall.print_help_message".
+# NOTE: Depends on "archInstall.get_commandline_option_description" and
+# "archInstall.get_help_message".
 alias archInstall.commandline_interface=archInstall_commandline_interface
 archInstall_commandline_interface() {
     local __documentation__='
@@ -293,7 +293,7 @@ archInstall_commandline_interface() {
         case "$1" in
             -h|--help)
                 shift
-                archInstall.print_help_message "$0"
+                bl.logging.plain "$(archInstall.get_help_message "$0")"
                 exit 0
                 ;;
             -v|--verbose)
@@ -444,7 +444,7 @@ archInstall_commandline_interface() {
                 ;;
             *)
                 logging.error "Given argument: \"$1\" is not available."
-                archInstall.print_help_message
+                bl.logging.plain "$(archInstall.get_help_message)"
                 return 1
         esac
     done
