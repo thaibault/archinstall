@@ -25,7 +25,7 @@ bl.module.import bashlink.logging
 bl.module.import bashlink.tools
 # endregion
 # region variables
-packIntoArchiso__documentation__='
+declare -gr packIntoArchiso__documentation__='
     This module modifies a given arch linux iso image.
 
     Packs the current packIntoArchiso.bash script into the archiso image.
@@ -48,7 +48,7 @@ packIntoArchiso__documentation__='
         pack-into-archiso --help
     ```
 '
-packIntoArchiso__dependencies__=(
+declare -agr packIntoArchiso__dependencies__=(
     bash
     cdrkit
     grep
@@ -60,44 +60,47 @@ packIntoArchiso__dependencies__=(
     touch
     umount
 )
-packIntoArchiso__optional_dependencies__=(
+declare -agr packIntoArchiso__optional_dependencies__=(
     'sudo: Perform action as another user.'
     'arch-install-scripts: Supports to perform an arch-chroot.'
 )
 ## region commandline arguments
-packIntoArchiso_squash_filesystem_compressor=gzip
-packIntoArchiso_keyboard_layout=de-latin1
-packIntoArchiso_key_map_configuration_file_content="KEYMAP=${packIntoArchiso_keyboard_layout}"$'\nFONT=Lat2-Terminus16\nFONT_MAP='
+declare -g packIntoArchiso_squash_filesystem_compressor=gzip
+declare -g packIntoArchiso_keyboard_layout=de-latin1
+declare -g packIntoArchiso_key_map_configuration_file_content="KEYMAP=${packIntoArchiso_keyboard_layout}"$'\nFONT=Lat2-Terminus16\nFONT_MAP='
 ## endregion
-packIntoArchiso_source_path=''
-packIntoArchiso_target_path=''
-packIntoArchiso_mountpoint_path="$(mktemp --directory)"
-packIntoArchiso_temporary_remastering_path="$(mktemp --directory)"
-packIntoArchiso_temporary_filesystem_remastering_path="$(mktemp --directory)/mnt"
-packIntoArchiso_temporary_root_filesystem_remastering_path="$(mktemp --directory)"
-packIntoArchiso_relative_paths_to_squash_filesystem=(
+declare -g packIntoArchiso_source_path=''
+declare -g packIntoArchiso_target_path=''
+declare -g packIntoArchiso_mountpoint_path="$(mktemp --directory)"
+declare -g packIntoArchiso_temporary_remastering_path="$(mktemp --directory)"
+declare -g packIntoArchiso_temporary_filesystem_remastering_path="$(
+    mktemp --directory
+)/mnt"
+declare -g packIntoArchiso_temporary_root_filesystem_remastering_path="$(
+    mktemp --directory)"
+declare -ag packIntoArchiso_relative_paths_to_squash_filesystem=(
     arch/i686/root-image.fs.sfs
     arch/x86_64/root-image.fs.sfs
 )
-packIntoArchiso_relative_source_file_path=archInstall.sh
-packIntoArchiso_relative_target_file_path=usr/bin/
-packIntoArchiso_bashrc_code=$'\nalias getInstallScript='"'wget https://goo.gl/bPAqXB --output-document archInstall.sh && chmod +x archInstall.sh'"$'\nalias install='"'([ -f /root/archInstall.sh ] || getInstallScript);/root/archInstall.sh'"
+declare -g packIntoArchiso_relative_source_file_path=archInstall.sh
+declare -g packIntoArchiso_relative_target_file_path=usr/bin/
+declare -g packIntoArchiso_bashrc_code=$'\nalias getInstallScript='"'wget https://goo.gl/bPAqXB --output-document archInstall.sh && chmod +x archInstall.sh'"$'\nalias install='"'([ -f /root/archInstall.sh ] || getInstallScript);/root/archInstall.sh'"
 # endregion
 # region functions
 ## region command line interface
-alias packIntoArchiso.print_commandline_option_description=packIntoArchiso_print_commandline_option_description
-packIntoArchiso_print_commandline_option_description() {
-    local __documentation__='
+alias packIntoArchiso.get_commandline_option_description=packIntoArchiso_get_commandline_option_description
+packIntoArchiso_get_commandline_option_description() {
+    local -r __documentation__='
         Prints descriptions about each available command line option.
 
-        >>> packIntoArchiso.print_commandline_option_description
+        >>> packIntoArchiso.get_commandline_option_description
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         -h --help Shows this help message.
         ...
     '
     # NOTE: "-k" and "--key-map-configuration" isn't needed in the future.
-    bl.logging.cat << EOF
+    cat << EOF
 -h --help Shows this help message.
 
 -v --verbose Tells you what is going on (default: "false").
@@ -111,27 +114,27 @@ packIntoArchiso_print_commandline_option_description() {
 -m --key-map-configuration FILE_CONTENT Keyboard map configuration (default: "$packIntoArchiso_key_map_configuration_file_content").
 EOF
 }
-alias packIntoArchiso.print_help_message=packIntoArchiso_print_help_message
-packIntoArchiso_print_help_message() {
-    local __documentation__='
+alias packIntoArchiso.get_help_message=packIntoArchiso_get_help_message
+packIntoArchiso_get_help_message() {
+    local -r __documentation__='
         Provides a help message for this module.
 
-        >>> packIntoArchiso.print_help_message
+        >>> packIntoArchiso.get_help_message
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         ...
         Usage: pack-into-archiso /path/to/archiso/file.iso /path/to/newly/packe
         ...
     '
-    bl.logging.plain $'\nUsage: pack-into-archiso /path/to/archiso/file.iso /path/to/newly/packed/archiso/file.iso [options]\n'
-    bl.logging.plain "$packIntoArchiso__documentation__"
-    bl.logging.plain $'\nOption descriptions:\n'
-    packIntoArchiso.print_commandline_option_description "$@"
-    bl.logging.plain
+    echo -e $'\nUsage: pack-into-archiso /path/to/archiso/file.iso /path/to/newly/packed/archiso/file.iso [options]\n'
+    echo -e "$packIntoArchiso__documentation__"
+    echo -e $'\nOption descriptions:\n'
+    packIntoArchiso.get_commandline_option_description "$@"
+    echo
 }
 alias packIntoArchiso.commandline_interface=packIntoArchiso_commandline_interface
 packIntoArchiso_commandline_interface() {
-    local __documentation__='
+    local -r __documentation__='
         Provides the command line interface and interactive questions.
 
         >>> packIntoArchiso.commandline_interface
@@ -144,16 +147,18 @@ packIntoArchiso_commandline_interface() {
         case "$1" in
             -h|--help)
                 shift
-                packIntoArchiso.print_help_message "$0"
+                bl.logging.plain "$(packIntoArchiso.get_help_message "$0")"
                 exit 0
                 ;;
             -v|--verbose)
                 shift
-                bl.logging.set_level info
+                if ! bl.logging.is_enabled info; then
+                    bl.logging.set_level info
+                fi
                 ;;
             -d|--debug)
                 shift
-                bl.logging.set_command_output_on
+                bl.logging.set_level debug
                 ;;
             -c|--squash-filesystem-compressor)
                 shift
@@ -190,15 +195,18 @@ packIntoArchiso_commandline_interface() {
                 else
                     bl.logging.critical \
                         "Given argument: \"$1\" is not available." '\n'
-                    packIntoArchiso.print_help_message "$0"
+                    bl.logging.plain "$(packIntoArchiso.get_help_message "$0")"
                 fi
                 shift
         esac
     done
-    if [[ ! "$packIntoArchiso_source_path" ]] || [[ ! "$packIntoArchiso_target_path" ]]; then
+    if \
+        [[ ! "$packIntoArchiso_source_path" ]] || \
+        [[ ! "$packIntoArchiso_target_path" ]]
+    then
         bl.logging.critical \
             You have to provide source and target file path. $'\n'
-        packIntoArchiso.print_help_message "$0"
+        bl.logging.plain "$(packIntoArchiso.get_help_message "$0")"
         return 1
     fi
 }
@@ -206,7 +214,7 @@ packIntoArchiso_commandline_interface() {
 ## region helper
 alias packIntoArchiso.remaster_iso=packIntoArchiso_remaster_iso
 packIntoArchiso_remaster_iso() {
-    local __documentation__='
+    local -r __documentation__='
         Remasters given iso into new iso. If new systemd programs are used (if
         first argument is "true") they could have problems in change root
         environment without and exclusive dbus connection.
@@ -222,7 +230,7 @@ packIntoArchiso_remaster_iso() {
         "Copy content in \"$packIntoArchiso_mountpoint_path\" to \"$packIntoArchiso_temporary_remastering_path\"."
     cp --archiv "${packIntoArchiso_mountpoint_path}/"* "$packIntoArchiso_temporary_remastering_path"
     local path
-    local return_code=0
+    local -i return_code=0
     for path in "${packIntoArchiso_relative_paths_to_squash_filesystem[@]}"; do
         bl.logging.info "Extract squash file system in \"${packIntoArchiso_temporary_remastering_path}/$path\" to \"${packIntoArchiso_temporary_remastering_path}\"."
         unsquashfs \
@@ -285,7 +293,7 @@ packIntoArchiso_remaster_iso() {
             return $?
         fi
     done
-    local volume_id="$(
+    local -r volume_id="$(
         isoinfo -i "$packIntoArchiso_source_path" -d | \
             command grep --extended-regexp 'Volume id:' | \
                 command grep --extended-regexp --only-matching '[^ ]+$'
@@ -311,7 +319,7 @@ packIntoArchiso_remaster_iso() {
 }
 alias packIntoArchiso.tidy_up=packIntoArchiso_tidy_up
 packIntoArchiso_tidy_up() {
-    local __documentation__='
+    local -r __documentation__='
         Removes temporary created files.
     '
     bl.logging.info \
@@ -343,7 +351,7 @@ packIntoArchiso_tidy_up() {
 ## region controller
 alias packIntoArchiso.main=packIntoArchiso_main
 packIntoArchiso_main() {
-    local __documentation__='
+    local -r __documentation__='
         Main injected point for this module.
 
         >>> packIntoArchiso.main --help
