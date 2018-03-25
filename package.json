@@ -3,13 +3,13 @@
   "version": "1.0.81",
   "license": "CC-BY-3.0",
   "description": "automate your installation process",
-  "homepage": "http://torben.website/archInstall",
+  "homepage": "http://torben.website/archinstall",
   "documentationWebsite": {
     "languages": [
       "enUS",
       "deDE"
     ],
-    "name": "archInstall",
+    "name": "archinstall",
     "tagline": "automate your installation process<!--deDE:Automatisiere deinen Installationsprozess-->",
     "trackingCode": "UA-40192634-12"
   },
@@ -22,25 +22,25 @@
     "automatic"
   ],
   "files": [
-    "packIntoArchiso.sh"
+    "pack-into-archiso.sh"
   ],
-  "main": "archInstall.sh",
+  "main": "archinstall.sh",
   "bin": {
-    "arch-install": "archInstall.sh",
-    "pack-into-archiso": "packIntoArchiso.sh"
+    "archinstall": "archinstall.sh",
+    "pack-into-archiso": "pack-into-archiso.sh"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/thaibault/archInstall"
+    "url": "https://github.com/thaibault/archinstall"
   },
   "scripts": {
     "clear": "rm --recursive apiDocumentation &>/dev/null || true",
-    "document": "mkdir --parents apiDocumentation/archInstall/latest && npm run document:show 1>apiDocumentation/archInstall/latest/index.html",
-    "document:show": "bashlink-document ../../archInstall",
-    "document:show:error": "bashlink-document archInstall 1>/dev/null",
+    "document": "mkdir --parents apiDocumentation/archinstall/latest && npm run document:show 1>apiDocumentation/archinstall/latest/index.html",
+    "document:show": "bashlink-document ../../archinstall",
+    "document:show:error": "bashlink-document archinstall 1>/dev/null",
     "lint": "hash shellcheck && shellcheck -x *.sh || echo Please install \"shellcheck\". || true",
     "lint:given": "shellcheck -x",
-    "test": "bashlink-doctest --verbose ../../archInstall; bashlink-doctest --verbose ../../packIntoArchiso",
+    "test": "bashlink-doctest --verbose ../../archinstall; bashlink-doctest --verbose ../../pack-into-archiso",
     "update": "npm version patch && npm publish",
     "update:documentation": "documentationWebsite --log-level info"
   },
@@ -49,6 +49,6 @@
     "shellcheck": "0.0.8"
   },
   "dependencies": {
-    "bashlink": "^1.0.95"
+    "bashlink": "^1.0.97"
   }
 }

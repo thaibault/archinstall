@@ -14,7 +14,7 @@ pkgver=1.0.19
 pkgrel=25
 pkgdesc='Automate your installation process.'
 arch=(any)
-url=http://torben.website/archInstall
+url=http://torben.website/archinstall
 license=(CC-BY-3.0)
 devdepends=(shellcheck)
 depends=(
@@ -42,7 +42,7 @@ optdepends=(
     'pacman: if not provided a simple lite pacman version will be used to retrieve pacman first'
 )
 provides=(arch-install pack-into-archiso)
-source=(archInstall.sh packIntoArchiso.sh)
+source=(archinstall.sh pack-into-archiso.sh)
 md5sums=(SKIP SKIP)
 copy_to_aur=true
 
@@ -50,12 +50,12 @@ package() {
     install \
         -D \
         --mode 755 \
-        "${srcdir}/archInstall.sh" \
+        "${srcdir}/archinstall.sh" \
         "${pkgdir}/usr/bin/arch-install"
     install \
         -D \
         --mode 755 \
-        "${srcdir}/packIntoArchiso.sh" \
+        "${srcdir}/pack-into-archiso.sh" \
         "${pkgdir}/usr/bin/pack-into-archiso"
 }
 # region vim modline
