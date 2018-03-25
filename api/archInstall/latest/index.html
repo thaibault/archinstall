@@ -1,5 +1,5 @@
 
-> archinstall@1.0.68 document:show /home/torben/cloud/data/public/project/repository/archInstall
+> archinstall@1.0.81 document:show /home/torben/cloud/data/public/project/repository/archInstall
 > bashlink-document ../../archInstall
 
 ## Module archInstall
@@ -103,6 +103,29 @@ Writes the fstab configuration file.
 ### Function archInstall_generic_linux_steps
 This functions performs creating an arch linux system from any linux
 system base.
+### Function archInstall_get_commandline_option_description
+Prints descriptions about each available command line option.
+NOTE: All letters are used for short options.
+NOTE: "-k" and "--key-map-configuration" is not needed in the future.
+
+```bash
+>>> archInstall.get_commandline_option_description
++bl.doctest.contains
++bl.doctest.multiline_ellipsis
+-h --help Shows this help message.
+...
+```
+### Function archInstall_get_help_message
+Provides a help message for this module.
+
+```bash
+>>> archInstall.get_help_message
++bl.doctest.contains
++bl.doctest.multiline_ellipsis
+...
+Usage: arch-install [options]
+...
+```
 ### Function archInstall_get_hosts_content
 Provides the file content for the "/etc/hosts".
 ### Function archInstall_load_cache
@@ -131,29 +154,6 @@ Deletes previous installed things in given output target. And creates a
 package cache directory.
 ### Function archInstall_prepare_next_boot
 Reboots into fresh installed system if previous defined.
-### Function archInstall_print_commandline_option_description
-Prints descriptions about each available command line option.
-NOTE: All letters are used for short options.
-NOTE: "-k" and "--key-map-configuration" is not needed in the future.
-
-```bash
->>> archInstall.print_commandline_option_description
-+bl.doctest.contains
-+bl.doctest.multiline_ellipsis
--h --help Shows this help message.
-...
-```
-### Function archInstall_print_help_message
-Provides a help message for this module.
-
-```bash
->>> archInstall.print_help_message
-+bl.doctest.contains
-+bl.doctest.multiline_ellipsis
-...
-Usage: arch-install [options]
-...
-```
 ### Function archInstall_tidy_up_system
 Deletes some unneeded locations in new installs operating system.
 ### Function archInstall_with_existing_pacman

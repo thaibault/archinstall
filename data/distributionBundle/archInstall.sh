@@ -18,20 +18,30 @@ elif [ -f "/usr/lib/bashlink/module.sh" ]; then
     # shellcheck disable=SC1091
     source "/usr/lib/bashlink/module.sh"
 else
-    archInstall_bashlink_path="$(mktemp --directory --suffix -bashlink)/bashlink/"
-    mkdir "$archInstall_bashlink_path"
-    if wget \
-        https://goo.gl/UKF5JG \
-        --output-document "${archInstall_bashlink_path}module.sh" \
-        --quiet
-    then
-        bl_module_retrieve_remote_modules=true
-        # shellcheck disable=SC1090
-        source "${archInstall_bashlink_path}/module.sh"
-    else
-        echo Needed bashlink library not found 1>&2
+    declare -g archInstall_cache_path="$(
+        echo "$@" | \
+            sed \
+                --regexp-extended \
+                's/(^| )(-t|--cache-path)(=| +)(.+[^ ])($| +-)/\4/'
+    )"
+    [ "$archInstall_cache_path" = "$*" ] && \
+        archInstall_cache_path=archInstallCache
+    archInstall_cache_path="${archInstall_cache_path%/}/"
+    declare -gr bl_module_remote_module_cache_path="${archInstall_cache_path}bashlink"
+    mkdir --parents "$bl_module_remote_module_cache_path"
+    declare -gr bl_module_retrieve_remote_modules=true
+    if ! (
+        [ -f "${bl_module_remote_module_cache_path}/module.sh" ] || \
+        wget \
+            https://goo.gl/UKF5JG \
+            --output-document "${bl_module_remote_module_cache_path}/module.sh" \
+            --quiet
+    ); then
+        echo Needed bashlink library could not be retrieved. 1>&2
         exit 1
     fi
+    # shellcheck disable=SC1090
+    source "${bl_module_remote_module_cache_path}/module.sh"
 fi
 bl.module.import bashlink.changeroot
 bl.module.import bashlink.dictionary
@@ -41,7 +51,7 @@ bl.module.import bashlink.number
 bl.module.import bashlink.tools
 # endregion
 # region variables
-archInstall__documentation__='
+declare -gr archInstall__documentation__='
     This module installs a linux from scratch by the arch way. You will end up
     in ligtweigth linux with pacman as packetmanager. You can directly install
     into a given blockdevice, partition or any directory (see command line
@@ -81,7 +91,7 @@ archInstall__documentation__='
         arch-install --output-system /dev/sda1 --verbose -f vim net-tools
     ```
 '
-archinstall__dependencies__=(
+declare -agr archinstall__dependencies__=(
     bash
     blkid
     cat
@@ -102,7 +112,7 @@ archinstall__dependencies__=(
     wget
     xz
 )
-archinstall__optional_dependencies__=(
+declare -agr archinstall__optional_dependencies__=(
     # Dependencies for blockdevice integration
     'blockdev: Call block device ioctls from the command line (part of util-linux).'
     'btrfs: Control a btrfs filesystem (part of btrfs-progs).'
@@ -119,70 +129,70 @@ archinstall__optional_dependencies__=(
     'os-prober: Detects presence of other operating systems.'
     'pacstrap: Installs arch linux from an existing linux system (part of package "arch-install-scripts").'
 )
-archInstall_basic_packages=(base ifplugd)
-archInstall_common_additional_packages=(base-devel python sudo)
+declare -agr archInstall_basic_packages=(base ifplugd)
+declare -agr archInstall_common_additional_packages=(base-devel python sudo)
 # Defines where to mount temporary new filesystem.
 # NOTE: Path has to be end with a system specified delimiter.
-archInstall_mountpoint_path=/mnt/
+declare -g archInstall_mountpoint_path=/mnt/
 # After determining dependencies a list like this will be stored:
 # "bash", "curl", "glibc", "openssl", "pacman", "readline", "xz", "tar" ...
-archInstall_needed_packages=(filesystem pacman)
+declare -ag archInstall_needed_packages=(filesystem pacman)
 bl.dictionary.set archInstall_known_dependency_aliases libncursesw.so ncurses
-archInstall_package_source_urls=(
+declare -ag archInstall_package_source_urls=(
     'https://www.archlinux.org/mirrorlist/?country=DE&protocol=http&ip_version=4&use_mirror_status=on'
 )
-archInstall_package_urls=(
+declare -ag archInstall_package_urls=(
     https://mirrors.kernel.org/archlinux
 )
-archInstall_network_timeout_in_seconds=6
-archInstall_unneeded_file_locations=(.INSTALL .PKGINFO var/cache/pacman)
+declare -gi archInstall_network_timeout_in_seconds=6
+declare -ag archInstall_unneeded_file_locations=(
+    .INSTALL .PKGINFO var/cache/pacman)
 ## region command line arguments
-archInstall_additional_packages=()
-archInstall_add_common_additional_packages=false
-archInstall_automatic_reboot=false
-archInstall_auto_partitioning=true
-archInstall_boot_entry_label=archLinux
-archInstall_boot_partition_label=uefiBoot
+declare -ag archInstall_additional_packages=()
+declare -g archInstall_add_common_additional_packages=false
+declare -g archInstall_automatic_reboot=false
+declare -g archInstall_auto_partitioning=true
+declare -g archInstall_boot_entry_label=archLinux
+declare -g archInstall_boot_partition_label=uefiBoot
 # NOTE: A FAT32 partition has to be at least 512 MB large.
-archInstall_boot_space_in_mega_byte=512
+declare -gi archInstall_boot_space_in_mega_byte=512
 # NOTE: Each value which is present in "/etc/pacman.d/mirrorlist" is ok.
-archInstall_country_with_mirrors=Germany
+declare -g archInstall_country_with_mirrors=Germany
 # NOTE: Possible constant values are "i686", "x86_64" "arm" or "any".
-archInstall_cpu_architecture="$(uname -m)"
-archInstall_fallback_boot_entry_label=archLinuxFallback
-archInstall_host_name=''
-archInstall_keyboard_layout=de-latin1
-archInstall_key_map_configuration_file_content="KEYMAP=${archInstall_keyboard_layout}"$'\nFONT=Lat2-Terminus16\nFONT_MAP='
+declare -g archInstall_cpu_architecture="$(uname -m)"
+declare -g archInstall_fallback_boot_entry_label=archLinuxFallback
+declare -g archInstall_host_name=''
+declare -g archInstall_keyboard_layout=de-latin1
+declare -g archInstall_key_map_configuration_file_content="KEYMAP=${archInstall_keyboard_layout}"$'\nFONT=Lat2-Terminus16\nFONT_MAP='
 # NOTE: This properties aren't needed in the future with supporting "localectl"
 # program.
-archInstall_local_time=EUROPE/Berlin
-archInstall_needed_services=()
-archInstall_needed_system_space_in_mega_byte=512
-archInstall_output_system=archInstall
-archInstall_package_cache_path=archInstallPackageCache
-archInstall_prevent_using_native_arch_changeroot=false
-archInstall_prevent_using_existing_pacman=false
-archInstall_system_partition_label=system
-archInstall_system_partition_installation_only=false
-archInstall_user_names=()
+declare -g archInstall_local_time=EUROPE/Berlin
+declare -ag archInstall_needed_services=()
+declare -gi archInstall_needed_system_space_in_mega_byte=512
+declare -g archInstall_output_system=archInstall
+declare -g archInstall_prevent_using_native_arch_changeroot=false
+declare -g archInstall_prevent_using_existing_pacman=false
+declare -g archInstall_system_partition_label=system
+declare -g archInstall_system_partition_installation_only=false
+declare -ag archInstall_user_names=()
 ## endregion
 # endregion
 # region functions
 ## region command line interface
-alias archInstall.print_commandline_option_description=archInstall_print_commandline_option_description
-archInstall_print_commandline_option_description() {
-    local __documentation__='
+alias archInstall.get_commandline_option_description=archInstall_get_commandline_option_description
+archInstall_get_commandline_option_description() {
+    local -r __documentation__='
         Prints descriptions about each available command line option.
         NOTE: All letters are used for short options.
         NOTE: "-k" and "--key-map-configuration" is not needed in the future.
 
-        >>> archInstall.print_commandline_option_description
+        >>> archInstall.get_commandline_option_description
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         -h --help Shows this help message.
         ...
     '
-    bl.logging.cat << EOF
+    cat << EOF
 -h --help Shows this help message.
 
 -v --verbose Tells you what is going on.
@@ -239,7 +249,7 @@ archInstall_print_commandline_option_description() {
 
 -j --needed-services [SERVICES [SERVICES ...]], You can give a list with additional available services (default: "${archInstall_needed_services[@]}").
 
--t --package-cache-path PATH Define where to load and save downloaded packages (default: "$archInstall_package_cache_path").
+-t --cache-path PATH Define where to load and save downloaded dependencies (default: "$archInstall_cache_path").
 
 
 -S --system-partition-installation-only Interpret given input as single partition to use as target only (Will be determined automatically if not set explicitely).
@@ -247,29 +257,29 @@ archInstall_print_commandline_option_description() {
 -l --timeout NUMBER_OF_SECONDS Defines time to wait for requests (default: $archInstall_network_timeout_in_seconds).
 EOF
 }
-alias archInstall.print_help_message=archInstall_print_help_message
-archInstall_print_help_message() {
-    local __documentation__='
+alias archInstall.get_help_message=archInstall_get_help_message
+archInstall_get_help_message() {
+    local -r __documentation__='
         Provides a help message for this module.
 
-        >>> archInstall.print_help_message
+        >>> archInstall.get_help_message
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         ...
         Usage: arch-install [options]
         ...
     '
-    bl.logging.plain $'\nUsage: arch-install [options]\n'
-    bl.logging.plain "$archInstall__documentation__"
-    bl.logging.plain $'\nOption descriptions:\n'
-    archInstall.print_commandline_option_description "$@"
-    bl.logging.plain
+    echo -e $'\nUsage: arch-install [options]\n'
+    echo -e "$archInstall__documentation__"
+    echo -e $'\nOption descriptions:\n'
+    archInstall.get_commandline_option_description "$@"
+    echo
 }
-# NOTE: Depends on "archInstall.print_commandline_option_description" and
-# "archInstall.print_help_message".
+# NOTE: Depends on "archInstall.get_commandline_option_description" and
+# "archInstall.get_help_message".
 alias archInstall.commandline_interface=archInstall_commandline_interface
 archInstall_commandline_interface() {
-    local __documentation__='
+    local -r __documentation__='
         Provides the command line interface and interactive questions.
 
         >>> archInstall.commandline_interface --help
@@ -284,7 +294,7 @@ archInstall_commandline_interface() {
         case "$1" in
             -h|--help)
                 shift
-                archInstall.print_help_message "$0"
+                bl.logging.plain "$(archInstall.get_help_message "$0")"
                 exit 0
                 ;;
             -v|--verbose)
@@ -411,9 +421,9 @@ archInstall_commandline_interface() {
                     shift
                 done
                 ;;
-            -t|--package-cache-path)
+            -t|--cache-path)
                 shift
-                archInstall_package_cache_path="$1"
+                archInstall_cache_path="${1%/}/"
                 shift
                 ;;
 
@@ -434,8 +444,8 @@ archInstall_commandline_interface() {
                 break
                 ;;
             *)
-                logging.critical "Given argument: \"$1\" is not available."
-                archInstall.print_help_message "$0"
+                logging.error "Given argument: \"$1\" is not available."
+                bl.logging.plain "$(archInstall.get_help_message)"
                 return 1
         esac
     done
@@ -445,9 +455,8 @@ archInstall_commandline_interface() {
         ([ -e "$archInstall_output_system" ] && \
         [ -d "$archInstall_output_system" ]))
     then
-        bl.logging.critical \
-            "You have to run this script as \"root\" not as \"${USER}\". You can alternatively install \"fakeroot\", \"fakechroot\" and install into a directory."
-        exit 2
+        bl.logging.error_exception \
+            "You have to run this script as \"root\" not as \"$USER\". You can alternatively install \"fakeroot\", \"fakechroot\" and install into a directory."
     fi
     if bl.tools.is_main; then
         if [ "$archInstall_host_name" = '' ]; then
@@ -481,7 +490,7 @@ archInstall_commandline_interface() {
 ### region change root functions
 alias archInstall.changeroot=archInstall_changeroot
 archInstall_changeroot() {
-    local __documentation__='
+    local -r __documentation__='
         This function emulates the arch linux native "arch-chroot" function.
     '
     if ! $archInstall_prevent_using_native_arch_changeroot && \
@@ -500,7 +509,7 @@ archInstall_changeroot() {
 }
 alias archInstall.changeroot_to_mountpoint=archInstall_changeroot_to_mountpoint
 archInstall_changeroot_to_mountpoint() {
-    local __documentation__='
+    local -r __documentation__='
         This function performs a changeroot to currently set mountpoint path.
     '
     archInstall.changeroot "$archInstall_mountpoint_path" "$@"
@@ -509,7 +518,7 @@ archInstall_changeroot_to_mountpoint() {
 ### endregion
 alias archInstall.add_boot_entries=archInstall_add_boot_entries
 archInstall_add_boot_entries() {
-    local __documentation__='
+    local -r __documentation__='
         Creates an uefi boot entry.
     '
     if archInstall.changeroot_to_mountpoint bash -c 'hash efibootmgr' \
@@ -550,7 +559,7 @@ EOF
 }
 alias archInstall.append_temporary_install_mirrors=archInstall_append_temporary_install_mirrors
 archInstall_append_temporary_install_mirrors() {
-    local __documentation__='
+    local -r __documentation__='
         Appends temporary used mirrors to download missing packages during
         installation.
     '
@@ -562,7 +571,7 @@ archInstall_append_temporary_install_mirrors() {
 }
 alias archInstall.cache=archInstall_cache
 archInstall_cache() {
-    local __documentation__='
+    local -r __documentation__='
         Cache previous downloaded packages and database.
     '
     bl.logging.info Cache loaded packages.
@@ -570,18 +579,18 @@ archInstall_cache() {
         --force \
         --preserve \
         "${archInstall_mountpoint_path}var/cache/pacman/pkg/"*.pkg.tar.xz \
-        "${archInstall_package_cache_path}/"
+        "$archInstall_cache_path"
     bl.logging.info Cache loaded databases.
     cp \
         --force \
         --preserve \
         "${archInstall_mountpoint_path}var/lib/pacman/sync/"*.db \
-        "${archInstall_package_cache_path}/"
+        "$archInstall_cache_path"
     return $?
 }
 alias archInstall.enable_services=archInstall_enable_services
 archInstall_enable_services() {
-    local __documentation__='
+    local -r __documentation__='
         Enable all needed services.
     '
     local network_device_name
@@ -643,7 +652,7 @@ EOF
 }
 alias archInstall.get_hosts_content=archInstall_get_hosts_content
 archInstall_get_hosts_content() {
-    local __documentation__='
+    local -r __documentation__='
         Provides the file content for the "/etc/hosts".
     '
     cat << EOF
@@ -655,7 +664,7 @@ EOF
 # NOTE: Depends on "archInstall.get_hosts_content", "archInstall.enable_services"
 alias archInstall.configure=archInstall_configure
 archInstall_configure() {
-    local __documentation__='
+    local -r __documentation__='
         Provides generic linux configuration mechanism. If new systemd programs
         are used (if first argument is "true") they could have problems in
         change root environment without and exclusive dbus connection.
@@ -734,7 +743,7 @@ archInstall_configure() {
 }
 alias archInstall.configure_pacman=archInstall_configure_pacman
 archInstall_configure_pacman() {
-    local __documentation__='
+    local -r __documentation__='
         Disables signature checking for incoming packages.
     '
     bl.logging.info "Enable mirrors in \"$archInstall_country_with_mirrors\"."
@@ -742,10 +751,10 @@ archInstall_configure_pacman() {
     bl.exception.try
     {
         local in_area=false
-        local line_number=0
+        local -i line_number=0
         local line
         while read -r line; do
-            line_number="$((line_number + 1))"
+            (( line_number = (( line_number + 1 )) ))
             if [ "$line" = "## $archInstall_country_with_mirrors" ]; then
                 in_area=true
             elif [ "$line" = '' ]; then
@@ -769,7 +778,7 @@ archInstall_configure_pacman() {
 }
 alias archInstall.determine_auto_partitioning=archInstall_determine_auto_partitioning
 archInstall_determine_auto_partitioning() {
-    local __documentation__='
+    local -r __documentation__='
         Determine whether we should perform our auto partitioning mechanism.
     '
     if ! $archInstall_auto_partitioning; then
@@ -795,14 +804,14 @@ archInstall_determine_auto_partitioning() {
 }
 alias archInstall.create_url_lists=archInstall_create_url_lists
 archInstall_create_url_lists() {
-    local __documentation__='
+    local -r __documentation__='
         Generates all web urls for needed packages.
     '
     local serialized_url_list
-    local temporary_return_code=0
-    local return_code=0
+    local -i temporary_return_code=0
+    local -i return_code=0
     bl.logging.info Downloading latest mirror list.
-    local url_list=()
+    local -a url_list=()
     local url
     for url in "${archInstall_package_source_urls[@]}"; do
         bl.logging.info "Retrieve repository source url list from \"$url\"."
@@ -828,9 +837,9 @@ archInstall_create_url_lists() {
         fi
         [ "$serialized_url_list" != '' ] && break
     done
-    local package_source_urls=(
+    local -a package_source_urls=(
         "${url_list[@]}" "${archInstall_package_urls[@]}")
-    local package_urls=()
+    local -a package_urls=()
     local name
     for name in core community extra; do
         for url in "${archInstall_package_urls[@]}"; do
@@ -859,12 +868,13 @@ archInstall_create_url_lists() {
         package_urls+=("${url_list[@]}")
     done
     bl.array.unique "${package_source_urls[*]}"
+    echo
     echo "${package_urls[@]}"
     return $return_code
 }
 alias archInstall.determine_package_dependencies=archInstall_determine_package_dependencies
 archInstall_determine_package_dependencies() {
-    local __documentation__='
+    local -r __documentation__='
         Determines all package dependencies. Returns a list of needed packages
         for given package determined by given database.
         NOTE: We append and prepend always a whitespace to simply identify
@@ -875,8 +885,8 @@ archInstall_determine_package_dependencies() {
             archInstall.determine_package_dependencies glibc /path/to/db
         ```
     '
-    local given_package_name="$1"
-    local database_directory_path="$2"
+    local -r given_package_name="$1"
+    local -r database_directory_path="$2"
     local package_names_to_ignore=" $3 "
     local package_description_file_path
     if package_description_file_path="$(
@@ -884,7 +894,7 @@ archInstall_determine_package_dependencies() {
             "$given_package_name" \
             "$database_directory_path"
     )"; then
-        local resolved_package_name="$(
+        local -r resolved_package_name="$(
             echo "$package_description_file_path" | \
                 sed --regexp-extended 's:^.*/([^/]+)-[0-9]+[^/]*/desc$:\1:' | \
                     sed --regexp-extended 's/(-[0-9]+.*)+$//')"
@@ -904,7 +914,7 @@ archInstall_determine_package_dependencies() {
                         true
         )"
         local package_dependency_description
-        local dependent_package_names=()
+        local -a dependent_package_names=()
         for package_dependency_description in "${package_dependency_descriptions[@]}"
         do
             local package_name="$(
@@ -947,13 +957,13 @@ archInstall_determine_package_dependencies() {
 }
 alias archInstall.determine_package_description_file_path=archInstall_determine_package_description_file_path
 archInstall.determine_package_description_file_path() {
-    local __documentation__='
+    local -r __documentation__='
         Determines the package directory name from given package name in given
         database folder.
     '
-    local package_name="$1"
-    local database_directory_path="$2"
-    local package_description_file_path="$(
+    local -r package_name="$1"
+    local -r database_directory_path="$2"
+    local -r package_description_file_path="$(
         command grep \
             "%PROVIDES%\\n(.+\\n)*$package_name\\n(.+\\n)*\\n" \
             --files-with-matches \
@@ -984,13 +994,14 @@ archInstall.determine_package_description_file_path() {
                     -regex "$regular_expression"
             )"
             if [[ "$package_description_file_path" != '' ]]; then
-                local number_of_results="$(
-                    echo "$package_description_file_path" | wc --words)"
+                local -i number_of_results="$(
+                    echo "$package_description_file_path" | \
+                        wc --words)"
                 if (( number_of_results > 1 )); then
                     # NOTE: We want to use newer package if their are two
                     # candidates.
                     local description_file_path
-                    local highest_raw_version=0
+                    local -i highest_raw_version=0
                     for description_file_path in $package_description_file_path
                     do
                         local raw_version="$(
@@ -1014,11 +1025,11 @@ archInstall.determine_package_description_file_path() {
 }
 alias archInstall.determine_pacmans_needed_packages=archInstall_determine_pacmans_needed_packages
 archInstall_determine_pacmans_needed_packages() {
-    local __documentation__='
+    local -r __documentation__='
         Reads pacmans database and determine pacmans dependencies.
     '
     if [[ "$1" != '' ]]; then
-        local core_database_url="$(
+        local -r core_database_url="$(
             echo "$1" | \
                 command grep \
                     --only-matching \
@@ -1028,23 +1039,23 @@ archInstall_determine_pacmans_needed_packages() {
         bl.exception.try
             wget \
                 "$core_database_url" \
-                --directory-prefix "${archInstall_package_cache_path}/" \
+                --directory-prefix "$archInstall_cache_path" \
                 --timeout="$archInstall_network_timeout_in_seconds" \
                 --timestamping
         bl.exception.catch_single
             bl.logging.warn \
                 "Could not retrieve latest database file from determined url \"$core_database_url\"."
     fi
-    if [ -f "${archInstall_package_cache_path}/core.db" ]; then
-        local database_directory_path="$(
+    if [ -f "${archInstall_cache_path}core.db" ]; then
+        local -r database_directory_path="$(
             mktemp --directory --suffix -archInstall-core-database)"
         bl.exception.try
         {
-            local packages=()
+            local -a packages=()
             tar \
                 --directory "$database_directory_path" \
                 --extract \
-                --file "${archInstall_package_cache_path}/core.db" \
+                --file "${archInstall_cache_path}core.db" \
                 --gzip
             local package_name
             for package_name in "${archInstall_needed_packages[@]}"; do
@@ -1069,12 +1080,12 @@ archInstall_determine_pacmans_needed_packages() {
         return 0
     fi
     bl.logging.critical \
-        "No database file (\"${archInstall_package_cache_path}/core.db\") could be found."
+        "No database file (\"${archInstall_cache_path}core.db\") could be found."
     return 1
 }
 alias archInstall.download_and_extract_pacman=archInstall_download_and_extract_pacman
 archInstall_download_and_extract_pacman() {
-    local __documentation__='
+    local -r __documentation__='
         Downloads all packages from arch linux needed to run pacman.
     '
     local serialized_needed_packages
@@ -1114,10 +1125,11 @@ archInstall_download_and_extract_pacman() {
                     done
                 fi
                 bl.exception.try
+                {
                     wget \
                         "$package_url" \
                         --continue \
-                        --directory-prefix "${archInstall_package_cache_path}/" \
+                        --directory-prefix "$archInstall_cache_path" \
                         --timeout="$archInstall_network_timeout_in_seconds" \
                         --timestamping
                     file_name="$(
@@ -1125,16 +1137,17 @@ archInstall_download_and_extract_pacman() {
                             command sed 's/.*\/\([^\/][^\/]*\)$/\1/')"
                     # NOTE: We have to decode given url.
                     file_name="$(printf '%b' "${file_name//%/\\x}")"
+                }
                 bl.exception.catch_single
-                    bl.logging.warn
-                        "Could not retrieve package from determined url \"$package_url\"."
+                    bl.logging.warn \
+                        "Could not retrieve package \"$package_name\" from url \"$package_url\"."
             fi
             # If "file_name" couldn't be determined via server determine it via
             # current package cache.
             if [ "$file_name" = '' ]; then
                 file_name="$(
                     command find \
-                        "$archInstall_package_cache_path" \
+                        "$archInstall_cache_path" \
                         -maxdepth 1 \
                         -regex ".*/$package_name-[0-9].*" | \
                             sed --regexp-extended 's:^.*/([^/]+)$:\1:')"
@@ -1160,7 +1173,7 @@ archInstall_download_and_extract_pacman() {
             fi
             if [[
                 "$file_name" = '' || \
-                ! -f "${archInstall_package_cache_path}${file_name}"
+                ! -f "${archInstall_cache_path}${file_name}"
             ]]; then
                 bl.logging.error_exception \
                     "A suitable file for package \"$package_name\" could not be determined."
@@ -1169,7 +1182,7 @@ archInstall_download_and_extract_pacman() {
             xz \
                 --decompress \
                 --to-stdout \
-                "$archInstall_package_cache_path/$file_name" | \
+                "${archInstall_cache_path}$file_name" | \
                     tar \
                         --directory "$archInstall_mountpoint_path" \
                         --extract || \
@@ -1181,7 +1194,7 @@ archInstall_download_and_extract_pacman() {
 }
 alias archInstall.format_boot_partition=archInstall_format_boot_partition
 archInstall_format_boot_partition() {
-    local __documentation__='
+    local -r __documentation__='
         Prepares the boot partition.
     '
     bl.logging.info Make boot partition.
@@ -1199,7 +1212,7 @@ archInstall_format_boot_partition() {
 }
 alias archInstall.format_system_partition=archInstall_format_system_partition
 archInstall_format_system_partition() {
-    local __documentation__='
+    local -r __documentation__='
         Prepares the system partition.
     '
     local output_device="$archInstall_output_system"
@@ -1223,7 +1236,7 @@ archInstall_format_system_partition() {
 # NOTE: Depends on "archInstall.format_system_partition"
 alias archInstall.format_partitions=archInstall_format_partitions
 archInstall_format_partitions() {
-    local __documentation__='
+    local -r __documentation__='
         Performs formating part.
     '
     archInstall.format_system_partition
@@ -1231,7 +1244,7 @@ archInstall_format_partitions() {
 }
 alias archInstall.generate_fstab_configuration_file=archInstall_generate_fstab_configuration_file
 archInstall_generate_fstab_configuration_file() {
-    local __documentation__='
+    local -r __documentation__='
         Writes the fstab configuration file.
     '
     bl.logging.info Generate fstab config.
@@ -1253,7 +1266,7 @@ EOF
 }
 alias archInstall.load_cache=archInstall_load_cache
 archInstall_load_cache() {
-    local __documentation__='
+    local -r __documentation__='
         Load previous downloaded packages and database.
     '
     bl.logging.info Load cached databases.
@@ -1262,7 +1275,7 @@ archInstall_load_cache() {
         cp \
             --no-clobber \
             --preserve \
-            "$archInstall_package_cache_path"/*.db \
+            "$archInstall_cache_path"*.db \
             "${archInstall_mountpoint_path}var/lib/pacman/sync/" \
                 2>/dev/null
     bl.exception.catch_single
@@ -1275,7 +1288,7 @@ archInstall_load_cache() {
         cp \
             --no-clobber \
             --preserve \
-            "$archInstall_package_cache_path"/*.pkg.tar.xz \
+            "$archInstall_cache_path"*.pkg.tar.xz \
             "${archInstall_mountpoint_path}var/cache/pacman/pkg/" \
                 2>/dev/null
     bl.exception.catch_single
@@ -1283,7 +1296,7 @@ archInstall_load_cache() {
 }
 alias archInstall.make_partitions=archInstall_make_partitions
 archInstall_make_partitions() {
-    local __documentation__='
+    local -r __documentation__='
         Performs the auto partitioning.
     '
     if $archInstall_auto_partitioning; then
@@ -1335,7 +1348,7 @@ EOF
 }
 alias archInstall.pack_result=archInstall_pack_result
 archInstall_pack_result() {
-    local __documentation__='
+    local -r __documentation__='
         Packs the resulting system to provide files owned by root without
         root permissions.
     '
@@ -1356,7 +1369,7 @@ archInstall_pack_result() {
 }
 alias archInstall.prepare_blockdevices=archInstall_prepare_blockdevices
 archInstall_prepare_blockdevices() {
-    local __documentation__='
+    local -r __documentation__='
         Prepares given block devices to make it ready for fresh installation.
     '
     umount -f "${archInstall_output_system}"* 2>/dev/null || \
@@ -1368,11 +1381,11 @@ archInstall_prepare_blockdevices() {
 }
 alias archInstall.prepare_installation=archInstall_prepare_installation
 archInstall_prepare_installation() {
-    local __documentation__='
+    local -r __documentation__='
         Deletes previous installed things in given output target. And creates a
         package cache directory.
     '
-    mkdir --parents "$archInstall_package_cache_path"
+    mkdir --parents "$archInstall_cache_path"
     if [ -b "$archInstall_output_system" ]; then
         bl.logging.info Mount system partition.
         if $archInstall_system_partition_installation_only; then
@@ -1412,7 +1425,7 @@ archInstall_prepare_installation() {
 }
 alias archInstall.prepare_next_boot=archInstall_prepare_next_boot
 archInstall_prepare_next_boot() {
-    local __documentation__='
+    local -r __documentation__='
         Reboots into fresh installed system if previous defined.
     '
     if [ -b "$archInstall_output_system" ]; then
@@ -1427,7 +1440,7 @@ archInstall_prepare_next_boot() {
 }
 alias archInstall.tidy_up_system=archInstall_tidy_up_system
 archInstall_tidy_up_system() {
-    local __documentation__='
+    local -r __documentation__='
         Deletes some unneeded locations in new installs operating system.
     '
     bl.logging.info Tidy up new build system.
@@ -1445,22 +1458,11 @@ archInstall_tidy_up_system() {
 ## region install arch linux steps.
 alias archInstall.make_pacman_portable=archInstall_make_pacman_portable
 archInstall_make_pacman_portable() {
-    local __documentation__='
+    local -r __documentation__='
         Disables signature checks and registers temporary download mirrors.
     '
-    # Copy systems resolv.conf to new installed system. If the native
-    # "arch-chroot" is used it will mount the file into the change root
-    # environment.
+    # Copy systems resolv.conf to new installed system.
     cp /etc/resolv.conf "${archInstall_mountpoint_path}etc/"
-    if \
-        ! "$archInstall_prevent_using_native_arch_changeroot" && \
-        hash arch-chroot 2>/dev/null
-    then
-        mv \
-            "${archInstall_mountpoint_path}etc/resolv.conf" \
-            "${archInstall_mountpoint_path}etc/resolv.conf.old" \
-                2>/dev/null
-    fi
     command sed \
         --in-place \
         --quiet \
@@ -1483,11 +1485,12 @@ archInstall_make_pacman_portable() {
 # NOTE: Depends on "archInstall.make_pacman_portable"
 alias archInstall.generic_linux_steps=archInstall_generic_linux_steps
 archInstall_generic_linux_steps() {
-    local __documentation__='
+    local -r __documentation__='
         This functions performs creating an arch linux system from any linux
         system base.
     '
     bl.logging.info Create a list with urls for existing packages.
+    local -a url_lists
     mapfile -t url_lists <<<"$(archInstall.create_url_lists)"
     archInstall.download_and_extract_pacman "${url_lists[1]}"
     archInstall.make_pacman_portable "${url_lists[0]}"
@@ -1524,7 +1527,7 @@ archInstall_generic_linux_steps() {
 }
 alias archInstall.with_existing_pacman=archInstall_with_existing_pacman
 archInstall_with_existing_pacman() {
-    local __documentation__='
+    local -r __documentation__='
         Installs arch linux via patched (to be able to operate offline)
         pacstrap of pacman directly.
     '
@@ -1548,14 +1551,14 @@ archInstall_with_existing_pacman() {
             --regexp-extended \
             's/(pacman.+-(S|-sync))(y|--refresh)/\1/g' \
                 <"$(command -v pacstrap)" \
-                1>"${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
-        chmod +x "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
-        "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh" \
+                1>"${archInstall_cache_path}patchedOfflinePacstrap.sh"
+        chmod +x "${archInstall_cache_path}patchedOfflinePacstrap.sh"
+        "${archInstall_cache_path}patchedOfflinePacstrap.sh" \
             -d "$archInstall_mountpoint_path" \
             "${archInstall_packages[@]}" \
             --force
         local return_code=$?
-        rm "${archInstall_package_cache_path}/patchedOfflinePacstrap.sh"
+        rm "${archInstall_cache_path}patchedOfflinePacstrap.sh"
         return $return_code
     fi
     pacman \
@@ -1579,7 +1582,7 @@ archInstall_with_existing_pacman() {
 ## region controller
 alias archInstall.main=archInstall_main
 archInstall_main() {
-    local __documentation__='
+    local -r __documentation__='
         Provides the main module scope.
 
         >>> archInstall.main --help
@@ -1641,7 +1644,7 @@ archInstall_main() {
     else
         archInstall.generic_linux_steps
     fi
-    local return_code=$?
+    local -ir return_code=$?
     bl.exception.try
         archInstall.cache
     bl.exception.catch_single
@@ -1662,11 +1665,6 @@ archInstall_main() {
 # endregion
 if bl.tools.is_main; then
     archInstall.main "$@"
-    [ -d "$archInstall_bashlink_path" ] && \
-        rm --recursive "$archInstall_bashlink_path"
-    # shellcheck disable=SC2154
-    [ -d "$bl_module_remote_module_cache_path" ] && \
-        rm --recursive "$bl_module_remote_module_cache_path"
 fi
 # region vim modline
 # vim: set tabstop=4 shiftwidth=4 expandtab:
