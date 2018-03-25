@@ -16,11 +16,11 @@ Project status
 
 [![npm version](https://badge.fury.io/js/archinstall.svg)](https://www.npmjs.com/package/archinstall)
 [![downloads](https://img.shields.io/npm/dy/archinstall.svg)](https://www.npmjs.com/package/archinstall)
-[![build status](https://travis-ci.org/thaibault/archInstall.svg?branch=master)](https://travis-ci.org/thaibault/archInstall)
+[![build status](https://travis-ci.org/thaibault/archinstall.svg?branch=master)](https://travis-ci.org/thaibault/archinstall)
 [![dependencies](https://img.shields.io/david/thaibault/archinstall.svg)](https://david-dm.org/thaibault/archinstall)
 [![development dependencies](https://img.shields.io/david/dev/thaibault/archinstall.svg)](https://david-dm.org/thaibault/archinstall?type=dev)
 [![peer dependencies](https://img.shields.io/david/peer/thaibault/archinstall.svg)](https://david-dm.org/thaibault/archinstall?type=peer)
-[![documentation website](https://img.shields.io/website-up-down-green-red/http/torben.website/archInstall.svg?label=documentation-website)](http://torben.website/archInstall)
+[![documentation website](https://img.shields.io/website-up-down-green-red/http/torben.website/archinstall.svg?label=documentation-website)](http://torben.website/ai)
 
 <!--|deDE:Einsatz-->
 Use case
@@ -46,21 +46,21 @@ Simply load the newest version from:
 <!--deDE:
     Um die neuste Version zu erhalten sollte man das Bash-Script runterladen:
 -->
-[archInstall](https://raw.githubusercontent.com/archInstall/archInstall/master/archInstall.sh)
+[archinstall](http://torben.website/archinstall/data/distributionBundle/archinstall.sh)
 
 ```bash
->>> wget https://goo.gl/bPAqXB -O archInstall.sh && chmod +x archInstall.sh
+>>> wget https://goo.gl/bPAqXB -O archinstall.sh && chmod +x archinstall.sh
 ```
 
 oder ohne Link-Shortener:
 
 ```bash
 >>> wget \
-    http://torben.website/archInstall/data/distributionBundle/archInstall.sh && \
-    chmod +x archInstall.sh
+        http://torben.website/archinstall/data/distributionBundle/archinstall.sh && \
+        chmod +x archinstall.sh
 ```
 
-archInstall ist das zentrale Modul um eine Reihe von Aufgaben im Zuge der
+archinstall ist das zentrale Modul um eine Reihe von Aufgaben im Zuge der
 Vorbereitung, Installation, Konfiguration oder Manipulieren eines
 "Linux from Scratch" durchzuführen.
 
@@ -71,7 +71,7 @@ automatisch gesetzt werden können. Ein Bootloader wird nicht mit installiert
 und ist nicht notwendig, um das System zu booten.
 
 ```bash
->>> ./archInstall.sh
+>>> ./archinstall.sh
 ```
 
 In diesem Fall werden alle benötigten Informationen zur Einrichtung
@@ -80,25 +80,25 @@ abgefragt. Zu Beachten ist: ohne zusätzliche Parameter gibt das Modul keinen
 Feedback über den aktuellen Zustand des Installations Vorgangs. Mit:
 
 ```bash
->>> ./archInstall.sh --verbose
+>>> ./archinstall.sh --verbose
 ```
 
 bekommt man einen etwas geschwätzigeren Installationsvorgang.
 Mit:
 
 ```bash
->>> ./archInstall.sh --verbose --debug
+>>> ./archinstall.sh --verbose --debug
 ```
 
 werden alle Ausgaben jeglicher verwendeten Subprogramme mit ausgegeben.
 
 Alle Parameter wie Installations haben Standardwerte. So wird im obigen Fall
 einfach in das aktuelle Verzeichnis ein Ordner mit dem Programmnamen erstellt
-und darin das Betriebssystem installiert (./archInstall/). ill man lieber eine
+und darin das Betriebssystem installiert (./archinstall/). ill man lieber eine
 unbeaufsichtigte Installation:
 
 ```bash
->>> ./archInstall.sh --host-name testSystem --auto-partitioning
+>>> ./archinstall.sh --host-name testSystem --auto-partitioning
 ```
 
 <!--|deDE:Installation auf Blockgeräte-->
@@ -117,7 +117,7 @@ erfüllt werden.
 * Installation und Einrichtung eines Boot-Loaders
 
 Alle Aufgaben bis auf die Einrichtung der Internet Verbindung (wird in der
-Regel von der Host Umgebung geregelt) könne mit archInstall automatisiert
+Regel von der Host Umgebung geregelt) könne mit archinstall automatisiert
 durchgeführt werden. Will man z.B auf das Block Device "/dev/sdb" installieren
 und sich nicht selber um die Partitionierung kümmern und den kompletten
 verfügbaren Platz für das Haupt System verwenden (es soll also keine Swap- oder
@@ -125,7 +125,7 @@ Daten Partition erstellt werden).
 sieht das z.B. so aus:
 
 ```bash
->>> ./archInstall.sh --output-system /dev/sdb --auto-partitioning
+>>> ./archinstall.sh --output-system /dev/sdb --auto-partitioning
 ```
 
 Auf diese Weise wird eine uefi Boot-Partition mit 512 MegaByte eingerichtet.
@@ -136,16 +136,16 @@ dann als Boot-Partition und die Zweite als Systempartition betrachtet. Weitere
 Partitionen werden ignoriert. Manuelle Partitionierung:
 
 ```bash
->>> ./archInstall.sh --output-system /dev/sdb
+>>> ./archinstall.sh --output-system /dev/sdb
 ```
 
-An dieser Stelle sei noch erwähnt, dass archInstall alle erstellten Partition
+An dieser Stelle sei noch erwähnt, dass archinstall alle erstellten Partition
 automatisch mit Labels in der Partitionstabelle und auf der Partition selbst
 versieht. Um dieses Verhalten zu individualisieren einfach folgende Optionen
 nutzen:
 
 ```bash
->>> ./archInstall.sh --boot-partition-label uefiBoot \
+>>> ./archinstall.sh --boot-partition-label uefiBoot \
     --system-partition-label system
 ```
 
@@ -158,17 +158,17 @@ auf eine weitere Partition zu installieren kann einfach folgender Befehl
 verwendet werden:
 
 ```bash
->>> ./archInstall.sh --output-system /dev/sdb2
+>>> ./archinstall.sh --output-system /dev/sdb2
 ```
 
 Hier wird auf die zweite Partition des zweiten Block Devices installiert.
-archInstall versucht bei der Installation auf ein Blockdevice stets einen
+archinstall versucht bei der Installation auf ein Blockdevice stets einen
 entsprechenden Uefi-Boot-Eintrag für den Kernel mit einem Standard Initramfs
 und einem Ausweich-Initiramfs zu konfigurieren. Die folgenden Parameter
 definieren dessen Label:
 
 ```bash
->>> ./archInstall.sh --output-system /dev/sdb2 --boot-entry-label archLinux \
+>>> ./archinstall.sh --output-system /dev/sdb2 --boot-entry-label archLinux \
     --fallback-boot-entry-label archLinuxFallback
 ```
 
@@ -176,24 +176,24 @@ definieren dessen Label:
 Install to folder
 -----------------
 
-Um archInstall für komplexere Szenarien zu verwenden oder nachträgliche
+Um archinstall für komplexere Szenarien zu verwenden oder nachträgliche
 Manipulationen vorzunehmen ist es sinnvoll zunächst in einen Ordner zu
-installieren. Siehe hierzu "archInstall with Decorator Pattern",
+installieren. Siehe hierzu "archinstall with Decorator Pattern",
 "makeXBMCLinux", "makeRamOnlyLinux" oder "makeSquashLinux" bzw. das Projekt
-"archInstallWrapperTemplate".
+"archinstallWrapperTemplate".
 
 Dieser Befehl installiert ein vollständiges System in den eigenen Home-Ordner
 "test" (siehe auch Installation ohne root Rechte).
 
 ```bash
->>> ./archInstall.sh --output-system ~/test
+>>> ./archinstall.sh --output-system ~/test
 ```
 
 <!--|deDE:Automatische Konfiguration-->
 Automatic configuration
 -----------------------
 
-archInstall konfiguriert das neu eingerichtete System vollautomatisch.
+archinstall konfiguriert das neu eingerichtete System vollautomatisch.
 Folgende Tasks wurden automatisiert:
 
 * Tastaturlayout einstellen
@@ -216,7 +216,7 @@ Folgende Tasks wurden automatisiert:
 Will man hierauf selber Einfluss nehmen, gibt es folgende Möglichkeiten:
 
 ```bash
->>> ./archInstall.sh --host-name test --user-names test \
+>>> ./archinstall.sh --host-name test --user-names test \
     --cpu-architecture x86_64 --local-time /Europe/London \
     --keyboard-layout de-latin1 --country-with-mirrors Germany \
     --prevent-using-pacstrap --additional-packages python vim \
@@ -227,7 +227,7 @@ Um die einzelnen Konfigurationsparameter zu verstehen empfiehlt sich ein Blick
 auf:
 
 ```bash
->>> ./archInstall.sh --help
+>>> ./archinstall.sh --help
 ```
 
 zu werfen.
@@ -236,14 +236,14 @@ zu werfen.
 Decorator Pattern
 -----------------
 
-Um eigene Betriebssystem Modul zu entwerfen bietet archInstall eine
+Um eigene Betriebssystem Modul zu entwerfen bietet archinstall eine
 Vielzahl von Schnittstellen um seine internen Mechanismen separate nach Außen
 zugänglich zu machen (siehe hierzu die Decorator Implementierung
 "installXBMCLinux", "makeRamOnlyLinux", "makeSquashLinux" oder
 "installArchLinxDecoratorTemplate") und unsere Guidelines zum Erstellen eines
 Wrappers.
 
-Im einfachsten Fall würde der Code der archInstall sinnvoll erweitert so
+Im einfachsten Fall würde der Code der archinstall sinnvoll erweitert so
 aussehen:
 
     #!/usr/bin/env bash
@@ -251,44 +251,44 @@ aussehen:
 
     # Program description...
 
-    source "$(dirname "$(readlink --canonicalize "$0")")"archInstall.sh \
+    source "$(dirname "$(readlink --canonicalize "$0")")"archinstall.sh \
         --load-environment
 
     # Do your own stuff cli logic here..
-    # All your functions and variables are separated from the archInstall
+    # All your functions and variables are separated from the archinstall
     # scope.
 
-    # Call the main Function of archInstall and overwrite or add
+    # Call the main Function of archinstall and overwrite or add
     # additional command line options.
-    archInstall "$@" --output-system initramfsTargetLocation
+    archinstall "$@" --output-system initramfsTargetLocation
 
     # Prepare result ...
 
-Beachte, dass trotz des laden von archInstall auf diese Weise keine Konflikte
-zwischen dem Wrapper-Scope und dem archInstall-Scope entstehen können. Die
-einzige globale Variable ist "archInstall" selbst.
+Beachte, dass trotz des laden von archinstall auf diese Weise keine Konflikte
+zwischen dem Wrapper-Scope und dem archinstall-Scope entstehen können. Die
+einzige globale Variable ist "archinstall" selbst.
 
-Will man nun von den internen Features von archInstall partizipieren geht
+Will man nun von den internen Features von archinstall partizipieren geht
 das so:
 
 ```bash
->>> source archInstall.sh --load-environment
+>>> source archinstall.sh --load-environment
 ```
 
 Jetzt haben wir den gesamten Scope auch im Decorator zur Verfügung. Alle
-Methoden sind mit dem Prefix "archInstall" ausgestattet, um Namens Konflikte
+Methoden sind mit dem Prefix "archinstall" ausgestattet, um Namens Konflikte
 und versehentlich überschreiben von Methoden zu vermeiden. Will man sich also
 einen Überblick über alle verfügbaren Methoden machen, einfach in der shell
 folgendes eintippen:
 
 ```bash
->>> source archInstall.sh --load-environment
+>>> source archinstall.sh --load-environment
 
->>> archInstall<TAB><TAB>
+>>> archinstall<TAB><TAB>
 ...
 ```
 
-Siehe hierzu auch "archInstall API".
+Siehe hierzu auch "archinstall API".
 
 <!--|deDE:Applikations-Interface-->
 Application Interface
@@ -297,7 +297,7 @@ Application Interface
 Viele nützlich Umgebungsvariablen und Funktionen können mit
 
 ```bash
->>> source archInstall.sh --load-environment
+>>> source archinstall.sh --load-environment
 ```
 
 geladen werden. Um eine Übersicht zu erhalten sollte man sie die
@@ -307,18 +307,18 @@ API-Dokumentation anschauen.
 Options
 -------
 
-archInstall stellt ein Alphabet voller Optionen zur Verfügung. Während bisher
+archinstall stellt ein Alphabet voller Optionen zur Verfügung. Während bisher
 zum einfachen Verständnis immer sog. Long-Options verwendet wurden, gibt es für
 jede Option auch einen Shortcut.
 
 ```bash
->>> ./archInstall.sh --user-names mustermann --host-name lfs
+>>> ./archinstall.sh --user-names mustermann --host-name lfs
 ```
 
 ist äquivalent zu:
 
 ```bash
->>> ./archInstall.sh -u mustermann -n lfs
+>>> ./archinstall.sh -u mustermann -n lfs
 ```
 
 Alle Optionen bis auf "--host-name" und "--auto-partitioning" haben
@@ -326,19 +326,19 @@ Standardwerte. Diese beiden werden sofern nicht von vorne herein angegeben
 interaktiv abgefragt. Alle Standardwert können mit Hilfe von:
 
 ```bash
->>> ./archInstall.sh -h
+>>> ./archinstall.sh -h
 ```
 
 oder
 
 ```bash
->>> ./archInstall.sh --help
+>>> ./archinstall.sh --help
 ```
 
 oder
 
 ```bash
->>> ./archInstall.sh --keyboard-layout de-latin1 -h
+>>> ./archinstall.sh --keyboard-layout de-latin1 -h
 ```
 
 eingesehen werden. Letzteres macht Sinn, da sich Standardwerte aufgrund schon
@@ -347,7 +347,7 @@ ermittelten Informationen verändern können. So wird der Standardwert von
 nach Eingabe von
 
 ```bash
->>> ./archInstall.sh --keyboard-layout us
+>>> ./archinstall.sh --keyboard-layout us
 ```
 
 zu: "--key-map-configuration="KEYMAP=us\nFONT=Lat2-Terminus16\nFONT_MAP=".
@@ -359,37 +359,37 @@ Man kann Optionen die mehrere Werte annehmen auch mehrfach referenzieren.
 So hat:
 
 ```bash
->>> ./archInstall.sh --additional-packages ssh --additional-packages vim -f python
+>>> ./archinstall.sh --additional-packages ssh --additional-packages vim -f python
 ```
 
 den gleichen Effekt wie:
 
 ```bash
->>> ./archInstall.sh --additional-packages ssh vim python
+>>> ./archinstall.sh --additional-packages ssh vim python
 ```
 
 Dies ist im Decorator-Pattern nützlich. Bei einem Doppelt referenzierten Wert
 überschreiben spätere Werte zuvor Definierte. Folgendes:
 
 ```bash
->>> ./archInstall.sh --host-name A --host-name B
+>>> ./archinstall.sh --host-name A --host-name B
 ```
 
 entspricht:
 
 ```bash
->>> ./archInstall.sh --host-name B
+>>> ./archinstall.sh --host-name B
 ```
 
 Auf diese Weise kann man getrost folgendes tun:
 
     #!/usr/bin/env bash
 
-    source archInstall.sh
+    source archinstall.sh
 
     myTarget='/path/to/expected/result'
 
-    archInstall "$@" --output-system $myTarget
+    archinstall "$@" --output-system $myTarget
 
     # Working with result in "$myTarget"
 
@@ -401,9 +401,9 @@ auf Parameter im Wrapper vornehmen.
 Install offline
 ---------------
 
-archInstall erstellt bei jeder Installation automatisch einen Paket-Cache, um
+archinstall erstellt bei jeder Installation automatisch einen Paket-Cache, um
 weitere Installationen zu beschleunigen. Ist dieser einmal erstellt oder wird
-dieser zusammen mit dem archInstall (z.b. auf einem usb-stick) ausgeliefert
+dieser zusammen mit dem archinstall (z.b. auf einem usb-stick) ausgeliefert
 kann Offline installiert werden.
 
 Selbst wenn mit einem bereits vorhandenem pacstrap installiert wird, wird
@@ -411,7 +411,7 @@ dieser temporär kopiert, gepatched und anschließend offlinefähig ausgeführt!
 
 Bei Offline Installation müssen natürlich alle zusätzlich ausgewählten
 Pakete im Package Cache vorhanden sein. Ist dies nicht der Fall wird
-archInstall versuchen diese nach zu laden und im Offline-Fall einen Fehler
+archinstall versuchen diese nach zu laden und im Offline-Fall einen Fehler
 zurückgeben.
 
 <!--|deDE:Installieren ohne root Rechte-->
@@ -461,44 +461,22 @@ dem Shortcut: "--install-common-additional-packages" oder "-z".
 Will man eine beliebige Liste von Paketen integrieren:
 
 ```bash
->>> ./archInstall.sh --additional-packages ssh python2 vim
+>>> ./archinstall.sh --additional-packages ssh python2 vim
 ```
 
 Sollen Dienste schon beim ersten Start automatisch gestartet werden:
 
 ```bash
->>> ./archInstall.sh --needed-services sshd dhcpcd
+>>> ./archinstall.sh --needed-services sshd dhcpcd
 ```
 
 Um die Installation zu beschleunigen kann auf ein zentral verwalteten
 Paket Cache verwiesen werden:
 
 ```bash
->>> ./archInstall.sh --package-cache-path /var/cache/pacman/pkg/
+>>> ./archinstall.sh --package-cache-path /var/cache/pacman/pkg/
 ```
 
-Will man im Wrapper eine archInstall Option verstecken, weil man diese z.B.
-selber setzten will, eignet sich folgender Pattern:
-
-    #!/usr/bin/env bash
-
-    cat << EOF
-    Usage: $0 <initramfsFilePath> [options]
-
-    $__NAME__ installs an arch linux into an initramfs file.
-
-    Option descriptions:
-
-    $(
-        archInstallPrintCommandLineOptionDescriptions "$@" | \
-            command sed '/^ *-[a-z] --output-system .*$/,/^$/d')
-    EOF
-
-    myTarget="$(mktemp)"
-
-    archInstall "$@" --output-system "$myTarget"
-
-    # ...
 <!-- region vim modline
 vim: set tabstop=4 shiftwidth=4 expandtab:
 vim: foldmethod=marker foldmarker=region,endregion:
