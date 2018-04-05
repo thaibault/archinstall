@@ -290,7 +290,7 @@ ai_commandline_interface() {
         Usage: arch-install [options]
         ...
     '
-    bl.logging.set_commands_level debug
+    bl.logging.set_command_level debug
     while true; do
         case "$1" in
             -h|--help)
