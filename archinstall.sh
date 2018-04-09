@@ -154,8 +154,8 @@ declare -g ai_automatic_reboot=false
 declare -g ai_auto_partitioning=true
 declare -g ai_boot_entry_label=archLinux
 declare -g ai_boot_partition_label=uefiBoot
-# NOTE: A FAT32 partition has to be at least 512 MB large.
-declare -gi ai_boot_space_in_mega_byte=512
+# NOTE: A FAT32 partition has to be at least 2048 MB large.
+declare -gi ai_boot_space_in_mega_byte=2048
 # NOTE: Each value which is present in "/etc/pacman.d/mirrorlist" is ok.
 declare -g ai_country_with_mirrors=Germany
 # NOTE: Possible constant values are "i686", "x86_64" "arm" or "any".
