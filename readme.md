@@ -49,7 +49,8 @@ Simply load the newest version from:
 [archinstall](http://torben.website/archinstall/data/distributionBundle/archinstall.sh)
 
 ```bash
->>> wget https://goo.gl/bPAqXB -O archinstall.sh && chmod +x archinstall.sh
+>>> wget https://goo.gl/YbxT3F -O archinstall.sh && chmod +x archinstall.sh
+
 ```
 
 oder ohne Link-Shortener:
