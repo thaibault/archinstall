@@ -638,7 +638,7 @@ EOF
             ln \
                 --force \
                 --symbolic \
-                "/usr/lib/systemd/system/${service-name}@.service" \
+                "/usr/lib/systemd/system/${service_name}@.service" \
                 "${ai_mountpoint_path}etc/systemd/system/multi-user.target.wants/${service_name}@${network_device_name}.service"
         fi
     done
