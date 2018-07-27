@@ -1226,11 +1226,9 @@ ai_format_system_partition() {
         --label "$ai_system_partition_label" \
         "$output_device"
     bl.logging.info "Creating a root sub volume in \"$output_device\"."
-    # NOTES: It is more reliable if we do not use the partition label here if
-    # if some pre or post processing by other tools will be done.
-    mount \
-        "$output_device" \
-        "$ai_mountpoint_path"
+    # NOTE: It is more reliable if we do not use the partition label here if
+    # some pre or post processing by other tools will be done.
+    mount "$output_device" "$ai_mountpoint_path"
     btrfs subvolume create "${ai_mountpoint_path}root"
     umount "$ai_mountpoint_path"
 }
@@ -1305,10 +1303,10 @@ ai_make_partitions() {
         local blockdevice_space_in_mega_byte="$(("$(
             blockdev --getsize64 "$ai_output_system"
         )" * 1024 ** 2))"
-        if [[ $((
+        if (( $((
             ai_needed_system_space_in_mega_byte + \
             ai_boot_space_in_mega_byte
-        )) -le $blockdevice_space_in_mega_byte ]]; then
+        )) >= $blockdevice_space_in_mega_byte )); then
             bl.logging.info Create boot and system partitions.
             gdisk "$ai_output_system" << EOF
 o
