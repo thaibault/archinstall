@@ -1517,10 +1517,10 @@ ai_generic_linux_steps() {
     ai.changeroot_to_mountpoint \
         /usr/bin/pacman \
         --arch "$ai_cpu_architecture" \
-        --force \
-        --sync \
         --needed \
         --noconfirm \
+        --overwrite \
+        --sync \
         "${ai_packages[@]}"
     return $?
 }
@@ -1555,13 +1555,13 @@ ai_with_existing_pacman() {
         "${ai_cache_path}patchedOfflinePacstrap.sh" \
             -d "$ai_mountpoint_path" \
             "${ai_packages[@]}" \
-            --force
+            --overwrite
         local return_code=$?
         rm "${ai_cache_path}patchedOfflinePacstrap.sh"
         return $return_code
     fi
     pacman \
-        --force \
+        --overwrite \
         --root "$ai_mountpoint_path" \
         --sync \
         --noconfirm \
@@ -1570,10 +1570,10 @@ ai_with_existing_pacman() {
     ai.changeroot_to_mountpoint \
         /usr/bin/pacman \
         --arch "$ai_cpu_architecture" \
-        --force \
-        --sync \
         --needed \
         --noconfirm \
+        --overwrite \
+        --sync \
         "${ai_packages[@]}"
     return $?
 }
