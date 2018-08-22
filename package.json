@@ -45,7 +45,7 @@
     "update:documentation": "documentationWebsite --log-level info"
   },
   "devDependencies": {
-    "documentation-website": "^1.0.129",
+    "documentation-website": "^1.0.134",
     "shellcheck": "0.0.8"
   },
   "dependencies": {
