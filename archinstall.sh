@@ -900,7 +900,7 @@ ai_determine_package_dependencies() {
                 sed --regexp-extended 's:^.*/([^/]+)-[0-9]+[^/]*/desc$:\1:' | \
                     sed --regexp-extended 's/(-[0-9]+.*)+$//')"
         # NOTE: We do not simple print "$1" because given (providing) names
-        # do not have to corresponding package name.
+        # do not have the corresponding package name.
         echo "$resolved_package_name"
         package_names_to_ignore+=" $resolved_package_name"
         local package_dependency_descriptions
