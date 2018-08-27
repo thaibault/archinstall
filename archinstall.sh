@@ -151,7 +151,7 @@ declare -ag ai_unneeded_file_locations=(
 declare -ag ai_additional_packages=()
 declare -g ai_add_common_additional_packages=false
 declare -g ai_automatic_reboot=false
-declare -g ai_auto_partitioning=true
+declare -g ai_auto_partitioning=false
 declare -g ai_boot_entry_label=archLinux
 declare -g ai_boot_partition_label=uefiBoot
 # NOTE: A FAT32 partition has to be at least 2048 MB large.
@@ -479,6 +479,7 @@ ai_commandline_interface() {
     # shellcheck disable=SC2230
     if \
         ! $ai_system_partition_installation_only && \
+        ! $ai_auto_partitioning && \
         echo "$ai_output_system" | \
             "$(which grep)" --quiet --extended-regexp '[0-9]$'
     then
@@ -1238,8 +1239,8 @@ ai_format_partitions() {
     local -r __documentation__='
         Performs formating part.
     '
-    ai.format_system_partition
     ai.format_boot_partition
+    ai.format_system_partition
 }
 alias ai.generate_fstab_configuration_file=ai_generate_fstab_configuration_file
 ai_generate_fstab_configuration_file() {
