@@ -3,7 +3,7 @@
   "version": "1.0.91",
   "license": "CC-BY-3.0",
   "description": "automate your installation process",
-  "homepage": "http://torben.website/archinstall",
+  "homepage": "https://torben.website/archinstall",
   "documentationWebsite": {
     "languages": [
       "enUS",
@@ -45,10 +45,10 @@
     "update:documentation": "documentationWebsite --log-level info"
   },
   "devDependencies": {
-    "documentation-website": "^1.0.134",
-    "shellcheck": "0.0.8"
+    "documentation-website": "*",
+    "shellcheck": "*"
   },
   "dependencies": {
-    "bashlink": "^1.0.114"
+    "bashlink": "*"
   }
 }
