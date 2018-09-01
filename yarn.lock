@@ -3,8 +3,8 @@
 
 
 bashlink@*:
-  version "1.0.133"
-  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.133.tgz#57a39891b6b036858bd5298b7e79edf63b803182"
+  version "1.0.134"
+  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.134.tgz#30839def50f23453f424827ebe9f5222a84bba70"
 
 boostnode@*:
   version "1.0.15"
