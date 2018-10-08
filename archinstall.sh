@@ -450,11 +450,10 @@ ai_commandline_interface() {
                 return 1
         esac
     done
-    if [[ "$UID" != 0 ]] && ! (
+    if [[ "$UID" != 0 ]] && ! {
         hash fakeroot 2>/dev/null && \
         hash fakechroot 2>/dev/null && \
-        ([ -e "$ai_output_system" ] && \
-        [ -d "$ai_output_system" ]))
+        { [ -e "$ai_output_system" ] && [ -d "$ai_output_system" ]; }; }
     then
         bl.logging.error_exception \
             "You have to run this script as \"root\" not as \"$USER\". You can alternatively install \"fakeroot\", \"fakechroot\" and install into a directory."
@@ -1307,7 +1306,7 @@ ai_make_partitions() {
         if (( $((
             ai_needed_system_space_in_mega_byte + \
             ai_boot_space_in_mega_byte
-        )) >= $blockdevice_space_in_mega_byte )); then
+        )) >= blockdevice_space_in_mega_byte )); then
             bl.logging.info Create boot and system partitions.
             gdisk "$ai_output_system" << EOF
 o
