@@ -3,60 +3,72 @@
 
 
 bashlink@*:
-  version "1.0.154"
-  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.154.tgz#d67f2ce7fec509e167335605bbb553e1f539e09d"
+  version "1.0.155"
+  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.155.tgz#d60a55a7f8b7f554a55784beac5cb9eab4797e2d"
+  integrity sha512-bQl7/l4bfthaWCw7CIpYd2a9xEAUWMeQRp6pFeiO6tTODGBu8xVA62rbFXa9Yn6Os6WYafUbiWFZshXoOXxo7A==
 
 boostnode@*:
   version "1.0.15"
   resolved "https://registry.yarnpkg.com/boostnode/-/boostnode-1.0.15.tgz#01f8c3ec1cfd224b17a78b6d7aba35fdf2f4e29f"
+  integrity sha512-dgrn6kdsN6NLq7KvmzPLYJOR7x3Tw0z3U+EwPv/JBmm7poFzs2FgEwzgbZKigAyDFxinri6cd4P2Z5nlKKv3xw==
 
 bootstrap@^3.3.7:
   version "3.3.7"
-  resolved "http://registry.npmjs.org/bootstrap/-/bootstrap-3.3.7.tgz#5a389394549f23330875a3b150656574f8a9eb71"
+  resolved "https://registry.yarnpkg.com/bootstrap/-/bootstrap-3.3.7.tgz#5a389394549f23330875a3b150656574f8a9eb71"
+  integrity sha1-WjiTlFSfIzMIdaOxUGVldPip63E=
 
 clientnode@*:
-  version "3.0.138"
-  resolved "https://registry.yarnpkg.com/clientnode/-/clientnode-3.0.138.tgz#99da7f18a77a42834efbca1001ca5da1b3028540"
+  version "3.0.139"
+  resolved "https://registry.yarnpkg.com/clientnode/-/clientnode-3.0.139.tgz#32233cc03592f06c3f7196bad181038be4820d98"
+  integrity sha512-0gXoFSC7ojDlDm0ux3/qqrYBUJxQZn2hltAfT0VQ33/gmrAIZ97/w66X+FdlYbbp47AXd5pTlhFUasU9NQDiZw==
   dependencies:
     colors "*"
 
 colors@*:
   version "1.3.2"
   resolved "https://registry.yarnpkg.com/colors/-/colors-1.3.2.tgz#2df8ff573dfbf255af562f8ce7181d6b971a359b"
+  integrity sha512-rhP0JSBGYvpcNQj4s5AdShMeE5ahMop96cTeDl/v9qQQm2fYClE2QXZRi8wLzc+GmXSxdIqqbOIAhyObEXDbfQ==
 
 documentation-website@*:
-  version "1.0.167"
-  resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.167.tgz#49926dff58c9e3ec1f2d12d50e547f55f98a5368"
+  version "1.0.168"
+  resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.168.tgz#dc681c9c02ab0ff83c9c9462406da8f0b864a64f"
+  integrity sha512-gNDWkeednWeSDoh4MHBXWvNoO31Nd6pARsqXTJy9/JJfnu3Ba0K9UkuJTN0omFaEgmSmEcmNjaP+g3JwXUhXkQ==
   dependencies:
     boostnode "*"
     bootstrap "^3.3.7"
     website-utilities "*"
 
 internationalisation@*:
-  version "1.0.129"
-  resolved "https://registry.yarnpkg.com/internationalisation/-/internationalisation-1.0.129.tgz#f638e033a248f942bee03923770512ad6fb73f76"
+  version "1.0.130"
+  resolved "https://registry.yarnpkg.com/internationalisation/-/internationalisation-1.0.130.tgz#6f38f4ef80658797ad93af68bdd6e3f476742bd9"
+  integrity sha512-wQGifL3IxsQ8WOhC0ouw9aAgeIbXAYx/RAo58GhPrAB9OeSWMo4WACHrz9afSR3FDMO5yxJbk+fUT4WgEv3TZQ==
 
 jquery.scrollto@*:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/jquery.scrollto/-/jquery.scrollto-2.1.2.tgz#e7580d9c7ac46ef5bb25319483f6f45713fd7c6c"
+  integrity sha1-51gNnHrEbvW7JTGUg/b0VxP9fGw=
   dependencies:
     jquery ">=1.8"
 
 jquery@*, jquery@>=1.8:
   version "3.3.1"
   resolved "https://registry.yarnpkg.com/jquery/-/jquery-3.3.1.tgz#958ce29e81c9790f31be7792df5d4d95fc57fbca"
+  integrity sha512-Ubldcmxp5np52/ENotGxlLe6aGMvmF4R8S6tZjsP6Knsaxd/xp3Zrh50cG93lR6nPXyUFwzN3ZSOQI0wRJNdGg==
 
 shellcheck@*:
   version "0.0.8"
   resolved "https://registry.yarnpkg.com/shellcheck/-/shellcheck-0.0.8.tgz#796cf6b2d2e80de88df7b73809def485e7fa7a9d"
+  integrity sha512-mzXAEqn+J2rk8F0BHbjD1e4mc7VvQPztIHLlhyTT7QL4HoMOxae8T60aYP0Iv6DQFsR1FUBQvxhPmY5VBx+jpw==
 
 spin.js@*:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/spin.js/-/spin.js-4.0.0.tgz#d6643232cc20b8d2c1b3ab6f0661178145b4dde8"
+  integrity sha512-uJN9Q4/I4I7PRZAp1c5reoY89thAfvFB5thbJncAwkPjPhqCfUrCooJc8GMN8q8WKFGIMy+JMf477RW7deCInA==
 
 website-utilities@*:
-  version "1.0.148"
-  resolved "https://registry.yarnpkg.com/website-utilities/-/website-utilities-1.0.148.tgz#e81ef3547a972795d6a62c2a2c572ff0a5c8da97"
+  version "1.0.149"
+  resolved "https://registry.yarnpkg.com/website-utilities/-/website-utilities-1.0.149.tgz#50619de8ce8f85da389fe7ace5b20a53c4b03507"
+  integrity sha512-cnCUi3AEgbo8r+p4WACFrCOWb6IQx2iOemTHDRjWWoE1LHLZ3u9XoVoxVEJYhTjP1FoM18ALgTQgPTydQIUcXg==
   dependencies:
     clientnode "*"
     internationalisation "*"
