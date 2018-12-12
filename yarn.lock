@@ -3,9 +3,9 @@
 
 
 bashlink@*:
-  version "1.0.180"
-  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.180.tgz#b20da7876b281437f8b9d16fefc7fb9aefef1d95"
-  integrity sha512-0cWyPopdgdwXKu5rFk+uP/SvvnUY4LPeXoegMmtsCgQQLA/4+JHGrdEyHLe2NGgFm42R4WpM4is6MMJkGgAyJQ==
+  version "1.0.181"
+  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.181.tgz#54742c30b15abf020cd86170a2cf1614a4f50f8a"
+  integrity sha512-wxn3fv29phXkc8XiNGzXmpoa04fVT+VoRTTsH8xg6O+bAD7JZ6N5yi6rKHcPMDMltd497fldVLXpzql2yw1W8g==
 
 boostnode@*:
   version "1.0.15"
@@ -18,9 +18,9 @@ bootstrap@^3.3.7:
   integrity sha1-WjiTlFSfIzMIdaOxUGVldPip63E=
 
 clientnode@*:
-  version "3.0.180"
-  resolved "https://registry.yarnpkg.com/clientnode/-/clientnode-3.0.180.tgz#c60a4e1edb55cfa3db4bb65a4b322a884394d5a5"
-  integrity sha512-FkmqtYbyoyWKp5fUPyw64k49cGrZRd/6Z5quUw8kqfB1z7uOBkY5XCQhnW0bRHatMIOwRgPcAY8rxa4Htqa7QQ==
+  version "3.0.181"
+  resolved "https://registry.yarnpkg.com/clientnode/-/clientnode-3.0.181.tgz#c6a2ac9343a7e73816decb48b784a80f4b37b8e6"
+  integrity sha512-TcVtzGEE6uWDWI1EZaiR1MrPu0Gb9UQyBSsZCSkWTZiXC+I1gXDGd09uosIpJsZC9vNiu7WWk+M6Xju6h3Itlw==
   dependencies:
     colors "*"
 
@@ -30,18 +30,18 @@ colors@*:
   integrity sha512-mmGt/1pZqYRjMxB1axhTo16/snVZ5krrKkcmMeVKxzECMMXoCgnvTPp10QgHfcbQZw8Dq2jMNG6je4JlWU0gWg==
 
 documentation-website@*:
-  version "1.0.196"
-  resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.196.tgz#e1b604133269233943d2742074f7e1eb7aa27cff"
-  integrity sha512-dP67VRBBdlOP7h4KXGaAazKIkUJ5M0ZzzO2vhsMpK8ebKzfDj4bE6WOnUZFKOXq5MqkHr/oQPcS7bmhLvEyylA==
+  version "1.0.197"
+  resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.197.tgz#eec43a5f1c78b23e913c620019210d75bcd9f761"
+  integrity sha512-kyxsnYrIF/TvFeKP2Iqk4GdmNB3KAAt9+xuof9bkFFxB9vF07ykvW1Z5r+9ozytSBe7jUcfEJSP5ztkSW2bPFQ==
   dependencies:
     boostnode "*"
     bootstrap "^3.3.7"
     website-utilities "*"
 
 internationalisation@*:
-  version "1.0.157"
-  resolved "https://registry.yarnpkg.com/internationalisation/-/internationalisation-1.0.157.tgz#5029632901629f99b140c2091c1b984531ae7bdc"
-  integrity sha512-vekXpMbghvXyfUlElP4YfeLtB+Y7SimpRnKSXYEnv+gf4GnZNeAYlh1Bcc9w9VSE0l3EReSY0MLVivUZZTarEA==
+  version "1.0.158"
+  resolved "https://registry.yarnpkg.com/internationalisation/-/internationalisation-1.0.158.tgz#5b8db61fca519a80d29330aef7ef18584cb8433d"
+  integrity sha512-M61zjR6jx6aMqHcuGa+j0HH7ZP5+9MgjRBkrMu6wpDj6EaUofgegRkwmyOYDwrsXB8PjYtmPCGxRdc0FuzP0Eg==
 
 jquery.scrollto@*:
   version "2.1.2"
@@ -66,9 +66,9 @@ spin.js@*:
   integrity sha512-uJN9Q4/I4I7PRZAp1c5reoY89thAfvFB5thbJncAwkPjPhqCfUrCooJc8GMN8q8WKFGIMy+JMf477RW7deCInA==
 
 website-utilities@*:
-  version "1.0.177"
-  resolved "https://registry.yarnpkg.com/website-utilities/-/website-utilities-1.0.177.tgz#8a4d19529d79694a8f163a654f6102fda04d6542"
-  integrity sha512-X0y2ew9FVeinkS2/DqzesyiMV8R/sKKgtSy9LehN3i7eDXFLusegcEokwYZhGAuuVdDQqXVj+ren+DZA5jNg9g==
+  version "1.0.178"
+  resolved "https://registry.yarnpkg.com/website-utilities/-/website-utilities-1.0.178.tgz#3f135254cd14bedbdcea2b8ad4fa1c8294fc637f"
+  integrity sha512-zwSdOxYNbOkqLYL+tPs68GyumxiS8b/YcKqw/P5ydowI5X6qLGC6yhlPsBSJ3cqkMTRb0E2ID7SlLUzYvPmyDQ==
   dependencies:
     clientnode "*"
     internationalisation "*"
