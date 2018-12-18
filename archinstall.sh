@@ -1306,7 +1306,7 @@ ai_make_partitions() {
         if (( $((
             ai_needed_system_space_in_mega_byte + \
             ai_boot_space_in_mega_byte
-        )) >= blockdevice_space_in_mega_byte )); then
+        )) < blockdevice_space_in_mega_byte )); then
             bl.logging.info Create boot and system partitions.
             gdisk "$ai_output_system" << EOF
 o
