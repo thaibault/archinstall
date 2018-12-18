@@ -1205,9 +1205,7 @@ ai_format_boot_partition() {
     fi
     mkfs.vfat -F 32 "$boot_partition_device_path"
     if hash dosfslabel 2>/dev/null; then
-        dosfslabel \
-            "$boot_parition_device_path" \
-            "$ai_boot_partition_label"
+        dosfslabel "$boot_partition_device_path" "$ai_boot_partition_label"
     else
         bl.logging.warn \
             "\"dosfslabel\" doesn't seem to be installed. Creating a boot partition label failed."
@@ -1221,7 +1219,7 @@ ai_format_system_partition() {
     local output_device="$ai_output_system"
     if [ -b "${ai_output_system}2" ]; then
         output_device="${ai_output_system}2"
-    if [ -b "${ai_output_system}p2" ]; then
+    elif [ -b "${ai_output_system}p2" ]; then
         output_device="${ai_output_system}p2"
     fi
     bl.logging.info "Make system partition at \"$output_device\"."
