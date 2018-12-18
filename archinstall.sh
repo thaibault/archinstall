@@ -1199,12 +1199,14 @@ ai_format_boot_partition() {
         Prepares the boot partition.
     '
     bl.logging.info Make boot partition.
-    mkfs.vfat \
-        -F 32 \
-        "${ai_output_system}1"
+    local boot_partition_device_path="${ai_output_system}1"
+    if ! [ -b "$boot_partition_device_path" ]; then
+        boot_partition_device_path="${ai_output_system}p1"
+    fi
+    mkfs.vfat -F 32 "$boot_partition_device_path"
     if hash dosfslabel 2>/dev/null; then
         dosfslabel \
-            "${ai_output_system}1" \
+            "$boot_parition_device_path" \
             "$ai_boot_partition_label"
     else
         bl.logging.warn \
@@ -1219,6 +1221,8 @@ ai_format_system_partition() {
     local output_device="$ai_output_system"
     if [ -b "${ai_output_system}2" ]; then
         output_device="${ai_output_system}2"
+    if [ -b "${ai_output_system}p2" ]; then
+        output_device="${ai_output_system}p2"
     fi
     bl.logging.info "Make system partition at \"$output_device\"."
     mkfs.btrfs \
