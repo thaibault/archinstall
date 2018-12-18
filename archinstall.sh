@@ -1200,7 +1200,7 @@ ai_format_boot_partition() {
     '
     bl.logging.info Make boot partition.
     local boot_partition_device_path="${ai_output_system}1"
-    if ! [ -b "$boot_partition_device_path" ]; then
+    if [ ! -b "$boot_partition_device_path" ]; then
         boot_partition_device_path="${ai_output_system}p1"
     fi
     mkfs.vfat -F 32 "$boot_partition_device_path"
