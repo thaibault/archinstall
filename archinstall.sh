@@ -784,7 +784,7 @@ ai_determine_auto_partitioning() {
     '
     if ! $ai_auto_partitioning; then
         while true; do
-            bl.logging.plain -n Do you want auto partioning? [yes|NO]:
+            bl.logging.plain -n 'Do you want auto partioning? [yes|NO]:'
             local auto_partitioning
             read -r auto_partitioning
             if [ "$auto_partitioning" = '' ] || [ "$(
