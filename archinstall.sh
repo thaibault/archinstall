@@ -784,7 +784,7 @@ ai_determine_auto_partitioning() {
     '
     if ! $ai_auto_partitioning; then
         while true; do
-            bl.logging.plain -n Do you want auto partioning? [yes|NO]:
+            bl.logging.plain -n 'Do you want auto partioning? [yes|NO]:'
             local auto_partitioning
             read -r auto_partitioning
             if [ "$auto_partitioning" = '' ] || [ "$(
@@ -1199,13 +1199,13 @@ ai_format_boot_partition() {
         Prepares the boot partition.
     '
     bl.logging.info Make boot partition.
-    mkfs.vfat \
-        -F 32 \
-        "${ai_output_system}1"
+    local boot_partition_device_path="${ai_output_system}1"
+    if [ ! -b "$boot_partition_device_path" ]; then
+        boot_partition_device_path="${ai_output_system}p1"
+    fi
+    mkfs.vfat -F 32 "$boot_partition_device_path"
     if hash dosfslabel 2>/dev/null; then
-        dosfslabel \
-            "${ai_output_system}1" \
-            "$ai_boot_partition_label"
+        dosfslabel "$boot_partition_device_path" "$ai_boot_partition_label"
     else
         bl.logging.warn \
             "\"dosfslabel\" doesn't seem to be installed. Creating a boot partition label failed."
@@ -1219,6 +1219,8 @@ ai_format_system_partition() {
     local output_device="$ai_output_system"
     if [ -b "${ai_output_system}2" ]; then
         output_device="${ai_output_system}2"
+    elif [ -b "${ai_output_system}p2" ]; then
+        output_device="${ai_output_system}p2"
     fi
     bl.logging.info "Make system partition at \"$output_device\"."
     mkfs.btrfs \
@@ -1306,7 +1308,7 @@ ai_make_partitions() {
         if (( $((
             ai_needed_system_space_in_mega_byte + \
             ai_boot_space_in_mega_byte
-        )) >= blockdevice_space_in_mega_byte )); then
+        )) < blockdevice_space_in_mega_byte )); then
             bl.logging.info Create boot and system partitions.
             gdisk "$ai_output_system" << EOF
 o
