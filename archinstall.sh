@@ -528,7 +528,7 @@ ai_add_boot_entries() {
         bl.logging.info Configure efi boot manager.
         cat << EOF \
             1>"${ai_mountpoint_path}/boot/startup.nsh"
-\\vmlinuz-linux initrd=\\initramfs-linux.img root=PARTLABEL=${ai_system_partition_label} rw rootflags=subvol=root quiet loglevel=2 acpi_osi="!Windows 2012"
+\\vmlinuz-linux initrd=\\initramfs-linux.img root=PARTLABEL=${ai_system_partition_label} rw rootflags=subvol=root quiet loglevel=2
 EOF
         ai.changeroot_to_mountpoint \
             efibootmgr \
@@ -538,7 +538,7 @@ EOF
             --label "$ai_fallback_boot_entry_label" \
             --part 1 \
             --unicode \
-            "initrd=\\initramfs-linux-fallback.img root=PARTLABEL=${ai_system_partition_label} rw rootflags=subvol=root break=premount break=postmount acpi_osi=\"!Windows 2012\"" || \
+            "initrd=\\initramfs-linux-fallback.img root=PARTLABEL=${ai_system_partition_label} rw rootflags=subvol=root break=premount break=postmount" || \
                 bl.logging.warn \
                     "Adding boot entry \"${ai_fallback_boot_entry_label}\" failed."
         # NOTE: Boot entry to boot on next reboot should be added at last.
@@ -550,7 +550,7 @@ EOF
             --label "$ai_boot_entry_label" \
             --part 1 \
             --unicode \
-            "initrd=\\initramfs-linux.img root=PARTLABEL=${ai_system_partition_label} rw rootflags=subvol=root quiet loglevel=2 acpi_osi=\"!Windows 2012\"" || \
+            "initrd=\\initramfs-linux.img root=PARTLABEL=${ai_system_partition_label} rw rootflags=subvol=root quiet loglevel=2" || \
                 bl.logging.warn \
                     "Adding boot entry \"${ai_boot_entry_label}\" failed."
     else
