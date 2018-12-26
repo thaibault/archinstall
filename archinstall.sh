@@ -534,8 +534,8 @@ EOF
             efibootmgr \
             --create \
             --disk "$ai_output_system" \
-            -l '\vmlinuz-linux' \
             --label "$ai_fallback_boot_entry_label" \
+            --loader '\vmlinuz-linux' \
             --part 1 \
             --unicode \
             "initrd=\\initramfs-linux-fallback.img root=PARTLABEL=${ai_system_partition_label} rw rootflags=subvol=root break=premount break=postmount" || \
@@ -546,8 +546,8 @@ EOF
             efibootmgr \
             --create \
             --disk "$ai_output_system" \
-            -l '\vmlinuz-linux' \
             --label "$ai_boot_entry_label" \
+            --loader '\vmlinuz-linux' \
             --part 1 \
             --unicode \
             "initrd=\\initramfs-linux.img root=PARTLABEL=${ai_system_partition_label} rw rootflags=subvol=root quiet loglevel=2" || \
