@@ -3,9 +3,9 @@
 
 
 bashlink@*:
-  version "1.0.193"
-  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.193.tgz#a74aa97bc88337e0c950680b297787bde4c76e84"
-  integrity sha512-iBIlV0Je5gipM0CqRHpGeRO0SgtT5fn8JbB4gIL49K7YY3Nk/E5WRGZAEgxPtrwbjx59hWMtrvEuaksTxDSPAA==
+  version "1.0.194"
+  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.194.tgz#3098dc7a66a85a31b10727675a7e009ea7836d40"
+  integrity sha512-VAKYago89DarwiHGoCiJSzmuPWE+AK/ol+PwEX0iknutM66JSw8ymUShxgcLjtdVbUPPZJp5WAVzuK+SrreWvw==
 
 boostnode@*:
   version "1.0.15"
@@ -18,9 +18,9 @@ bootstrap@^3.3.7:
   integrity sha512-F1yTDO9OHKH0xjl03DsOe8Nu1OWBIeAugGMhy3UTIYDdbbIPesQIhCEbj+HEr6wqlwweGAlP8F3OBC6kEuhFuw==
 
 clientnode@*:
-  version "3.0.210"
-  resolved "https://registry.yarnpkg.com/clientnode/-/clientnode-3.0.210.tgz#bdf2c3ffc76f1feb3aac21b363a1f1f2203ea96e"
-  integrity sha512-2ln2g2QqH711ylaqydUgvdPWKuVZAgZduzd669u0DyTM53PatTGM+71358AEJNJNjSsUtB35fk4/GKwF4351Zw==
+  version "3.0.211"
+  resolved "https://registry.yarnpkg.com/clientnode/-/clientnode-3.0.211.tgz#b0c29addde4a50fe32a48461ce06110a0bfdca3f"
+  integrity sha512-SCt3CXORfJuU68hlOVKxNwLLTJ2GfApW3KL67dBN5/dIbJ5L7Y2BnAlej4Wx6jxFiQ5bplN8IzP2ZJ0sbd0Wmg==
   dependencies:
     colors "*"
 
@@ -30,9 +30,9 @@ colors@*:
   integrity sha512-mmGt/1pZqYRjMxB1axhTo16/snVZ5krrKkcmMeVKxzECMMXoCgnvTPp10QgHfcbQZw8Dq2jMNG6je4JlWU0gWg==
 
 documentation-website@*:
-  version "1.0.206"
-  resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.206.tgz#9329f20115ef9b647122a51a99d97956927ee2ac"
-  integrity sha512-whI9W6eC7AGUyUatROSC9lXfPpC+DTk36n7D1K2/XBNDdNntYQUpPpYW6itEqC3Hvv47mrL8pcG11Ll+KCnRCA==
+  version "1.0.207"
+  resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.207.tgz#2caf521d34cb4c441e7f16e31f69a1498ed28335"
+  integrity sha512-7SnLrP/Al0zFmOnxTHRbnEn70nEqTOF2bc1pmU4vEUCAQzSRu49Su2qkE1D7/ANkj5ECmsdwdEMcR7f28vifzg==
   dependencies:
     boostnode "*"
     bootstrap "^3.3.7"
@@ -56,9 +56,9 @@ jquery@*, jquery@>=1.8:
   integrity sha512-Ubldcmxp5np52/ENotGxlLe6aGMvmF4R8S6tZjsP6Knsaxd/xp3Zrh50cG93lR6nPXyUFwzN3ZSOQI0wRJNdGg==
 
 shellcheck@*:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/shellcheck/-/shellcheck-0.2.0.tgz#e07f802f3a8421ea49f90a072c3b9655ce744e5d"
-  integrity sha512-ZAc4rgKYmnOFWa2dpnGgcRfbjaSd42/HGKRV7Ofbgr1o2D5h2hdVpJ8c32LV5KsDBh2G+V5Tuhu4vSl3hU5qQA==
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/shellcheck/-/shellcheck-0.2.2.tgz#70624245dba35220575bb67d796cd7b70e9ce888"
+  integrity sha512-pWZ9EgG3oMK2dRMgRWdMshWT3MgNVj7zlrPWzuelBf/N0N4zpQ7a4g4cHA1u9yS50tMrErp3eMEx7C5es1jg7Q==
 
 spin.js@*:
   version "4.0.0"
@@ -66,9 +66,9 @@ spin.js@*:
   integrity sha512-uJN9Q4/I4I7PRZAp1c5reoY89thAfvFB5thbJncAwkPjPhqCfUrCooJc8GMN8q8WKFGIMy+JMf477RW7deCInA==
 
 website-utilities@*:
-  version "1.0.189"
-  resolved "https://registry.yarnpkg.com/website-utilities/-/website-utilities-1.0.189.tgz#1c8d7126f2fc73604c3b05c817ec9cdc4f27f954"
-  integrity sha512-FbxLXZo4Q7aeT7z/IpRmMaQRh1esb4nkW4B8Gk2MXLA9mb6y0dQhcaYOLYhtqiyYtAIttJeDUv+uNaTilFVVrA==
+  version "1.0.190"
+  resolved "https://registry.yarnpkg.com/website-utilities/-/website-utilities-1.0.190.tgz#983f3c3048dc6696e60474febe5153217e80532f"
+  integrity sha512-J5b6eC/NTwBdfS18LA28Ai9btf+uZr/WBuvRlVmQJoMhKpdojwB4kM7rPrZD9Jzr9MbaX/T9oUa9WxTzQZMm0w==
   dependencies:
     clientnode "*"
     internationalisation "*"

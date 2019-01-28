@@ -7,7 +7,7 @@
 # -------
 
 # This library written by Torben Sickert stand under a creative commons naming
-# 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
+# 3.0 unported license. See https://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
 # shellcheck disable=SC1004,SC2016,SC2034,SC2155
 # region import
@@ -64,7 +64,7 @@ declare -gr ai__documentation__='
 
     ```bash
         wget \
-            http://torben.website/clientNode/data/distributionBundle/index.compiled.js \
+            https://torben.website/clientNode/data/distributionBundle/index.compiled.js \
             \ -O archinstall.sh && chmod +x archinstall.sh
     ```
 

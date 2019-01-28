@@ -7,7 +7,7 @@ License
 -------
 
 This library written by Torben Sickert stand under a creative commons naming
-3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
+3.0 unported license. See https://creativecommons.org/licenses/by/3.0/deed.de
 endregion -->
 
 <!--|deDE:Projekt Status-->
@@ -20,7 +20,7 @@ Project status
 [![dependencies](https://img.shields.io/david/thaibault/archinstall.svg)](https://david-dm.org/thaibault/archinstall)
 [![development dependencies](https://img.shields.io/david/dev/thaibault/archinstall.svg)](https://david-dm.org/thaibault/archinstall?type=dev)
 [![peer dependencies](https://img.shields.io/david/peer/thaibault/archinstall.svg)](https://david-dm.org/thaibault/archinstall?type=peer)
-[![documentation website](https://img.shields.io/website-up-down-green-red/http/torben.website/archinstall.svg?label=documentation-website)](http://torben.website/ai)
+[![documentation website](https://img.shields.io/website-up-down-green-red/https/torben.website/archinstall.svg?label=documentation-website)](https://torben.website/ai)
 
 <!--|deDE:Einsatz-->
 Use case
@@ -46,7 +46,7 @@ Simply load the newest version from:
 <!--deDE:
     Um die neuste Version zu erhalten sollte man das Bash-Script runterladen:
 -->
-[archinstall](http://torben.website/archinstall/data/distributionBundle/archinstall.sh)
+[archinstall](https://torben.website/archinstall/data/distributionBundle/archinstall.sh)
 
 ```bash
 >>> wget https://goo.gl/YbxT3F -O archinstall.sh && chmod +x archinstall.sh
@@ -57,7 +57,7 @@ oder ohne Link-Shortener:
 
 ```bash
 >>> wget \
-        http://torben.website/archinstall/data/distributionBundle/archinstall.sh && \
+        https://torben.website/archinstall/data/distributionBundle/archinstall.sh && \
         chmod +x archinstall.sh
 ```
 
