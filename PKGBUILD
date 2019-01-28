@@ -7,14 +7,14 @@
 # -------
 
 # This library written by Torben Sickert stand under a creative commons naming
-# 3.0 unported license. see http://creativecommons.org/licenses/by/3.0/deed.de
+# 3.0 unported license. See https://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
 pkgname=arch-install
 pkgver=1.0.19
 pkgrel=25
 pkgdesc='Automate your installation process.'
 arch=(any)
-url=http://torben.website/archinstall
+url=https://torben.website/archinstall
 license=(CC-BY-3.0)
 devdepends=(shellcheck)
 depends=(
