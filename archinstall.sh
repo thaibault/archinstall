@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
 # region header
+# [Project page](https://torben.website/archinstall)
+
 # Copyright Torben Sickert (info["~at~"]torben.website) 16.12.2012
 
 # License
