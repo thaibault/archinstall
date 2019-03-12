@@ -40,10 +40,15 @@ else
             --quiet
     ); then
         echo Needed bashlink library could not be retrieved. 1>&2
+        rm \
+            --force \
+            --recursive \
+            "${bl_module_remote_module_cache_path}/module.sh"
         exit 1
     fi
     # shellcheck disable=SC1090
     source "${bl_module_remote_module_cache_path}/module.sh"
+    rm --force --recursive "${bl_module_remote_module_cache_path}/module.sh"
 fi
 bl.module.import bashlink.changeroot
 bl.module.import bashlink.dictionary
