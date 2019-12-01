@@ -797,16 +797,16 @@ ai_determine_auto_partitioning() {
             if \
                 [ "$auto_partitioning" = '' ] || \
                 [ "$(
-                    echo "$auto_partitioning" | \
-                        tr '[:upper:]' '[:lower:]'
+                    echo "$auto_partitioning" | tr '[:upper:]' '[:lower:]'
                 )" = no ]
             then
                 ai_auto_partitioning=false
                 break
-            elif [ "$(
-                echo "$auto_partitioning" | \
-                    tr '[:upper:]' '[:lower:]'
-            )" = yes ]; then
+            elif \
+                [ "$(
+                    echo "$auto_partitioning" | tr '[:upper:]' '[:lower:]'
+                )" = yes ]
+            then
                 ai_auto_partitioning=true
                 break
             fi
