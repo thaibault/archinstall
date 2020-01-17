@@ -11,18 +11,20 @@
 # 4. *
 # 5. /
 
-# Security related data should be saved.
+# Security related data should not be versioned.
 .encryptionPassword
 
 # Generated documentations
 apiDocumentation
 
 # Runtime data
-
 backup
 cache/*
 !cache/.gitkeep
 database
+datetime-*.rc
+dockbarx-*.rc.*
+icons.screen*.rc
 log
 !log/.gitkeep
 logs
@@ -31,6 +33,7 @@ log.txt
 renderedData
 !renderedData/.gitkeep
 source/image/sprite.png
+.Trash-*
 .cache
 .config
 .goutputstream-*
