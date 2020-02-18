@@ -1320,6 +1320,26 @@ ai_make_partitions() {
             ai_boot_space_in_mega_byte
         )) < blockdevice_space_in_mega_byte )); then
             bl.logging.info Create boot and system partitions.
+            # o: create a new empty GUID partition table (GPT)
+            # Y: Confirm (yes)
+            # n: add a new partition
+            # POSITION (Enter -> Next available number)
+            # SECTOR (Enter -> Next available)
+            # SIZE (in megabyte in this case)
+            # PARTITION_TYPE (EFI in this case)
+            # n: add a new partition
+            # POSITION (Enter -> Next available number)
+            # SECTOR (Enter -> Next available)
+            # SIZE (Enter -> all available)
+            # PARTITION_TYPE (Enter -> Linux System)
+            # c: change a partition's name
+            # PARTITION_NUMBER
+            # NAME
+            # c: change a partition's name
+            # PARTITION_NUMBER
+            # NAME
+            # w: write table to disk and exit
+            # Y: Confirm (yes)
             gdisk "$ai_output_system" << EOF
 o
 Y
