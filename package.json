@@ -44,11 +44,11 @@
     "update": "yarn version --patch && yarn publish",
     "update:documentation": "documentationWebsite --log-level info"
   },
+  "dependencies": {
+    "bashlink": "*"
+  },
   "devDependencies": {
     "documentation-website": "*",
     "shellcheck": "*"
-  },
-  "dependencies": {
-    "bashlink": "*"
   }
 }
