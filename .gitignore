@@ -58,6 +58,7 @@ target
 *.compiled.*
 *.compiled
 *.dll-manifest.json
+*.styles.css
 !/data/**/*
 
 # Profiling data.
@@ -148,7 +149,7 @@ __pycache__
 *.crdownload
 
 # Project specific
-# ...
+*.js
 # region vim modline
 # vim: set tabstop=4 shiftwidth=4 expandtab:
 # vim: foldmethod=marker foldmarker=region,endregion:
