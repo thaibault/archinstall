@@ -103,13 +103,12 @@ nosetests.xml
 
 # JetBrain's idea, PHPStorm and other IDE Files
 .externalToolBuilders
+.idea
 .project
 .pydevproject
 .settings
 *.iml
-**/.idea/sonarIssues.xml
-**/.idea/sonarlint-state.xml
-**/.idea/workspace.xml
+**/.idea
 
 # Gedit autosave backups.
 *~
@@ -149,7 +148,7 @@ __pycache__
 *.crdownload
 
 # Project specific
-*.js
+# ...
 # region vim modline
 # vim: set tabstop=4 shiftwidth=4 expandtab:
 # vim: foldmethod=marker foldmarker=region,endregion:
