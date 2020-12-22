@@ -1381,9 +1381,7 @@ ai_load_cache() {
     bl.exception.catch_single
         bl.logging.info No local database available to load from cache.
     bl.logging.info Load cached packages.
-    mkdir \
-        --parents \
-        "${ai_mountpoint_path}var/cache/pacman/pkg"
+    mkdir --parents "${ai_mountpoint_path}var/cache/pacman/pkg"
     bl.exception.try
         cp \
             --no-clobber \
