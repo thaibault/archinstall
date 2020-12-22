@@ -100,12 +100,12 @@ declare -gr ai__documentation__='
 '
 declare -agr ai__dependencies__=(
     bash
-    blkid
     cat
     chroot
     curl
     grep
     ln
+    lsblk
     mktemp
     mount
     mountpoint
@@ -123,6 +123,7 @@ declare -agr ai__optional_dependencies__=(
     # Dependencies for blockdevice integration
     'blockdev: Call block device ioctls from the command line (part of util-linux).'
     'btrfs: Control a btrfs filesystem (part of btrfs-progs).'
+    'cryptsetup: Userspace setup tool for transparent encryption of block devices using dm-crypt.'
     'efibootmgr: Manipulate the EFI Boot Manager (part of efibootmgr).'
     'gdisk: Interactive GUID partition table (GPT) manipulator (part of gptfdisk).'
     # Native arch install script helper.
@@ -138,49 +139,67 @@ declare -agr ai__optional_dependencies__=(
 )
 declare -agr ai_basic_packages=(base linux ntp which)
 declare -agr ai_common_additional_packages=(base-devel python sudo)
-# Defines where to mount temporary new filesystem.
-# NOTE: Path has to be end with a system specified delimiter.
-declare -g ai_mountpoint_path=/mnt/
+
+declare -ag ai_additional_packages=()
+declare -g ai_add_common_additional_packages=false
 # After determining dependencies a list like this will be stored:
 # "bash", "curl", "glibc", "openssl", "pacman", "readline", "xz", "tar" ...
 declare -ag ai_needed_packages=(filesystem pacman)
+
+# Defines where to mount temporary new filesystem.
+# NOTE: Path has to be end with a system specified delimiter.
+declare -g ai_mountpoint_path=/mnt/
+
 bl.dictionary.set ai_known_dependency_aliases libncursesw.so ncurses
+
 declare -ag ai_package_source_urls=(
     'https://www.archlinux.org/mirrorlist/?country=DE&protocol=http&ip_version=4&use_mirror_status=on'
 )
 declare -ag ai_package_urls=(
     https://mirrors.kernel.org/archlinux
 )
+
 declare -gi ai_network_timeout_in_seconds=6
+
 declare -ag ai_unneeded_file_locations=(.INSTALL .PKGINFO var/cache/pacman)
 ## region command line arguments
-declare -ag ai_additional_packages=()
-declare -g ai_add_common_additional_packages=false
-declare -g ai_automatic_reboot=false
+
 declare -g ai_auto_partitioning=false
 declare -g ai_boot_entry_label=archLinux
 declare -g ai_boot_partition_label=uefiBoot
 # NOTE: A FAT32 partition has to be at least 2048 MB large.
 declare -gi ai_boot_space_in_mega_byte=2048
+declare -g ai_fallback_boot_entry_label=archLinuxFallback
+
+declare -gi ai_needed_system_space_in_mega_byte=512
+declare -g ai_system_partition_label=system
+declare -g ai_system_partition_installation_only=false
+
 # NOTE: Each value which is present in "/etc/pacman.d/mirrorlist" is ok.
 declare -g ai_country_with_mirrors=Germany
-# NOTE: Possible constant values are "i686", "x86_64" "arm" or "any".
-declare -g ai_cpu_architecture="$(uname -m)"
-declare -g ai_fallback_boot_entry_label=archLinuxFallback
-declare -g ai_host_name=''
-declare -g ai_keyboard_layout=de-latin1
-declare -g ai_key_map_configuration_file_content="KEYMAP=${ai_keyboard_layout}"$'\nFONT=Lat2-Terminus16\nFONT_MAP='
 # NOTE: This properties aren't needed in the future with supporting "localectl"
 # program.
 declare -g ai_local_time=EUROPE/Berlin
+
+# NOTE: Possible constant values are "i686", "x86_64" "arm" or "any".
+declare -g ai_cpu_architecture="$(uname -m)"
+
+declare -g ai_host_name=''
+
+declare -g ai_keyboard_layout=de-latin1
+declare -g ai_key_map_configuration_file_content="KEYMAP=${ai_keyboard_layout}"$'\nFONT=Lat2-Terminus16\nFONT_MAP='
+
 declare -ag ai_needed_services=(ntpd systemd-networkd systemd-resolved)
-declare -gi ai_needed_system_space_in_mega_byte=512
+
 declare -g ai_target=archInstall
+
+declare -g ai_encrypt=false
+declare -g ai_password=root
+declare -ag ai_user_names=()
+
 declare -g ai_prevent_using_native_arch_changeroot=false
 declare -g ai_prevent_using_existing_pacman=false
-declare -g ai_system_partition_label=system
-declare -g ai_system_partition_installation_only=false
-declare -ag ai_user_names=()
+declare -g ai_automatic_reboot=false
 ## endregion
 bl_module_scope_rewrites+=('^archinstall([._][a-zA-Z_-]+)?$/ai\1/')
 # endregion
@@ -260,6 +279,11 @@ ai_get_commandline_option_description() {
 
 
 -S --system-partition-installation-only Interpret given input as single partition to use as target only (Will be determined automatically if not set explicitely).
+
+-E --encrypt Encrypts system partition.
+
+-P --password Password to use for root login (and encryption if corresponding flag is set).
+
 
 -x --timeout NUMBER_OF_SECONDS Defines time to wait for requests (default: $ai_network_timeout_in_seconds).
 EOF
@@ -382,7 +406,7 @@ ai_commandline_interface() {
                 ai_boot_partition_label="$1"
                 shift
                 ;;
-            -g|--system-partition-label)
+            -s|--system-partition-label)
                 shift
                 ai_system_partition_label="$1"
                 shift
@@ -437,6 +461,16 @@ ai_commandline_interface() {
             -S|--system-partition-installation-only)
                 shift
                 ai_system_partition_installation_only=true
+                ;;
+
+            -E|--encrypt)
+                shift
+                ai_encrypt=true
+                ;;
+            -P|--password)
+                shift
+                ai_password="$1"
+                shift
                 ;;
 
             -x|--timeout)
@@ -537,7 +571,19 @@ ai_add_boot_entries() {
         bl.logging.info Configure efi boot manager.
         cat << EOF \
             1>"${ai_mountpoint_path}/boot/startup.nsh"
-\\vmlinuz-linux initrd=\\initramfs-linux.img root=PARTLABEL=${ai_system_partition_label} rw rootflags=subvol=root quiet loglevel=2
+\\vmlinuz-linux initrd=\\initramfs-linux.img $(
+    $ai_encrypt && \
+        echo "rd.luks.name=$(
+            lsblk \
+                --noheadings \
+                --output PARTLABEL,UUID \
+                /dev/nvme0n1 | \
+                    command grep "$ai_system_partition_label" | \
+                        command sed \
+                            --regexp-extended \
+                            's/.+ (.+)$/\1/')=cryptroot root=/dev/mapper/cryptroot" || \
+        echo "root=PARTLABEL=${ai_system_partition_label}"
+    ) rw rootflags=subvol=root quiet loglevel=2
 EOF
         ai.changeroot_to_mountpoint efibootmgr \
             --create \
@@ -703,27 +749,29 @@ ai_configure() {
         are used (if first argument is "true") they could have problems in
         change root environment without and exclusive dbus connection.
     '
+    if $ai_encrypt; then
+        bl.logging.info \
+            Configure initramfs to support decrypting root system at boot.
+        # TODO test this shorter / faster version:
+        # 's/^(HOOKS=\().+(\))$/\1autodetect block keyboard sd-encrypt sd-vconsole systemd\2/' \
+        sed \
+            --regexp-extended \
+            's/^(HOOKS=\().+(\))$/\1base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt filesystems fsck\2/' \
+            "${ai_mountpoint_path}etc/mkinitcpio.conf"
+    fi
     bl.logging.info \
         "Make keyboard layout permanent to \"${ai_keyboard_layout}\"."
     if [ "$1" = true ]; then
-        ai.changeroot_to_mountpoint \
-            localectl \
-            set-keymap "$ai_keyboard_layout"
-        ai.changeroot_to_mountpoint \
-            localectl \
-            set-locale LANG=en_US.utf8
-        ai.changeroot_to_mountpoint \
-            locale-gen \
-            set-keymap "$ai_keyboard_layout"
+        ai.changeroot_to_mountpoint localectl set-keymap "$ai_keyboard_layout"
+        ai.changeroot_to_mountpoint localectl set-locale LANG=en_US.utf8
+        ai.changeroot_to_mountpoint locale-gen set-keymap "$ai_keyboard_layout"
     else
         echo -e "$ai_key_map_configuration_file_content" \
             1>"${ai_mountpoint_path}etc/vconsole.conf"
     fi
     bl.logging.info "Set localtime \"$ai_local_time\"."
     if [ "$1" = true ]; then
-        ai.changeroot_to_mountpoint \
-            timedatectl \
-            set-timezone "$ai_local_time"
+        ai.changeroot_to_mountpoint timedatectl set-timezone "$ai_local_time"
     else
         ln \
             --symbolic \
@@ -732,9 +780,7 @@ ai_configure() {
     fi
     bl.logging.info "Set hostname to \"$ai_host_name\"."
     if [ "$1" = true ]; then
-        ai.changeroot_to_mountpoint \
-            hostnamectl \
-            set-hostname "$ai_host_name"
+        ai.changeroot_to_mountpoint hostnamectl set-hostname "$ai_host_name"
     else
         echo "$ai_host_name" \
             1>"${ai_mountpoint_path}etc/hostname"
@@ -745,7 +791,8 @@ ai_configure() {
     if [[ "$1" != true ]]; then
         bl.logging.info "Set root password to \"root\"."
         ai.changeroot_to_mountpoint \
-            /usr/bin/env bash -c 'echo root:root | $(which chpasswd)'
+            /usr/bin/env bash -c \
+                "echo root:${ai_password} | \$(which chpasswd)"
     fi
     bl.exception.try
         ai.enable_services
@@ -1268,16 +1315,23 @@ ai_format_system_partition() {
         output_device="${ai_target}p2"
     fi
     bl.logging.info "Make system partition at \"$output_device\"."
-    mkfs.btrfs \
-        --force \
-        --label "$ai_system_partition_label" \
-        "$output_device"
+    if $ai_encrypt; then
+        bl.logging.info \
+            "Encrypt system partition at \"$output_device\" and map to \"cryptroot\"."
+        cryptsetup --force-password luksFormat "$output_device"
+        cryptsetup open "$output_device" cryptroot
+        output_device=/dev/mapper/cryptroot
+    fi
+    mkfs.btrfs --force --label "$ai_system_partition_label" "$output_device"
     bl.logging.info "Creating a root sub volume in \"$output_device\"."
     # NOTE: It is more reliable if we do not use the partition label here if
     # some pre or post processing by other tools will be done.
     mount "$output_device" "$ai_mountpoint_path"
     btrfs subvolume create "${ai_mountpoint_path}root"
     umount "$ai_mountpoint_path"
+    if $ai_encrypt; then
+        cryptsetup close cryptroot
+    fi
 }
 # NOTE: Depends on "ai.format_system_partition"
 alias ai.format_partitions=ai_format_partitions
@@ -1305,8 +1359,8 @@ ai_generate_fstab_configuration_file() {
 # Added during installation.
 # <file system>                    <mount point> <type> <options>                                                                                            <dump> <pass>
 # "compress=lzo" has lower compression ratio by better cpu performance.
-PARTLABEL=$ai_system_partition_label /             btrfs  relatime,ssd,discard,space_cache,autodefrag,inode_cache,subvol=root,compress=zlib                    0      0
-PARTLABEL=$ai_boot_partition_label   /boot/        vfat   rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro 0      0
+$($ai_encrypt && echo /dev/mapper/cryptroot || echo "PARTLABEL=${ai_system_partition_label}") /             btrfs  autodefrag,compress=zlib,discard,noatime,nodiratime,ssd,space_cache,subvol=root                    0      0
+PARTLABEL=$ai_boot_partition_label   /boot/        vfat   codepage=437,dmask=0077,errors=remount-ro,fmask=0077,iocharset=iso8859-1,noatime,relatime,rw,shortname=mixed 0      0
 EOF
     fi
 }
@@ -1442,6 +1496,8 @@ ai_prepare_blockdevices() {
         true
     umount --force "$ai_mountpoint_path" 2>/dev/null || \
         true
+    cryptsetup close cryptroot 2>/dev/null || \
+        true
     swapoff "${ai_target}"* 2>/dev/null || \
         true
 }
@@ -1455,35 +1511,45 @@ ai_prepare_installation() {
     if [ -b "$ai_target" ]; then
         bl.logging.info Mount system partition.
         if $ai_system_partition_installation_only; then
+            local source_selector="$ai_target"
+            if $ai_encrypt; then
+                cryptsetup open "$ai_target" cryptroot
+                source_selector=/dev/mapper/cryptroot
+            fi
             # NOTE: It is more reliable to use the specified partition since
             # auto partitioning could be turned off and labels set wrong.
-            mount --options subvol=root "$ai_target" "$ai_mountpoint_path"
-        else
             mount \
                 --options subvol=root \
-                PARTLABEL="$ai_system_partition_label" \
+                "$source_selector" \
+                "$ai_mountpoint_path"
+        else
+            local source_selector="PARTLABEL=${ai_system_partition_label}"
+            if $ai_encrypt; then
+                cryptsetup \
+                    open \
+                    PARTLABEL="$ai_system_partition_label" \
+                    cryptroot
+                source_selector=/dev/mapper/cryptroot
+            fi
+            mount \
+                --options subvol=root \
+                "$source_selector" \
                 "$ai_mountpoint_path"
         fi
     fi
     bl.logging.info "Clear previous installations in \"$ai_mountpoint_path\"."
     rm "$ai_mountpoint_path"* --force --recursive &>/dev/null || \
         true
-    if \
-        ! $ai_system_partition_installation_only && \
-        [ -b "$ai_target" ]
-    then
+    if ! $ai_system_partition_installation_only && [ -b "$ai_target" ]; then
         bl.logging.info \
             "Mount boot partition in \"${ai_mountpoint_path}boot/\"."
         mkdir --parents "${ai_mountpoint_path}boot/"
-        mount \
-            PARTLABEL="$ai_boot_partition_label" \
-            "${ai_mountpoint_path}boot/"
+        mount PARTLABEL="$ai_boot_partition_label" "${ai_mountpoint_path}boot/"
         rm "${ai_mountpoint_path}boot/"* --force --recursive
     fi
     bl.logging.info Set filesystem rights.
     chmod 755 "$ai_mountpoint_path"
-    read -r -a ai_packages <<< "$(
-        bl.array.unique "${ai_packages[*]}")"
+    read -r -a ai_packages <<< "$(bl.array.unique "${ai_packages[*]}")"
 }
 alias ai.prepare_next_boot=ai_prepare_next_boot
 ai_prepare_next_boot() {
@@ -1508,12 +1574,8 @@ ai_tidy_up_system() {
     bl.logging.info Tidy up new build system.
     local file_path
     for file_path in "${ai_unneeded_file_locations[@]}"; do
-        bl.logging.info \
-            "Deleting \"${ai_mountpoint_path}${file_path}\"."
-        rm \
-            "${ai_mountpoint_path}$file_path" \
-            --force \
-            --recursive
+        bl.logging.info "Deleting \"${ai_mountpoint_path}${file_path}\"."
+        rm "${ai_mountpoint_path}$file_path" --force --recursive
     done
 }
 ## endregion
@@ -1566,8 +1628,7 @@ ai_generic_linux_steps() {
         bl.logging.warn Creating keys was not successful.
     bl.logging.info Update package databases.
     bl.exception.try
-        ai.changeroot_to_mountpoint \
-            /usr/bin/pacman \
+        ai.changeroot_to_mountpoint /usr/bin/pacman \
             --arch "$ai_cpu_architecture" \
             --refresh \
             --sync
@@ -1577,8 +1638,7 @@ ai_generic_linux_steps() {
         echo "${ai_packages[@]}" | \
             command sed 's/ /", "/g'
     )\" to \"$ai_target\"."
-    ai.changeroot_to_mountpoint \
-        /usr/bin/pacman \
+    ai.changeroot_to_mountpoint /usr/bin/pacman \
         --arch "$ai_cpu_architecture" \
         --needed \
         --noconfirm \
