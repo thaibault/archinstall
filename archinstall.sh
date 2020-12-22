@@ -60,12 +60,12 @@ bl.module.import bashlink.tools
 # region variables
 declare -gr ai__documentation__='
     This module installs a linux from scratch by the arch way. You will end up
-    in ligtweigth linux with pacman as packetmanager. You can directly install
+    in ligtweigth linux with pacman as packet manager. You can directly install
     into a given blockdevice, partition or any directory (see command line
-    option "--output-system"). Note that every needed information which is not
-    given via command line will be asked interactivly on start. This script is
-    as unnatted it could be, which means you can relax after providing all
-    needed informations in the beginning till your new system is ready to boot.
+    option "--target"). Note that every needed information which is not given
+    via command line will be asked interactively on start. This script is as
+    unnatted it could be, which means you can relax after providing all needed
+    informations in the beginning till your new system is ready to boot.
 
     Start install progress command (Assuming internet is available):
 
@@ -83,19 +83,19 @@ declare -gr ai__documentation__='
     Start install progress command on first found blockdevice:
 
     ```bash
-        arch-install --output-system /dev/sda
+        arch-install --target /dev/sda
     ```
 
     Install directly into a given partition with verbose output:
 
     ```bash
-        arch-install --output-system /dev/sda1 --verbose
+        arch-install --target /dev/sda1 --verbose
     ```
 
     Install directly into a given directory with additional packages included:
 
     ```bash
-        arch-install --output-system /dev/sda1 --verbose -f vim net-tools
+        arch-install --target /dev/sda1 --verbose -f vim net-tools
     ```
 '
 declare -agr ai__dependencies__=(
@@ -176,7 +176,7 @@ declare -g ai_key_map_configuration_file_content="KEYMAP=${ai_keyboard_layout}"$
 declare -g ai_local_time=EUROPE/Berlin
 declare -ag ai_needed_services=(ntpd systemd-networkd systemd-resolved)
 declare -gi ai_needed_system_space_in_mega_byte=512
-declare -g ai_output_system=archInstall
+declare -g ai_target=archInstall
 declare -g ai_prevent_using_native_arch_changeroot=false
 declare -g ai_prevent_using_existing_pacman=false
 declare -g ai_system_partition_label=system
@@ -215,7 +215,7 @@ ai_get_commandline_option_description() {
 
 -c --cpu-architecture CPU_ARCHITECTURE Defines architecture (default: "$ai_cpu_architecture").
 
--o --output-system OUTPUT_SYSTEM Defines where to install new operating system. You can provide a full disk or patition via blockdevice such as "/dev/sda" or "/dev/sda1". You can also provide a diretory path such as "/tmp/lifesystem" (default: "$ai_output_system").
+-o --target TARGET Defines where to install new operating system. You can provide a full disk or patition via blockdevice such as "/dev/sda" or "/dev/sda1". You can also provide a diretory path such as "/tmp/lifesystem" (default: "$ai_target").
 
 
 -x --local-time LOCAL_TIME Local time for you system (default: "$ai_local_time").
@@ -334,9 +334,9 @@ ai_commandline_interface() {
                 ai_cpu_architecture="$1"
                 shift
                 ;;
-            -o|--output-system)
+            -o|--target)
                 shift
-                ai_output_system="$1"
+                ai_target="$1"
                 shift
                 ;;
 
@@ -457,10 +457,13 @@ ai_commandline_interface() {
                 return 1
         esac
     done
-    if [[ "$UID" != 0 ]] && ! {
-        hash fakeroot 2>/dev/null && \
-        hash fakechroot 2>/dev/null && \
-        { [ -e "$ai_output_system" ] && [ -d "$ai_output_system" ]; }; }
+    if \
+        [[ "$UID" != 0 ]] && \
+        ! {
+            hash fakeroot 2>/dev/null && \
+            hash fakechroot 2>/dev/null && \
+            { [ -e "$ai_target" ] && [ -d "$ai_target" ]; }
+        }
     then
         bl.logging.error_exception \
             "You have to run this script as \"root\" not as \"$USER\". You can alternatively install \"fakeroot\", \"fakechroot\" and install into a directory."
@@ -486,7 +489,7 @@ ai_commandline_interface() {
     if \
         ! $ai_system_partition_installation_only && \
         ! $ai_auto_partitioning && \
-        echo "$ai_output_system" | \
+        echo "$ai_target" | \
             "$(which grep)" --quiet --extended-regexp '[0-9]$'
     then
         ai_system_partition_installation_only=true
@@ -540,7 +543,7 @@ EOF
         ai.changeroot_to_mountpoint \
             efibootmgr \
             --create \
-            --disk "$ai_output_system" \
+            --disk "$ai_target" \
             --label "$ai_fallback_boot_entry_label" \
             --loader '\vmlinuz-linux' \
             --part 1 \
@@ -552,7 +555,7 @@ EOF
         ai.changeroot_to_mountpoint \
             efibootmgr \
             --create \
-            --disk "$ai_output_system" \
+            --disk "$ai_target" \
             --label "$ai_boot_entry_label" \
             --loader '\vmlinuz-linux' \
             --part 1 \
@@ -1211,9 +1214,9 @@ ai_format_boot_partition() {
         Prepares the boot partition.
     '
     bl.logging.info Make boot partition.
-    local boot_partition_device_path="${ai_output_system}1"
+    local boot_partition_device_path="${ai_target}1"
     if [ ! -b "$boot_partition_device_path" ]; then
-        boot_partition_device_path="${ai_output_system}p1"
+        boot_partition_device_path="${ai_target}p1"
     fi
     mkfs.vfat -F 32 "$boot_partition_device_path"
     if hash dosfslabel 2>/dev/null; then
@@ -1228,11 +1231,11 @@ ai_format_system_partition() {
     local -r __documentation__='
         Prepares the system partition.
     '
-    local output_device="$ai_output_system"
-    if [ -b "${ai_output_system}2" ]; then
-        output_device="${ai_output_system}2"
-    elif [ -b "${ai_output_system}p2" ]; then
-        output_device="${ai_output_system}p2"
+    local output_device="$ai_target"
+    if [ -b "${ai_target}2" ]; then
+        output_device="${ai_target}2"
+    elif [ -b "${ai_target}p2" ]; then
+        output_device="${ai_target}p2"
     fi
     bl.logging.info "Make system partition at \"$output_device\"."
     mkfs.btrfs \
@@ -1315,7 +1318,7 @@ ai_make_partitions() {
     if $ai_auto_partitioning; then
         bl.logging.info Check block device size.
         local blockdevice_space_in_mega_byte="$(("$(
-            blockdev --getsize64 "$ai_output_system"
+            blockdev --getsize64 "$ai_target"
         )" * 1024 ** 2))"
         if (( $((
             ai_needed_system_space_in_mega_byte + \
@@ -1342,7 +1345,7 @@ ai_make_partitions() {
             # NAME
             # w: write table to disk and exit
             # Y: Confirm (yes)
-            gdisk "$ai_output_system" << EOF
+            gdisk "$ai_target" << EOF
 o
 Y
 n
@@ -1366,7 +1369,7 @@ Y
 EOF
         else
             bl.logging.critical \
-                "Not enough space on \"$ai_output_system\" (\"$blockdevice_space_in_mega_byte\" megabyte). We need at least \"$((ai_needed_system_space_in_mega_byte + ai_boot_space_in_mega_byte))\" megabyte."
+                "Not enough space on \"$ai_target\" (\"$blockdevice_space_in_mega_byte\" megabyte). We need at least \"$((ai_needed_system_space_in_mega_byte + ai_boot_space_in_mega_byte))\" megabyte."
         fi
     else
         bl.logging.info \
@@ -1376,7 +1379,7 @@ EOF
         lsblk
         read -r
         bl.logging.info Create partitions manually.
-        gdisk "$ai_output_system"
+        gdisk "$ai_target"
     fi
 }
 alias ai.pack_result=ai_pack_result
@@ -1405,11 +1408,11 @@ ai_prepare_blockdevices() {
     local -r __documentation__='
         Prepares given block devices to make it ready for fresh installation.
     '
-    umount -f "${ai_output_system}"* 2>/dev/null || \
+    umount -f "${ai_target}"* 2>/dev/null || \
         true
     umount -f "$ai_mountpoint_path" 2>/dev/null || \
         true
-    swapoff "${ai_output_system}"* 2>/dev/null || \
+    swapoff "${ai_target}"* 2>/dev/null || \
         true
 }
 alias ai.prepare_installation=ai_prepare_installation
@@ -1419,13 +1422,13 @@ ai_prepare_installation() {
         package cache directory.
     '
     mkdir --parents "$ai_cache_path"
-    if [ -b "$ai_output_system" ]; then
+    if [ -b "$ai_target" ]; then
         bl.logging.info Mount system partition.
         if $ai_system_partition_installation_only; then
             # NOTE: It is more reliable to use the specified partition since
             # auto partitioning could be turned off and labels set wrong.
             mount \
-                "$ai_output_system" \
+                "$ai_target" \
                 -o subvol=root \
                 "$ai_mountpoint_path"
         else
@@ -1441,7 +1444,7 @@ ai_prepare_installation() {
         true
     if \
         ! $ai_system_partition_installation_only && \
-        [ -b "$ai_output_system" ]
+        [ -b "$ai_target" ]
     then
         bl.logging.info \
             "Mount boot partition in \"${ai_mountpoint_path}boot/\"."
@@ -1461,7 +1464,7 @@ ai_prepare_next_boot() {
     local -r __documentation__='
         Reboots into fresh installed system if previous defined.
     '
-    if [ -b "$ai_output_system" ]; then
+    if [ -b "$ai_target" ]; then
         ai.generate_fstab_configuration_file
         ai.add_boot_entries
         ai.prepare_blockdevices
@@ -1547,7 +1550,7 @@ ai_generic_linux_steps() {
     bl.logging.info "Install needed packages \"$(
         echo "${ai_packages[@]}" | \
             command sed 's/ /", "/g'
-    )\" to \"$ai_output_system\"."
+    )\" to \"$ai_target\"."
     ai.changeroot_to_mountpoint \
         /usr/bin/pacman \
         --arch "$ai_cpu_architecture" \
@@ -1577,7 +1580,7 @@ ai_with_existing_pacman() {
     bl.logging.info "Install needed packages \"$(
         echo "${ai_packages[@]}" | \
             command sed 's/ /", "/g'
-    )\" to \"$ai_output_system\"."
+    )\" to \"$ai_target\"."
     if hash pacstrap &>/dev/null; then
         bl.logging.info Patch pacstrap to handle offline installations.
         command sed \
@@ -1633,15 +1636,15 @@ ai_main() {
     if $ai_add_common_additional_packages; then
         ai_packages+=("${ai_common_additional_packages[@]}")
     fi
-    if [ ! -e "$ai_output_system" ]; then
-        mkdir --parents "$ai_output_system"
+    if [ ! -e "$ai_target" ]; then
+        mkdir --parents "$ai_target"
     fi
-    if [ -d "$ai_output_system" ]; then
-        ai_mountpoint_path="$ai_output_system"
+    if [ -d "$ai_target" ]; then
+        ai_mountpoint_path="$ai_target"
         if [[ ! "$ai_mountpoint_path" =~ .*/$ ]]; then
             ai_mountpoint_path+=/
         fi
-    elif [ -b "$ai_output_system" ]; then
+    elif [ -b "$ai_target" ]; then
         ai_packages+=(efibootmgr)
         ai.prepare_blockdevices
         bl.exception.try
@@ -1662,8 +1665,7 @@ ai_main() {
             bl.logging.error_exception "$bl_exception_last_traceback"
         }
     else
-        bl.logging.error_exception \
-            "Could not install into \"$ai_output_system\"."
+        bl.logging.error_exception "Could not install into \"$ai_target\"."
     fi
     ai.prepare_installation
     bl.exception.try
@@ -1691,7 +1693,7 @@ ai_main() {
     ai.prepare_next_boot
     ai.pack_result
     bl.logging.info \
-        "Generating operating system into \"$ai_output_system\" has successfully finished."
+        "Generating operating system into \"$ai_target\" has successfully finished."
     bl.exception.deactivate
 }
 ## endregion

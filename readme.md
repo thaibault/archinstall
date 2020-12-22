@@ -134,7 +134,7 @@ Daten Partition erstellt werden).
 sieht das z.B. so aus:
 
 ```bash
->>> ./archinstall.sh --output-system /dev/sdb --auto-partitioning
+>>> ./archinstall.sh --target /dev/sdb --auto-partitioning
 ```
 
 Auf diese Weise wird eine uefi Boot-Partition mit 2 GigaByte eingerichtet.
@@ -145,7 +145,7 @@ dann als Boot-Partition und die Zweite als Systempartition betrachtet. Weitere
 Partitionen werden ignoriert. Manuelle Partitionierung:
 
 ```bash
->>> ./archinstall.sh --output-system /dev/sdb
+>>> ./archinstall.sh --target /dev/sdb
 ```
 
 Archinstall erstellt alle Partition mit Labels sowohl in der Partitionstabelle
@@ -166,7 +166,7 @@ auf eine weitere Partition zu installieren kann einfach folgender Befehl
 verwendet werden:
 
 ```bash
->>> ./archinstall.sh --output-system /dev/sdb2
+>>> ./archinstall.sh --target /dev/sdb2
 ```
 
 Hier wird auf die zweite Partition des zweiten Block Devices installiert.
@@ -176,7 +176,7 @@ und einem Ausweich-Initiramfs zu konfigurieren. Die folgenden Parameter
 definieren dessen Label:
 
 ```bash
->>> ./archinstall.sh --output-system /dev/sdb2 --boot-entry-label archLinux \
+>>> ./archinstall.sh --target /dev/sdb2 --boot-entry-label archLinux \
     --fallback-boot-entry-label archLinuxFallback
 ```
 
@@ -194,7 +194,7 @@ Dieser Befehl installiert ein vollständiges System in den eigenen Home-Ordner
 "test" (siehe auch Installation ohne root Rechte).
 
 ```bash
->>> ./archinstall.sh --output-system ~/test
+>>> ./archinstall.sh --target ~/test
 ```
 
 <!--|deDE:Automatische Konfiguration-->
@@ -268,7 +268,7 @@ aussehen:
 
     # Call the main Function of archinstall and overwrite or add
     # additional command line options.
-    archinstall "$@" --output-system initramfsTargetLocation
+    archinstall "$@" --target initramfsTargetLocation
 
     # Prepare result ...
 
@@ -397,13 +397,13 @@ Auf diese Weise kann man getrost folgendes tun:
 
     myTarget='/path/to/expected/result'
 
-    archinstall "$@" --output-system $myTarget
+    archinstall "$@" --target $myTarget
 
     # Working with result in "$myTarget"
 
-Selbst wenn der Wert von "--output-system" über die CLI gesetzt wurde ist sie
-im Wrapper wieder überschrieben. Auf diese weise kann man exklusiven Zugriff
-auf Parameter im Wrapper vornehmen.
+Selbst wenn der Wert von "--target" über die CLI gesetzt wurde ist sie im
+Wrapper wieder überschrieben. Auf diese weise kann man exklusiven Zugriff auf
+Parameter im Wrapper vornehmen.
 
 <!--|deDE:Offline Installieren-->
 Install offline
