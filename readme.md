@@ -109,7 +109,7 @@ und darin das Betriebssystem installiert (./archinstall/). Möchte man eine
 unbeaufsichtigte Installation:
 
 ```bash
->>> ./archinstall.sh --host-name testSystem --auto-partitioning
+>>> ./archinstall.sh --auto-partitioning --host-name testSystem
 ```
 
 <!--|deDE:Installation auf Blockgeräte-->
@@ -136,7 +136,7 @@ Daten Partition erstellt werden).
 sieht das z.B. so aus:
 
 ```bash
->>> ./archinstall.sh --target /dev/sdb --auto-partitioning
+>>> ./archinstall.sh --auto-partitioning --target /dev/sdb
 ```
 
 Auf diese Weise wird eine uefi Boot-Partition mit 2 GigaByte eingerichtet.
@@ -155,8 +155,9 @@ als auf der Partition selbst. Um dieses Verhalten zu individualisieren, können
 folgende Optionen genutzt werden:
 
 ```bash
->>> ./archinstall.sh --boot-partition-label uefiBoot \
-    --system-partition-label system
+>>> ./archinstall.sh \
+        --boot-partition-label uefiBoot \
+        --system-partition-label system
 ```
 
 <!--|deDE:Installation auf eine Partition-->
@@ -178,8 +179,10 @@ und einem Ausweich-Initiramfs zu konfigurieren. Die folgenden Parameter
 definieren dessen Label:
 
 ```bash
->>> ./archinstall.sh --target /dev/sdb2 --boot-entry-label archLinux \
-    --fallback-boot-entry-label archLinuxFallback
+>>> ./archinstall.sh \
+        --boot-entry-label archLinux \
+        --fallback-boot-entry-label archLinuxFallback \
+        --target /dev/sdb2
 ```
 
 <!--|deDE:Installation in Ordner-->
@@ -226,11 +229,16 @@ Folgende Tasks wurden automatisiert:
 Will man hierauf selber Einfluss nehmen, gibt es folgende Möglichkeiten:
 
 ```bash
->>> ./archinstall.sh --host-name test --user-names test \
-    --cpu-architecture x86_64 --local-time /Europe/London \
-    --keyboard-layout de-latin1 --country-with-mirrors Germany \
-    --prevent-using-pacstrap --additional-packages python vim \
-    --needed-services sshd dhcpcd apache
+>>> ./archinstall.sh \
+    --additional-packages python vim \
+    --country-with-mirrors Germany \
+    --cpu-architecture x86_64 \
+    --host-name test \
+    --keyboard-layout de-latin1 \
+    --local-time /Europe/London \
+    --needed-services sshd dhcpcd apache \
+    --prevent-using-pacstrap \
+    --user-names test
 ```
 
 Um die einzelnen Konfigurationsparameter zu verstehen empfiehlt sich ein Blick
@@ -241,64 +249,6 @@ auf:
 ```
 
 zu werfen.
-
-<!--|deDE:Dekorator Muster-->
-Decorator Pattern
------------------
-
-Um eigene Betriebssystem Modul zu entwerfen bietet archinstall eine
-Vielzahl von Schnittstellen um seine internen Mechanismen separate nach Außen
-zugänglich zu machen (siehe hierzu die Decorator Implementierung
-"installXBMCLinux", "makeRamOnlyLinux", "makeSquashLinux" oder
-"installArchLinxDecoratorTemplate") und unsere Guidelines zum Erstellen eines
-Wrappers.
-
-Im einfachsten Fall würde der Code der archinstall sinnvoll erweitert so
-aussehen:
-
-    #!/usr/bin/env bash
-    # -*- coding: utf-8 -*-
-
-    # Program description...
-
-    source "$(dirname "$(readlink --canonicalize "$0")")"archinstall.sh \
-        --load-environment
-
-    # Do your own stuff cli logic here..
-    # All your functions and variables are separated from the archinstall
-    # scope.
-
-    # Call the main Function of archinstall and overwrite or add
-    # additional command line options.
-    archinstall "$@" --target initramfsTargetLocation
-
-    # Prepare result ...
-
-Beachte, dass trotz des laden von archinstall auf diese Weise keine Konflikte
-zwischen dem Wrapper-Scope und dem archinstall-Scope entstehen können. Die
-einzige globale Variable ist "archinstall" selbst.
-
-Will man nun von den internen Features von archinstall partizipieren geht
-das so:
-
-```bash
->>> source archinstall.sh --load-environment
-```
-
-Jetzt haben wir den gesamten Scope auch im Decorator zur Verfügung. Alle
-Methoden sind mit dem Prefix "archinstall" ausgestattet, um Namens Konflikte
-und versehentlich überschreiben von Methoden zu vermeiden. Will man sich also
-einen Überblick über alle verfügbaren Methoden machen, einfach in der shell
-folgendes eintippen:
-
-```bash
->>> source archinstall.sh --load-environment
-
->>> archinstall<TAB><TAB>
-...
-```
-
-Siehe hierzu auch "archinstall API".
 
 <!--|deDE:Applikations-Interface-->
 Application Interface
@@ -318,8 +268,8 @@ Options
 -------
 
 archinstall stellt ein Alphabet voller Optionen zur Verfügung. Während bisher
-zum einfachen Verständnis immer sog. Long-Options verwendet wurden, gibt es für
-jede Option auch einen Shortcut.
+zum einfachen Verständnis immer Long-Options verwendet wurden, gibt es für jede
+Option auch einen Shortcut.
 
 ```bash
 >>> ./archinstall.sh --user-names mustermann --host-name lfs
@@ -369,7 +319,10 @@ Man kann Optionen die mehrere Werte annehmen auch mehrfach referenzieren.
 So hat:
 
 ```bash
->>> ./archinstall.sh --additional-packages ssh --additional-packages vim -f python
+>>> ./archinstall.sh \
+    --additional-packages ssh \
+    --additional-packages vim \
+    -g python
 ```
 
 den gleichen Effekt wie:
@@ -377,35 +330,6 @@ den gleichen Effekt wie:
 ```bash
 >>> ./archinstall.sh --additional-packages ssh vim python
 ```
-
-Dies ist im Decorator-Pattern nützlich. Bei einem Doppelt referenzierten Wert
-überschreiben spätere Werte zuvor Definierte. Folgendes:
-
-```bash
->>> ./archinstall.sh --host-name A --host-name B
-```
-
-entspricht:
-
-```bash
->>> ./archinstall.sh --host-name B
-```
-
-Auf diese Weise kann man getrost folgendes tun:
-
-    #!/usr/bin/env bash
-
-    source archinstall.sh
-
-    myTarget='/path/to/expected/result'
-
-    archinstall "$@" --target $myTarget
-
-    # Working with result in "$myTarget"
-
-Selbst wenn der Wert von "--target" über die CLI gesetzt wurde ist sie im
-Wrapper wieder überschrieben. Auf diese weise kann man exklusiven Zugriff auf
-Parameter im Wrapper vornehmen.
 
 <!--|deDE:Offline Installieren-->
 Install offline
@@ -428,7 +352,7 @@ zurückgeben.
 Install without having root permissions
 ---------------------------------------
 
-Prinzipiell ist es sogar möglich auch ohne root Rechte ein System aufzusetzen.
+Prinzipiell ist es möglich auch ohne root Rechte ein System aufzusetzen.
 Hierbei werden jedoch folgende Einschnitte gemacht:
 
 * Die Programm "fakeroot" und "fakechroot" müssen zusätzlich installiert sein.
@@ -455,16 +379,6 @@ man sein Pacman so konfiguriert hat, das z.B. Pakete wie der Kernel oder Pacman
 von manipulierten User Repositories abhängen. Mit "--prevent-using-pacstrap"
 wird eine neue Version von Pacman in einer Change-Root-Umgebung ausgeführt.
 
-"--prevent-using-native-arch-chroot" oder "-y" ist sinnvoll wenn man Indexing
-Dienste wie Ubuntu's "Zeitgeist" oder "Dropbox" verwendet, die das Unmounten
-von Mountpoints während der Installation verhindern, da sie auf diesen noch
-lesen/schreiben.
-
-Installiert man von einer Live-CD auf ein Block Device bootet das System nach
-erfolgreicher Installation automatisch in das neu generierte System. Will man
-noch etwas nachbessern oder Überprüfen, bietet sich die selbsterklärende Option
-"--no-reboot" bzw. "-r" an.
-
 Möchte man die Pakete "base-devel", "sudo" und "python" haben, geht das mit
 dem Shortcut: "--install-common-additional-packages" oder "-z".
 
@@ -480,11 +394,10 @@ Sollen Dienste schon beim ersten Start automatisch gestartet werden:
 >>> ./archinstall.sh --needed-services sshd dhcpcd
 ```
 
-Um die Installation zu beschleunigen kann auf ein zentral verwalteten
-Paket Cache verwiesen werden:
+Um die Installation zu beschleunigen kann auf ein Cache verwiesen werden:
 
 ```bash
->>> ./archinstall.sh --package-cache-path /var/cache/pacman/pkg/
+>>> ./archinstall.sh --cache-path /var/cache/archinstall/
 ```
 
 <!-- region vim modline
