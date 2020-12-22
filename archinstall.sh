@@ -615,6 +615,30 @@ ai_enable_services() {
             --extended-regexp '^(lo|loopback|localhost)$' --quiet
         then
             bl.logging.info "Found network device \"$network_device_name\"."
+            cat << EOF 1>"${ai_mountpoint_path}etc/systemd/network/20-ethernet.network"
+[Match]
+Name=en*
+Name=eth*
+
+[Network]
+DHCP=yes
+IPv6PrivacyExtensions=yes
+
+[DHCP]
+RouteMetric=512
+EOF
+            cat << EOF 1>"${ai_mountpoint_path}etc/systemd/network/20-wireless.network"
+[Match]
+Name=wlp*
+Name=wlan*
+
+[Network]
+DHCP=yes
+IPv6PrivacyExtensions=yes
+
+[DHCP]
+RouteMetric=1024
+EOF
 # NOTE: Legacy "netctl-auto" approach.
 #            local service_name=dhcpcd
 #            local connection=ethernet
