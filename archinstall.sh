@@ -214,12 +214,12 @@ ai_get_commandline_option_description() {
 
 -c --cpu-architecture CPU_ARCHITECTURE Defines architecture (default: "$ai_cpu_architecture").
 
--o --target TARGET Defines where to install new operating system. You can provide a full disk or patition via blockdevice such as "/dev/sda" or "/dev/sda1". You can also provide a diretory path such as "/tmp/lifesystem" (default: "$ai_target").
+-t --target TARGET Defines where to install new operating system. You can provide a full disk or patition via blockdevice such as "/dev/sda" or "/dev/sda1". You can also provide a diretory path such as "/tmp/lifesystem" (default: "$ai_target").
 
 
--x --local-time LOCAL_TIME Local time for you system (default: "$ai_local_time").
+-l --local-time LOCAL_TIME Local time for you system (default: "$ai_local_time").
 
--b --keyboard-layout LAYOUT Defines needed keyboard layout (default: "$ai_keyboard_layout").
+-i --keyboard-layout LAYOUT Defines needed keyboard layout (default: "$ai_keyboard_layout").
 
 -k --key-map-configuration FILE_CONTENT Keyboard map configuration (default: "$ai_key_map_configuration_file_content").
 
@@ -235,14 +235,14 @@ ai_get_commandline_option_description() {
 -a --auto-paritioning Defines to do partitioning on founded block device automatic.
 
 
--e --boot-partition-label LABEL Partition label for uefi boot partition (default: "$ai_boot_partition_label").
+-b --boot-partition-label LABEL Partition label for uefi boot partition (default: "$ai_boot_partition_label").
 
--g --system-partition-label LABEL Partition label for system partition (default: "$ai_system_partition_label").
+-s --system-partition-label LABEL Partition label for system partition (default: "$ai_system_partition_label").
 
 
--i --boot-entry-label LABEL Boot entry label (default: "$ai_boot_entry_label").
+-e --boot-entry-label LABEL Boot entry label (default: "$ai_boot_entry_label").
 
--s --fallback-boot-entry-label LABEL Fallback boot entry label (default: "$ai_fallback_boot_entry_label").
+-f --fallback-boot-entry-label LABEL Fallback boot entry label (default: "$ai_fallback_boot_entry_label").
 
 
 -w --boot-space-in-mega-byte NUMBER In case if selected auto partitioning you can define the minimum space needed for your boot partition (default: "$ai_boot_space_in_mega_byte megabyte"). This partition is used for kernel and initramfs only.
@@ -252,16 +252,16 @@ ai_get_commandline_option_description() {
 
 -z --install-common-additional-packages, (default: "$ai_add_common_additional_packages") If present the following packages will be installed: "${ai_common_additional_packages[*]}".
 
--f --additional-packages [PACKAGES [PACKAGES ...]], You can give a list with additional available packages (default: "${ai_additional_packages[@]}").
+-g --additional-packages [PACKAGES [PACKAGES ...]], You can give a list with additional available packages (default: "${ai_additional_packages[@]}").
 
 -j --needed-services [SERVICES [SERVICES ...]], You can give a list with additional available services (default: "${ai_needed_services[@]}").
 
--t --cache-path PATH Define where to load and save downloaded dependencies (default: "$ai_cache_path").
+-o --cache-path PATH Define where to load and save downloaded dependencies (default: "$ai_cache_path").
 
 
 -S --system-partition-installation-only Interpret given input as single partition to use as target only (Will be determined automatically if not set explicitely).
 
--l --timeout NUMBER_OF_SECONDS Defines time to wait for requests (default: $ai_network_timeout_in_seconds).
+-x --timeout NUMBER_OF_SECONDS Defines time to wait for requests (default: $ai_network_timeout_in_seconds).
 EOF
 }
 alias ai.get_help_message=ai_get_help_message
@@ -333,18 +333,18 @@ ai_commandline_interface() {
                 ai_cpu_architecture="$1"
                 shift
                 ;;
-            -o|--target)
+            -t|--target)
                 shift
                 ai_target="$1"
                 shift
                 ;;
 
-            -x|--local-time)
+            -l|--local-time)
                 shift
                 ai_local_time="$1"
                 shift
                 ;;
-            -b|--keyboard-layout)
+            -i|--keyboard-layout)
                 shift
                 ai_keyboard_layout="$1"
                 shift
@@ -377,7 +377,7 @@ ai_commandline_interface() {
                 ai_prevent_using_native_arch_changeroot=true
                 ;;
 
-            -e|--boot-partition-label)
+            -b|--boot-partition-label)
                 shift
                 ai_boot_partition_label="$1"
                 shift
@@ -388,12 +388,12 @@ ai_commandline_interface() {
                 shift
                 ;;
 
-            -i|--boot-entry-label)
+            -e|--boot-entry-label)
                 shift
                 ai_boot_entry_label="$1"
                 shift
                 ;;
-            -s|--fallback-boot-entry-label)
+            -f|--fallback-boot-entry-label)
                 shift
                 ai_fallback_boot_entry_label="$1"
                 shift
@@ -414,7 +414,7 @@ ai_commandline_interface() {
                 shift
                 ai_add_common_additional_packages=true
                 ;;
-            -f|--additional-packages)
+            -g|--additional-packages)
                 shift
                 while [[ "$1" =~ ^[^-].+$ ]]; do
                     ai_additional_packages+=("$1")
@@ -428,7 +428,7 @@ ai_commandline_interface() {
                     shift
                 done
                 ;;
-            -t|--cache-path)
+            -o|--cache-path)
                 shift
                 ai_cache_path="${1%/}/"
                 shift
@@ -439,7 +439,7 @@ ai_commandline_interface() {
                 ai_system_partition_installation_only=true
                 ;;
 
-            -l|--timeout)
+            -x|--timeout)
                 shift
                 ai_network_timeout_in_seconds="$1"
                 shift
