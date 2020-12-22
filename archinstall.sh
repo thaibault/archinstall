@@ -1318,7 +1318,13 @@ ai_format_system_partition() {
     if $ai_encrypt; then
         bl.logging.info \
             "Encrypt system partition at \"$output_device\" and map to \"cryptroot\"."
-        cryptsetup --force-password luksFormat "$output_device"
+        echo "$ai_password" | \
+            cryptsetup \
+                --batch-mode \
+                --force-password \
+                --key-file - \
+                luksFormat \
+                "$output_device"
         cryptsetup open "$output_device" cryptroot
         output_device=/dev/mapper/cryptroot
     fi
