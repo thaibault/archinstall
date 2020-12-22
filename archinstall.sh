@@ -136,7 +136,7 @@ declare -agr ai__optional_dependencies__=(
     'os-prober: Detects presence of other operating systems.'
     'pacstrap: Installs arch linux from an existing linux system (part of package "arch-install-scripts").'
 )
-declare -agr ai_basic_packages=(base ifplugd)
+declare -agr ai_basic_packages=(base)
 declare -agr ai_common_additional_packages=(base-devel python sudo)
 # Defines where to mount temporary new filesystem.
 # NOTE: Path has to be end with a system specified delimiter.
@@ -174,7 +174,7 @@ declare -g ai_key_map_configuration_file_content="KEYMAP=${ai_keyboard_layout}"$
 # NOTE: This properties aren't needed in the future with supporting "localectl"
 # program.
 declare -g ai_local_time=EUROPE/Berlin
-declare -ag ai_needed_services=()
+declare -ag ai_needed_services=(ntpd systemd-networkd systemd-resolved)
 declare -gi ai_needed_system_space_in_mega_byte=512
 declare -g ai_output_system=archInstall
 declare -g ai_prevent_using_native_arch_changeroot=false
@@ -614,39 +614,41 @@ ai_enable_services() {
         if ! echo "$network_device_name" | "$(which grep)" \
             --extended-regexp '^(lo|loopback|localhost)$' --quiet
         then
-            local service_name=dhcpcd
-            local connection=ethernet
-            local description='A basic dhcp connection'
-            local additional_properties=''
-            if [ "${network_device_name:0:1}" = e ]; then
-                bl.logging.info \
-                    "Enable dhcp service on wired network device \"$network_device_name\"."
-                service_name=netctl-ifplugd
-                connection=ethernet
-                description='A basic ethernet dhcp connection'
-            elif [ "${network_device_name:0:1}" = w ]; then
-                bl.logging.info \
-                    "Enable dhcp service on wireless network device \"$network_device_name\"."
-                service_name=netctl-auto
-                connection=wireless
-                description='A simple WPA encrypted wireless connection'
-                additional_properties=$'\nSecurity=wpa\nESSID='"'home'"$'\nKey='"'home'"
-            fi
-        cat << EOF 1>"${ai_mountpoint_path}etc/netctl/${network_device_name}-dhcp"
-Description='${description}'
-Interface=${network_device_name}
-Connection=${connection}
-IP=dhcp
-## for DHCPv6
-#IP6=dhcp
-## for IPv6 autoconfiguration
-#IP6=stateless${additional_properties}
-EOF
-            ln \
-                --force \
-                --symbolic \
-                "/usr/lib/systemd/system/${service_name}@.service" \
-                "${ai_mountpoint_path}etc/systemd/system/multi-user.target.wants/${service_name}@${network_device_name}.service"
+            bl.logging.info Found network device \"$network_device_name\".
+# NOTE: Legacy "netctl-auto" approach.
+#            local service_name=dhcpcd
+#            local connection=ethernet
+#            local description='A basic dhcp connection'
+#            local additional_properties=''
+#            if [ "${network_device_name:0:1}" = e ]; then
+#                bl.logging.info \
+#                    "Enable dhcp service on wired network device \"$network_device_name\"."
+#                service_name=netctl-ifplugd
+#                connection=ethernet
+#                description='A basic ethernet dhcp connection'
+#            elif [ "${network_device_name:0:1}" = w ]; then
+#                bl.logging.info \
+#                    "Enable dhcp service on wireless network device \"$network_device_name\"."
+#                service_name=netctl-auto
+#                connection=wireless
+#                description='A simple WPA encrypted wireless connection'
+#                additional_properties=$'\nSecurity=wpa\nESSID='"'home'"$'\nKey='"'home'"
+#            fi
+#        cat << EOF 1>"${ai_mountpoint_path}etc/netctl/${network_device_name}-dhcp"
+#Description='${description}'
+#Interface=${network_device_name}
+#Connection=${connection}
+#IP=dhcp
+### for DHCPv6
+##IP6=dhcp
+### for IPv6 autoconfiguration
+##IP6=stateless${additional_properties}
+#EOF
+#            ln \
+#                --force \
+#                --symbolic \
+#                "/usr/lib/systemd/system/${service_name}@.service" \
+#                "${ai_mountpoint_path}etc/systemd/system/multi-user.target.wants/${service_name}@${network_device_name}.service"
         fi
     done
     local service_name
