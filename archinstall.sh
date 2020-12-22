@@ -24,7 +24,7 @@ else
         echo "$@" | \
             sed \
                 --regexp-extended \
-                's/(^| )(-t|--cache-path)(=| +)(.+[^ ])($| +-)/\4/'
+                's/(^| )(-o|--cache-path)(=| +)(.+[^ ])($| +-)/\4/'
     )"
     [ "$ai_cache_path" = "$*" ] && \
         ai_cache_path=archInstallCache
@@ -36,7 +36,7 @@ else
         [ -f "${bl_module_remote_module_cache_path}/module.sh" ] || \
         command curl \
             https://raw.githubusercontent.com/thaibault/bashlink/master/module.sh \
-                >"${bl_module_remote_module_cache_path}/module.sh" \
+                >"${bl_module_remote_module_cache_path}/module.sh"
     ); then
         echo Needed bashlink library could not be retrieved. 1>&2
         rm \
@@ -1381,9 +1381,7 @@ ai_load_cache() {
     bl.exception.catch_single
         bl.logging.info No local database available to load from cache.
     bl.logging.info Load cached packages.
-    mkdir \
-        --parents \
-        "${ai_mountpoint_path}var/cache/pacman/pkg"
+    mkdir --parents "${ai_mountpoint_path}var/cache/pacman/pkg"
     bl.exception.try
         cp \
             --no-clobber \
