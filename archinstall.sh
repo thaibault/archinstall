@@ -152,8 +152,7 @@ declare -ag ai_package_urls=(
     https://mirrors.kernel.org/archlinux
 )
 declare -gi ai_network_timeout_in_seconds=6
-declare -ag ai_unneeded_file_locations=(
-    .INSTALL .PKGINFO var/cache/pacman)
+declare -ag ai_unneeded_file_locations=(.INSTALL .PKGINFO var/cache/pacman)
 ## region command line arguments
 declare -ag ai_additional_packages=()
 declare -g ai_add_common_additional_packages=false
