@@ -70,9 +70,9 @@ declare -gr ai__documentation__='
     Start install progress command (Assuming internet is available):
 
     ```bash
-        wget \
-            https://torben.website/clientNode/data/distributionBundle/index.compiled.js \
-            \ -O archinstall.sh && chmod +x archinstall.sh
+        curl \
+            https://raw.githubusercontent.com/thaibault/archinstall/master/archinstall.sh && \
+            chmod +x archinstall.sh
     ```
 
     Note that you only get very necessary output until you provide "--verbose"
