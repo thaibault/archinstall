@@ -24,7 +24,7 @@ else
         echo "$@" | \
             sed \
                 --regexp-extended \
-                's/(^| )(-t|--cache-path)(=| +)(.+[^ ])($| +-)/\4/'
+                's/(^| )(-o|--cache-path)(=| +)(.+[^ ])($| +-)/\4/'
     )"
     [ "$ai_cache_path" = "$*" ] && \
         ai_cache_path=archInstallCache
