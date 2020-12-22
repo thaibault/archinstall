@@ -49,7 +49,7 @@ Simply load the newest version from:
 [archinstall](https://torben.website/archinstall/data/distributionBundle/archinstall.sh)
 
 ```bash
->>> curl https://goo.gl/YbxT3F -O archinstall.sh && chmod +x archinstall.sh
+>>> curl https://goo.gl/YbxT3F > archinstall.sh && chmod +x archinstall.sh
 
 ```
 
@@ -57,7 +57,8 @@ oder ohne Link-Shortener:
 
 ```bash
 >>> curl \
-        https://torben.website/archinstall/data/distributionBundle/archinstall.sh && \
+        https://torben.website/archinstall/data/distributionBundle/archinstall.sh \
+            > archinstall.sh && \
         chmod +x archinstall.sh
 ```
 
@@ -65,7 +66,8 @@ neuste unstable Version:
 
 ```bash
 >>> curl \
-        https://raw.githubusercontent.com/thaibault/archinstall/master/archinstall.sh && \
+        https://raw.githubusercontent.com/thaibault/archinstall/master/archinstall.sh \
+            > archinstall.sh && \
         chmod +x archinstall.sh
 ```
 

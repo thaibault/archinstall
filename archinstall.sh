@@ -71,7 +71,8 @@ declare -gr ai__documentation__='
 
     ```bash
         curl \
-            https://raw.githubusercontent.com/thaibault/archinstall/master/archinstall.sh && \
+            https://raw.githubusercontent.com/thaibault/archinstall/master/archinstall.sh \
+                > archinstall.sh && \
             chmod +x archinstall.sh
     ```
 
