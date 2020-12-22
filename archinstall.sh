@@ -92,7 +92,7 @@ declare -gr ai__documentation__='
         arch-install --output-system /dev/sda1 --verbose
     ```
 
-    Install directly into a given directory with addtional packages included:
+    Install directly into a given directory with additional packages included:
 
     ```bash
         arch-install --output-system /dev/sda1 --verbose -f vim net-tools

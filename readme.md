@@ -95,7 +95,7 @@ werden alle Ausgaben jeglicher verwendeten Subprogramme mit ausgegeben.
 
 Alle Parameter wie Installations haben Standardwerte. So wird im obigen Fall
 einfach in das aktuelle Verzeichnis ein Ordner mit dem Programmnamen erstellt
-und darin das Betriebssystem installiert (./archinstall/). ill man lieber eine
+und darin das Betriebssystem installiert (./archinstall/). Möchte man eine
 unbeaufsichtigte Installation:
 
 ```bash
@@ -129,7 +129,7 @@ sieht das z.B. so aus:
 >>> ./archinstall.sh --output-system /dev/sdb --auto-partitioning
 ```
 
-Auf diese Weise wird eine uefi Boot-Partition mit 512 MegaByte eingerichtet.
+Auf diese Weise wird eine uefi Boot-Partition mit 2 GigaByte eingerichtet.
 Der restliche Platz wird für die Systempartition eingesetzt. Sind noch weitere
 Partitionen gewünscht kann man diese während der Installation durch weglassen
 des entsprechenden Parameters selber konfigurieren. Die erste Partition wird
@@ -140,10 +140,9 @@ Partitionen werden ignoriert. Manuelle Partitionierung:
 >>> ./archinstall.sh --output-system /dev/sdb
 ```
 
-An dieser Stelle sei noch erwähnt, dass archinstall alle erstellten Partition
-automatisch mit Labels in der Partitionstabelle und auf der Partition selbst
-versieht. Um dieses Verhalten zu individualisieren einfach folgende Optionen
-nutzen:
+Archinstall erstellt alle Partition mit Labels sowohl in der Partitionstabelle
+als auf der Partition selbst. Um dieses Verhalten zu individualisieren, können
+folgende Optionen genutzt werden:
 
 ```bash
 >>> ./archinstall.sh --boot-partition-label uefiBoot \
