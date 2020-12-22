@@ -34,10 +34,9 @@ else
     declare -gr bl_module_retrieve_remote_modules=true
     if ! (
         [ -f "${bl_module_remote_module_cache_path}/module.sh" ] || \
-        wget \
-            https://goo.gl/UKF5JG \
-            --output-document "${bl_module_remote_module_cache_path}/module.sh" \
-            --quiet
+        command curl \
+            https://raw.githubusercontent.com/thaibault/bashlink/master/module.sh \
+                >"${bl_module_remote_module_cache_path}/module.sh" \
     ); then
         echo Needed bashlink library could not be retrieved. 1>&2
         rm \
@@ -72,7 +71,7 @@ declare -gr ai__documentation__='
     ```bash
         curl \
             https://raw.githubusercontent.com/thaibault/archinstall/master/archinstall.sh \
-                > archinstall.sh && \
+                >archinstall.sh && \
             chmod +x archinstall.sh
     ```
 
@@ -104,6 +103,7 @@ declare -agr ai__dependencies__=(
     blkid
     cat
     chroot
+    curl
     grep
     ln
     mktemp
@@ -117,7 +117,6 @@ declare -agr ai__dependencies__=(
     tar
     uname
     which
-    wget
     xz
 )
 declare -agr ai__optional_dependencies__=(
@@ -833,10 +832,12 @@ ai_create_url_lists() {
     for url in "${ai_package_source_urls[@]}"; do
         bl.logging.info "Retrieve repository source url list from \"$url\"."
         if serialized_url_list="$(
-            wget \
+            command curl \
                 "$url" \
-                --output-document - \
-                --timeout="$ai_network_timeout_in_seconds" | \
+                --max-time "$ai_network_timeout_in_seconds" \
+                --retry 10 \
+                --retry-all-errors \
+                --retry-delay 2 | \
                     command sed \
                         --regexp-extended 's/^#Server = (http)/\1/g' | \
                             command sed --regexp-extended '/^#.+$/d' | \
@@ -862,10 +863,11 @@ ai_create_url_lists() {
         for url in "${ai_package_urls[@]}"; do
             bl.logging.info "Retrieve repository \"$name\" from \"$url\"."
             if serialized_url_list="$(
-                wget \
-                    --timeout="$ai_network_timeout_in_seconds" \
-                    --tries 1 \
-                    --output-document - \
+                command curl \
+                    --retry 3 \
+                    --retry-all-errors \
+                    --retry-delay 1 \
+                    --max-time "$ai_network_timeout_in_seconds" \
                     "${url}/$name/os/$ai_cpu_architecture" | \
                         command sed \
                             --quiet \
@@ -1054,11 +1056,14 @@ ai_determine_pacmans_needed_packages() {
                     ' [^ ]+core\.db ' | \
                         sed --regexp-extended 's/(^ *)|( *$)//g')"
         bl.exception.try
-            wget \
+            command curl \
                 "$core_database_url" \
-                --directory-prefix "$ai_cache_path" \
-                --timeout="$ai_network_timeout_in_seconds" \
-                --timestamping
+                --retry 3 \
+                --retry-all-errors \
+                --retry-delay 1 \
+                --max-time="$ai_network_timeout_in_seconds" \
+                --netrc-file "$(basename "$core_database_url")" \
+                    >"${ai_cache_path}$(basename "$core_database_url")"
         bl.exception.catch_single
             bl.logging.warn \
                 "Could not retrieve latest database file from determined url \"$core_database_url\"."
@@ -1143,12 +1148,15 @@ ai_download_and_extract_pacman() {
                 fi
                 bl.exception.try
                 {
-                    wget \
+                    command curl \
                         "$package_url" \
-                        --continue \
-                        --directory-prefix "$ai_cache_path" \
-                        --timeout="$ai_network_timeout_in_seconds" \
-                        --timestamping
+                        --continue-at - \
+                        --max-time "$ai_network_timeout_in_seconds" \
+                        --netrc-file "$(basename "$package_url")" \
+                        --retry 3 \
+                        --retry-all-errors \
+                        --retry-delay 1 \
+                            >"${ai_cache_path}$(basename "$package_url")"
                     file_name="$(
                         echo "$package_url" | \
                             command sed 's/.*\/\([^\/][^\/]*\)$/\1/')"
