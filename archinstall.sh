@@ -726,7 +726,7 @@ ai_determine_partition_uuid() {
     local -r __documentation__='
         Determines uuid by given identifier.
     '
-    command lsblk --noheadings --output PARTLABEL,UUID "$ai_target" | \
+    command lsblk --noheadings --output PARTLABEL,PARTUUID "$ai_target" | \
         command grep "$1" | \
             command sed --regexp-extended 's/.+ (.+)$/\1/'
 }
