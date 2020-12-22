@@ -1325,7 +1325,13 @@ ai_format_system_partition() {
                 --key-file - \
                 luksFormat \
                 "$output_device"
-        cryptsetup open "$output_device" cryptroot
+        echo "$ai_password" | \
+            cryptsetup \
+                --batch-mode \
+                --key-file - \
+                open \
+                "$output_device" \
+                cryptroot
         output_device=/dev/mapper/cryptroot
     fi
     mkfs.btrfs --force --label "$ai_system_partition_label" "$output_device"
