@@ -46,7 +46,7 @@ else
             "${bl_module_remote_module_cache_path}/module.sh"
         exit 1
     fi
-    # shellcheck disable=SC1090
+    # shellcheck disable=SC1091
     source "${bl_module_remote_module_cache_path}/module.sh"
     rm --force --recursive "${bl_module_remote_module_cache_path}/module.sh"
 fi
