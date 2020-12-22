@@ -61,6 +61,14 @@ oder ohne Link-Shortener:
         chmod +x archinstall.sh
 ```
 
+neuste unstable Version:
+
+```bash
+>>> wget \
+        https://raw.githubusercontent.com/thaibault/archinstall/master/archinstall.sh && \
+        chmod +x archinstall.sh
+```
+
 archinstall ist das zentrale Modul um eine Reihe von Aufgaben im Zuge der
 Vorbereitung, Installation, Konfiguration oder Manipulieren eines
 "Linux from Scratch" durchzuführen.
