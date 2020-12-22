@@ -136,7 +136,7 @@ declare -agr ai__optional_dependencies__=(
     'os-prober: Detects presence of other operating systems.'
     'pacstrap: Installs arch linux from an existing linux system (part of package "arch-install-scripts").'
 )
-declare -agr ai_basic_packages=(base ntp which)
+declare -agr ai_basic_packages=(base linux ntp which)
 declare -agr ai_common_additional_packages=(base-devel python sudo)
 # Defines where to mount temporary new filesystem.
 # NOTE: Path has to be end with a system specified delimiter.
@@ -539,8 +539,7 @@ ai_add_boot_entries() {
             1>"${ai_mountpoint_path}/boot/startup.nsh"
 \\vmlinuz-linux initrd=\\initramfs-linux.img root=PARTLABEL=${ai_system_partition_label} rw rootflags=subvol=root quiet loglevel=2
 EOF
-        ai.changeroot_to_mountpoint \
-            efibootmgr \
+        ai.changeroot_to_mountpoint efibootmgr \
             --create \
             --disk "$ai_target" \
             --label "$ai_fallback_boot_entry_label" \
@@ -551,8 +550,7 @@ EOF
                 bl.logging.warn \
                     "Adding boot entry \"${ai_fallback_boot_entry_label}\" failed."
         # NOTE: Boot entry to boot on next reboot should be added at last.
-        ai.changeroot_to_mountpoint \
-            efibootmgr \
+        ai.changeroot_to_mountpoint efibootmgr \
             --create \
             --disk "$ai_target" \
             --label "$ai_boot_entry_label" \
@@ -1416,9 +1414,9 @@ ai_prepare_blockdevices() {
     local -r __documentation__='
         Prepares given block devices to make it ready for fresh installation.
     '
-    umount -f "${ai_target}"* 2>/dev/null || \
+    umount --force "${ai_target}"* 2>/dev/null || \
         true
-    umount -f "$ai_mountpoint_path" 2>/dev/null || \
+    umount --force "$ai_mountpoint_path" 2>/dev/null || \
         true
     swapoff "${ai_target}"* 2>/dev/null || \
         true
@@ -1435,19 +1433,15 @@ ai_prepare_installation() {
         if $ai_system_partition_installation_only; then
             # NOTE: It is more reliable to use the specified partition since
             # auto partitioning could be turned off and labels set wrong.
-            mount \
-                "$ai_target" \
-                -o subvol=root \
-                "$ai_mountpoint_path"
+            mount --options subvol=root "$ai_target" "$ai_mountpoint_path"
         else
             mount \
+                --options subvol=root \
                 PARTLABEL="$ai_system_partition_label" \
-                -o subvol=root \
                 "$ai_mountpoint_path"
         fi
     fi
-    bl.logging.info \
-        "Clear previous installations in \"$ai_mountpoint_path\"."
+    bl.logging.info "Clear previous installations in \"$ai_mountpoint_path\"."
     rm "$ai_mountpoint_path"* --force --recursive &>/dev/null || \
         true
     if \
