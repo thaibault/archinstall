@@ -36,7 +36,7 @@ else
         [ -f "${bl_module_remote_module_cache_path}/module.sh" ] || \
         command curl \
             https://raw.githubusercontent.com/thaibault/bashlink/master/module.sh \
-                >"${bl_module_remote_module_cache_path}/module.sh" \
+                >"${bl_module_remote_module_cache_path}/module.sh"
     ); then
         echo Needed bashlink library could not be retrieved. 1>&2
         rm \
