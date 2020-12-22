@@ -721,7 +721,7 @@ EOF
             "${service_name}.service"
     done
 }
-alias ai.determine_partition_uuid=ai_determine_uuid
+alias ai.determine_partition_uuid=ai_determine_partition_uuid
 ai_determine_partition_uuid() {
     local -r __documentation__='
         Determines uuid by given identifier.
