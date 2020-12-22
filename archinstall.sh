@@ -614,7 +614,7 @@ ai_enable_services() {
         if ! echo "$network_device_name" | "$(which grep)" \
             --extended-regexp '^(lo|loopback|localhost)$' --quiet
         then
-            bl.logging.info Found network device \"$network_device_name\".
+            bl.logging.info "Found network device \"$network_device_name\"."
 # NOTE: Legacy "netctl-auto" approach.
 #            local service_name=dhcpcd
 #            local connection=ethernet
