@@ -569,22 +569,13 @@ ai_add_boot_entries() {
         2>/dev/null
     then
         bl.logging.info Configure efi boot manager.
-        cat << EOF \
-            1>"${ai_mountpoint_path}/boot/startup.nsh"
-\\vmlinuz-linux initrd=\\initramfs-linux.img $(
-    $ai_encrypt && \
-        echo "rd.luks.name=$(
-            lsblk \
-                --noheadings \
-                --output PARTLABEL,UUID \
-                /dev/nvme0n1 | \
-                    command grep "$ai_system_partition_label" | \
-                        command sed \
-                            --regexp-extended \
-                            's/.+ (.+)$/\1/')=cryptroot root=/dev/mapper/cryptroot" || \
-        echo "root=PARTLABEL=${ai_system_partition_label}"
-    ) rw rootflags=subvol=root quiet loglevel=2
-EOF
+        local root_boot_selector="root=PARTLABEL=${ai_system_partition_label}"
+        if $ai_encrypt; then
+            root_boot_selector="rd.luks.name=$(ai.determine_partition_uuid "$ai_system_partition_label")=cryptroot root=/dev/mapper/cryptroot rw rootflags=subvol=root"
+        fi
+        local -r kernel_command_line="initrd=\\initramfs-linux.img ${root_boot_selector} quiet loglevel=2"
+        echo "\\vmlinuz-linux ${kernel_command_line}" \
+            >"${ai_mountpoint_path}/boot/startup.nsh"
         ai.changeroot_to_mountpoint efibootmgr \
             --create \
             --disk "$ai_target" \
@@ -592,7 +583,7 @@ EOF
             --loader '\vmlinuz-linux' \
             --part 1 \
             --unicode \
-            "initrd=\\initramfs-linux-fallback.img root=PARTLABEL=${ai_system_partition_label} rw rootflags=subvol=root break=premount break=postmount" || \
+            "initrd=\\initramfs-linux-fallback.img ${root_boot_selector} break=premount break=postmount" || \
                 bl.logging.warn \
                     "Adding boot entry \"${ai_fallback_boot_entry_label}\" failed."
         # NOTE: Boot entry to boot on next reboot should be added at last.
@@ -603,7 +594,7 @@ EOF
             --loader '\vmlinuz-linux' \
             --part 1 \
             --unicode \
-            "initrd=\\initramfs-linux.img root=PARTLABEL=${ai_system_partition_label} rw rootflags=subvol=root quiet loglevel=2" || \
+            "$kernel_command_line" || \
                 bl.logging.warn \
                     "Adding boot entry \"${ai_boot_entry_label}\" failed."
     else
@@ -729,6 +720,15 @@ EOF
             enable \
             "${service_name}.service"
     done
+}
+alias ai.determine_partition_uuid=ai_determine_uuid
+ai_determine_partition_uuid() {
+    local -r __documentation__='
+        Determines uuid by given identifier.
+    '
+    command lsblk --noheadings --output PARTLABEL,UUID "$ai_target" | \
+        command grep "$1" | \
+            command sed --regexp-extended 's/.+ (.+)$/\1/'
 }
 alias ai.get_hosts_content=ai_get_hosts_content
 ai_get_hosts_content() {
@@ -1318,8 +1318,20 @@ ai_format_system_partition() {
     if $ai_encrypt; then
         bl.logging.info \
             "Encrypt system partition at \"$output_device\" and map to \"cryptroot\"."
-        cryptsetup --force-password luksFormat "$output_device"
-        cryptsetup open "$output_device" cryptroot
+        echo "$ai_password" | \
+            cryptsetup \
+                --batch-mode \
+                --force-password \
+                --key-file - \
+                luksFormat \
+                "$output_device"
+        echo "$ai_password" | \
+            cryptsetup \
+                --batch-mode \
+                --key-file - \
+                open \
+                "$output_device" \
+                cryptroot
         output_device=/dev/mapper/cryptroot
     fi
     mkfs.btrfs --force --label "$ai_system_partition_label" "$output_device"
@@ -1511,7 +1523,13 @@ ai_prepare_installation() {
         if $ai_system_partition_installation_only; then
             local source_selector="$ai_target"
             if $ai_encrypt; then
-                cryptsetup open "$ai_target" cryptroot
+                echo "$ai_password" | \
+                    cryptsetup \
+                        --batch-mode \
+                        --key-file - \
+                        open \
+                        "$ai_target" \
+                        cryptroot
                 source_selector=/dev/mapper/cryptroot
             fi
             # NOTE: It is more reliable to use the specified partition since
@@ -1523,10 +1541,13 @@ ai_prepare_installation() {
         else
             local source_selector="PARTLABEL=${ai_system_partition_label}"
             if $ai_encrypt; then
-                cryptsetup \
-                    open \
-                    PARTLABEL="$ai_system_partition_label" \
-                    cryptroot
+                echo "$ai_password" | \
+                    cryptsetup \
+                        --batch-mode \
+                        --key-file - \
+                        open \
+                        "$(ai.determine_partition_uuid "$ai_system_partition_label")" \
+                        cryptroot
                 source_selector=/dev/mapper/cryptroot
             fi
             mount \
