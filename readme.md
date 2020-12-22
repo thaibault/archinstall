@@ -49,15 +49,25 @@ Simply load the newest version from:
 [archinstall](https://torben.website/archinstall/data/distributionBundle/archinstall.sh)
 
 ```bash
->>> wget https://goo.gl/YbxT3F -O archinstall.sh && chmod +x archinstall.sh
+>>> curl https://goo.gl/YbxT3F >archinstall.sh && chmod +x archinstall.sh
 
 ```
 
 oder ohne Link-Shortener:
 
 ```bash
->>> wget \
-        https://torben.website/archinstall/data/distributionBundle/archinstall.sh && \
+>>> curl \
+        https://torben.website/archinstall/data/distributionBundle/archinstall.sh \
+            >archinstall.sh && \
+        chmod +x archinstall.sh
+```
+
+neuste unstable Version:
+
+```bash
+>>> curl \
+        https://raw.githubusercontent.com/thaibault/archinstall/master/archinstall.sh \
+            >archinstall.sh && \
         chmod +x archinstall.sh
 ```
 
@@ -95,7 +105,7 @@ werden alle Ausgaben jeglicher verwendeten Subprogramme mit ausgegeben.
 
 Alle Parameter wie Installations haben Standardwerte. So wird im obigen Fall
 einfach in das aktuelle Verzeichnis ein Ordner mit dem Programmnamen erstellt
-und darin das Betriebssystem installiert (./archinstall/). ill man lieber eine
+und darin das Betriebssystem installiert (./archinstall/). Möchte man eine
 unbeaufsichtigte Installation:
 
 ```bash
@@ -126,10 +136,10 @@ Daten Partition erstellt werden).
 sieht das z.B. so aus:
 
 ```bash
->>> ./archinstall.sh --output-system /dev/sdb --auto-partitioning
+>>> ./archinstall.sh --target /dev/sdb --auto-partitioning
 ```
 
-Auf diese Weise wird eine uefi Boot-Partition mit 512 MegaByte eingerichtet.
+Auf diese Weise wird eine uefi Boot-Partition mit 2 GigaByte eingerichtet.
 Der restliche Platz wird für die Systempartition eingesetzt. Sind noch weitere
 Partitionen gewünscht kann man diese während der Installation durch weglassen
 des entsprechenden Parameters selber konfigurieren. Die erste Partition wird
@@ -137,13 +147,12 @@ dann als Boot-Partition und die Zweite als Systempartition betrachtet. Weitere
 Partitionen werden ignoriert. Manuelle Partitionierung:
 
 ```bash
->>> ./archinstall.sh --output-system /dev/sdb
+>>> ./archinstall.sh --target /dev/sdb
 ```
 
-An dieser Stelle sei noch erwähnt, dass archinstall alle erstellten Partition
-automatisch mit Labels in der Partitionstabelle und auf der Partition selbst
-versieht. Um dieses Verhalten zu individualisieren einfach folgende Optionen
-nutzen:
+Archinstall erstellt alle Partition mit Labels sowohl in der Partitionstabelle
+als auf der Partition selbst. Um dieses Verhalten zu individualisieren, können
+folgende Optionen genutzt werden:
 
 ```bash
 >>> ./archinstall.sh --boot-partition-label uefiBoot \
@@ -159,7 +168,7 @@ auf eine weitere Partition zu installieren kann einfach folgender Befehl
 verwendet werden:
 
 ```bash
->>> ./archinstall.sh --output-system /dev/sdb2
+>>> ./archinstall.sh --target /dev/sdb2
 ```
 
 Hier wird auf die zweite Partition des zweiten Block Devices installiert.
@@ -169,7 +178,7 @@ und einem Ausweich-Initiramfs zu konfigurieren. Die folgenden Parameter
 definieren dessen Label:
 
 ```bash
->>> ./archinstall.sh --output-system /dev/sdb2 --boot-entry-label archLinux \
+>>> ./archinstall.sh --target /dev/sdb2 --boot-entry-label archLinux \
     --fallback-boot-entry-label archLinuxFallback
 ```
 
@@ -187,7 +196,7 @@ Dieser Befehl installiert ein vollständiges System in den eigenen Home-Ordner
 "test" (siehe auch Installation ohne root Rechte).
 
 ```bash
->>> ./archinstall.sh --output-system ~/test
+>>> ./archinstall.sh --target ~/test
 ```
 
 <!--|deDE:Automatische Konfiguration-->
@@ -261,7 +270,7 @@ aussehen:
 
     # Call the main Function of archinstall and overwrite or add
     # additional command line options.
-    archinstall "$@" --output-system initramfsTargetLocation
+    archinstall "$@" --target initramfsTargetLocation
 
     # Prepare result ...
 
@@ -390,13 +399,13 @@ Auf diese Weise kann man getrost folgendes tun:
 
     myTarget='/path/to/expected/result'
 
-    archinstall "$@" --output-system $myTarget
+    archinstall "$@" --target $myTarget
 
     # Working with result in "$myTarget"
 
-Selbst wenn der Wert von "--output-system" über die CLI gesetzt wurde ist sie
-im Wrapper wieder überschrieben. Auf diese weise kann man exklusiven Zugriff
-auf Parameter im Wrapper vornehmen.
+Selbst wenn der Wert von "--target" über die CLI gesetzt wurde ist sie im
+Wrapper wieder überschrieben. Auf diese weise kann man exklusiven Zugriff auf
+Parameter im Wrapper vornehmen.
 
 <!--|deDE:Offline Installieren-->
 Install offline

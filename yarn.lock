@@ -3,9 +3,9 @@
 
 
 bashlink@*:
-  version "1.0.213"
-  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.213.tgz#f5eb779697778cd946fcd3af27420b64dd750744"
-  integrity sha512-e4up46rgBM9+XNYxbl2HxruynqmCH10BGkF6ZDL6yw1VsCWazQACsCYa0Pfi5/Gy8QG782QjucQq71rNEqrzNw==
+  version "1.0.214"
+  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.214.tgz#b7d6c800a7371c800247b749583a32f7fe07e830"
+  integrity sha512-F9TweoReB0xdQHkcNT00GyvrcosIswYdwXQCQ0ecxHPQrIm6c4gg/iuBwZKyZX7B5tTHblZAoD8kmgstWOl/fQ==
 
 boostnode@*:
   version "1.0.26"

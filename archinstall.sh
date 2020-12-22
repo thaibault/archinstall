@@ -34,10 +34,9 @@ else
     declare -gr bl_module_retrieve_remote_modules=true
     if ! (
         [ -f "${bl_module_remote_module_cache_path}/module.sh" ] || \
-        wget \
-            https://goo.gl/UKF5JG \
-            --output-document "${bl_module_remote_module_cache_path}/module.sh" \
-            --quiet
+        command curl \
+            https://raw.githubusercontent.com/thaibault/bashlink/master/module.sh \
+                >"${bl_module_remote_module_cache_path}/module.sh" \
     ); then
         echo Needed bashlink library could not be retrieved. 1>&2
         rm \
@@ -60,19 +59,20 @@ bl.module.import bashlink.tools
 # region variables
 declare -gr ai__documentation__='
     This module installs a linux from scratch by the arch way. You will end up
-    in ligtweigth linux with pacman as packetmanager. You can directly install
+    in ligtweigth linux with pacman as packet manager. You can directly install
     into a given blockdevice, partition or any directory (see command line
-    option "--output-system"). Note that every needed information which is not
-    given via command line will be asked interactivly on start. This script is
-    as unnatted it could be, which means you can relax after providing all
-    needed informations in the beginning till your new system is ready to boot.
+    option "--target"). Note that every needed information which is not given
+    via command line will be asked interactively on start. This script is as
+    unnatted it could be, which means you can relax after providing all needed
+    informations in the beginning till your new system is ready to boot.
 
     Start install progress command (Assuming internet is available):
 
     ```bash
-        wget \
-            https://torben.website/clientNode/data/distributionBundle/index.compiled.js \
-            \ -O archinstall.sh && chmod +x archinstall.sh
+        curl \
+            https://raw.githubusercontent.com/thaibault/archinstall/master/archinstall.sh \
+                >archinstall.sh && \
+            chmod +x archinstall.sh
     ```
 
     Note that you only get very necessary output until you provide "--verbose"
@@ -83,19 +83,19 @@ declare -gr ai__documentation__='
     Start install progress command on first found blockdevice:
 
     ```bash
-        arch-install --output-system /dev/sda
+        arch-install --target /dev/sda
     ```
 
     Install directly into a given partition with verbose output:
 
     ```bash
-        arch-install --output-system /dev/sda1 --verbose
+        arch-install --target /dev/sda1 --verbose
     ```
 
-    Install directly into a given directory with addtional packages included:
+    Install directly into a given directory with additional packages included:
 
     ```bash
-        arch-install --output-system /dev/sda1 --verbose -f vim net-tools
+        arch-install --target /dev/sda1 --verbose -f vim net-tools
     ```
 '
 declare -agr ai__dependencies__=(
@@ -103,6 +103,7 @@ declare -agr ai__dependencies__=(
     blkid
     cat
     chroot
+    curl
     grep
     ln
     mktemp
@@ -116,7 +117,6 @@ declare -agr ai__dependencies__=(
     tar
     uname
     which
-    wget
     xz
 )
 declare -agr ai__optional_dependencies__=(
@@ -136,7 +136,7 @@ declare -agr ai__optional_dependencies__=(
     'os-prober: Detects presence of other operating systems.'
     'pacstrap: Installs arch linux from an existing linux system (part of package "arch-install-scripts").'
 )
-declare -agr ai_basic_packages=(base ifplugd)
+declare -agr ai_basic_packages=(base ntp which)
 declare -agr ai_common_additional_packages=(base-devel python sudo)
 # Defines where to mount temporary new filesystem.
 # NOTE: Path has to be end with a system specified delimiter.
@@ -152,8 +152,7 @@ declare -ag ai_package_urls=(
     https://mirrors.kernel.org/archlinux
 )
 declare -gi ai_network_timeout_in_seconds=6
-declare -ag ai_unneeded_file_locations=(
-    .INSTALL .PKGINFO var/cache/pacman)
+declare -ag ai_unneeded_file_locations=(.INSTALL .PKGINFO var/cache/pacman)
 ## region command line arguments
 declare -ag ai_additional_packages=()
 declare -g ai_add_common_additional_packages=false
@@ -174,9 +173,9 @@ declare -g ai_key_map_configuration_file_content="KEYMAP=${ai_keyboard_layout}"$
 # NOTE: This properties aren't needed in the future with supporting "localectl"
 # program.
 declare -g ai_local_time=EUROPE/Berlin
-declare -ag ai_needed_services=()
+declare -ag ai_needed_services=(ntpd systemd-networkd systemd-resolved)
 declare -gi ai_needed_system_space_in_mega_byte=512
-declare -g ai_output_system=archInstall
+declare -g ai_target=archInstall
 declare -g ai_prevent_using_native_arch_changeroot=false
 declare -g ai_prevent_using_existing_pacman=false
 declare -g ai_system_partition_label=system
@@ -215,7 +214,7 @@ ai_get_commandline_option_description() {
 
 -c --cpu-architecture CPU_ARCHITECTURE Defines architecture (default: "$ai_cpu_architecture").
 
--o --output-system OUTPUT_SYSTEM Defines where to install new operating system. You can provide a full disk or patition via blockdevice such as "/dev/sda" or "/dev/sda1". You can also provide a diretory path such as "/tmp/lifesystem" (default: "$ai_output_system").
+-o --target TARGET Defines where to install new operating system. You can provide a full disk or patition via blockdevice such as "/dev/sda" or "/dev/sda1". You can also provide a diretory path such as "/tmp/lifesystem" (default: "$ai_target").
 
 
 -x --local-time LOCAL_TIME Local time for you system (default: "$ai_local_time").
@@ -334,9 +333,9 @@ ai_commandline_interface() {
                 ai_cpu_architecture="$1"
                 shift
                 ;;
-            -o|--output-system)
+            -o|--target)
                 shift
-                ai_output_system="$1"
+                ai_target="$1"
                 shift
                 ;;
 
@@ -457,10 +456,13 @@ ai_commandline_interface() {
                 return 1
         esac
     done
-    if [[ "$UID" != 0 ]] && ! {
-        hash fakeroot 2>/dev/null && \
-        hash fakechroot 2>/dev/null && \
-        { [ -e "$ai_output_system" ] && [ -d "$ai_output_system" ]; }; }
+    if \
+        [[ "$UID" != 0 ]] && \
+        ! {
+            hash fakeroot 2>/dev/null && \
+            hash fakechroot 2>/dev/null && \
+            { [ -e "$ai_target" ] && [ -d "$ai_target" ]; }
+        }
     then
         bl.logging.error_exception \
             "You have to run this script as \"root\" not as \"$USER\". You can alternatively install \"fakeroot\", \"fakechroot\" and install into a directory."
@@ -486,7 +488,7 @@ ai_commandline_interface() {
     if \
         ! $ai_system_partition_installation_only && \
         ! $ai_auto_partitioning && \
-        echo "$ai_output_system" | \
+        echo "$ai_target" | \
             "$(which grep)" --quiet --extended-regexp '[0-9]$'
     then
         ai_system_partition_installation_only=true
@@ -540,7 +542,7 @@ EOF
         ai.changeroot_to_mountpoint \
             efibootmgr \
             --create \
-            --disk "$ai_output_system" \
+            --disk "$ai_target" \
             --label "$ai_fallback_boot_entry_label" \
             --loader '\vmlinuz-linux' \
             --part 1 \
@@ -552,7 +554,7 @@ EOF
         ai.changeroot_to_mountpoint \
             efibootmgr \
             --create \
-            --disk "$ai_output_system" \
+            --disk "$ai_target" \
             --label "$ai_boot_entry_label" \
             --loader '\vmlinuz-linux' \
             --part 1 \
@@ -614,39 +616,41 @@ ai_enable_services() {
         if ! echo "$network_device_name" | "$(which grep)" \
             --extended-regexp '^(lo|loopback|localhost)$' --quiet
         then
-            local service_name=dhcpcd
-            local connection=ethernet
-            local description='A basic dhcp connection'
-            local additional_properties=''
-            if [ "${network_device_name:0:1}" = e ]; then
-                bl.logging.info \
-                    "Enable dhcp service on wired network device \"$network_device_name\"."
-                service_name=netctl-ifplugd
-                connection=ethernet
-                description='A basic ethernet dhcp connection'
-            elif [ "${network_device_name:0:1}" = w ]; then
-                bl.logging.info \
-                    "Enable dhcp service on wireless network device \"$network_device_name\"."
-                service_name=netctl-auto
-                connection=wireless
-                description='A simple WPA encrypted wireless connection'
-                additional_properties=$'\nSecurity=wpa\nESSID='"'home'"$'\nKey='"'home'"
-            fi
-        cat << EOF 1>"${ai_mountpoint_path}etc/netctl/${network_device_name}-dhcp"
-Description='${description}'
-Interface=${network_device_name}
-Connection=${connection}
-IP=dhcp
-## for DHCPv6
-#IP6=dhcp
-## for IPv6 autoconfiguration
-#IP6=stateless${additional_properties}
-EOF
-            ln \
-                --force \
-                --symbolic \
-                "/usr/lib/systemd/system/${service_name}@.service" \
-                "${ai_mountpoint_path}etc/systemd/system/multi-user.target.wants/${service_name}@${network_device_name}.service"
+            bl.logging.info "Found network device \"$network_device_name\"."
+# NOTE: Legacy "netctl-auto" approach.
+#            local service_name=dhcpcd
+#            local connection=ethernet
+#            local description='A basic dhcp connection'
+#            local additional_properties=''
+#            if [ "${network_device_name:0:1}" = e ]; then
+#                bl.logging.info \
+#                    "Enable dhcp service on wired network device \"$network_device_name\"."
+#                service_name=netctl-ifplugd
+#                connection=ethernet
+#                description='A basic ethernet dhcp connection'
+#            elif [ "${network_device_name:0:1}" = w ]; then
+#                bl.logging.info \
+#                    "Enable dhcp service on wireless network device \"$network_device_name\"."
+#                service_name=netctl-auto
+#                connection=wireless
+#                description='A simple WPA encrypted wireless connection'
+#                additional_properties=$'\nSecurity=wpa\nESSID='"'home'"$'\nKey='"'home'"
+#            fi
+#        cat << EOF 1>"${ai_mountpoint_path}etc/netctl/${network_device_name}-dhcp"
+#Description='${description}'
+#Interface=${network_device_name}
+#Connection=${connection}
+#IP=dhcp
+### for DHCPv6
+##IP6=dhcp
+### for IPv6 autoconfiguration
+##IP6=stateless${additional_properties}
+#EOF
+#            ln \
+#                --force \
+#                --symbolic \
+#                "/usr/lib/systemd/system/${service_name}@.service" \
+#                "${ai_mountpoint_path}etc/systemd/system/multi-user.target.wants/${service_name}@${network_device_name}.service"
         fi
     done
     local service_name
@@ -827,10 +831,12 @@ ai_create_url_lists() {
     for url in "${ai_package_source_urls[@]}"; do
         bl.logging.info "Retrieve repository source url list from \"$url\"."
         if serialized_url_list="$(
-            wget \
+            command curl \
                 "$url" \
-                --output-document - \
-                --timeout="$ai_network_timeout_in_seconds" | \
+                --max-time "$ai_network_timeout_in_seconds" \
+                --retry 10 \
+                --retry-all-errors \
+                --retry-delay 2 | \
                     command sed \
                         --regexp-extended 's/^#Server = (http)/\1/g' | \
                             command sed --regexp-extended '/^#.+$/d' | \
@@ -856,10 +862,11 @@ ai_create_url_lists() {
         for url in "${ai_package_urls[@]}"; do
             bl.logging.info "Retrieve repository \"$name\" from \"$url\"."
             if serialized_url_list="$(
-                wget \
-                    --timeout="$ai_network_timeout_in_seconds" \
-                    --tries 1 \
-                    --output-document - \
+                command curl \
+                    --retry 3 \
+                    --retry-all-errors \
+                    --retry-delay 1 \
+                    --max-time "$ai_network_timeout_in_seconds" \
                     "${url}/$name/os/$ai_cpu_architecture" | \
                         command sed \
                             --quiet \
@@ -1048,11 +1055,14 @@ ai_determine_pacmans_needed_packages() {
                     ' [^ ]+core\.db ' | \
                         sed --regexp-extended 's/(^ *)|( *$)//g')"
         bl.exception.try
-            wget \
+            command curl \
                 "$core_database_url" \
-                --directory-prefix "$ai_cache_path" \
-                --timeout="$ai_network_timeout_in_seconds" \
-                --timestamping
+                --retry 3 \
+                --retry-all-errors \
+                --retry-delay 1 \
+                --max-time="$ai_network_timeout_in_seconds" \
+                --netrc-file "$(basename "$core_database_url")" \
+                    >"${ai_cache_path}$(basename "$core_database_url")"
         bl.exception.catch_single
             bl.logging.warn \
                 "Could not retrieve latest database file from determined url \"$core_database_url\"."
@@ -1137,12 +1147,15 @@ ai_download_and_extract_pacman() {
                 fi
                 bl.exception.try
                 {
-                    wget \
+                    command curl \
                         "$package_url" \
-                        --continue \
-                        --directory-prefix "$ai_cache_path" \
-                        --timeout="$ai_network_timeout_in_seconds" \
-                        --timestamping
+                        --continue-at - \
+                        --max-time "$ai_network_timeout_in_seconds" \
+                        --netrc-file "$(basename "$package_url")" \
+                        --retry 3 \
+                        --retry-all-errors \
+                        --retry-delay 1 \
+                            >"${ai_cache_path}$(basename "$package_url")"
                     file_name="$(
                         echo "$package_url" | \
                             command sed 's/.*\/\([^\/][^\/]*\)$/\1/')"
@@ -1209,9 +1222,9 @@ ai_format_boot_partition() {
         Prepares the boot partition.
     '
     bl.logging.info Make boot partition.
-    local boot_partition_device_path="${ai_output_system}1"
+    local boot_partition_device_path="${ai_target}1"
     if [ ! -b "$boot_partition_device_path" ]; then
-        boot_partition_device_path="${ai_output_system}p1"
+        boot_partition_device_path="${ai_target}p1"
     fi
     mkfs.vfat -F 32 "$boot_partition_device_path"
     if hash dosfslabel 2>/dev/null; then
@@ -1226,11 +1239,11 @@ ai_format_system_partition() {
     local -r __documentation__='
         Prepares the system partition.
     '
-    local output_device="$ai_output_system"
-    if [ -b "${ai_output_system}2" ]; then
-        output_device="${ai_output_system}2"
-    elif [ -b "${ai_output_system}p2" ]; then
-        output_device="${ai_output_system}p2"
+    local output_device="$ai_target"
+    if [ -b "${ai_target}2" ]; then
+        output_device="${ai_target}2"
+    elif [ -b "${ai_target}p2" ]; then
+        output_device="${ai_target}p2"
     fi
     bl.logging.info "Make system partition at \"$output_device\"."
     mkfs.btrfs \
@@ -1313,7 +1326,7 @@ ai_make_partitions() {
     if $ai_auto_partitioning; then
         bl.logging.info Check block device size.
         local blockdevice_space_in_mega_byte="$(("$(
-            blockdev --getsize64 "$ai_output_system"
+            blockdev --getsize64 "$ai_target"
         )" * 1024 ** 2))"
         if (( $((
             ai_needed_system_space_in_mega_byte + \
@@ -1340,7 +1353,7 @@ ai_make_partitions() {
             # NAME
             # w: write table to disk and exit
             # Y: Confirm (yes)
-            gdisk "$ai_output_system" << EOF
+            gdisk "$ai_target" << EOF
 o
 Y
 n
@@ -1364,7 +1377,7 @@ Y
 EOF
         else
             bl.logging.critical \
-                "Not enough space on \"$ai_output_system\" (\"$blockdevice_space_in_mega_byte\" megabyte). We need at least \"$((ai_needed_system_space_in_mega_byte + ai_boot_space_in_mega_byte))\" megabyte."
+                "Not enough space on \"$ai_target\" (\"$blockdevice_space_in_mega_byte\" megabyte). We need at least \"$((ai_needed_system_space_in_mega_byte + ai_boot_space_in_mega_byte))\" megabyte."
         fi
     else
         bl.logging.info \
@@ -1374,7 +1387,7 @@ EOF
         lsblk
         read -r
         bl.logging.info Create partitions manually.
-        gdisk "$ai_output_system"
+        gdisk "$ai_target"
     fi
 }
 alias ai.pack_result=ai_pack_result
@@ -1403,11 +1416,11 @@ ai_prepare_blockdevices() {
     local -r __documentation__='
         Prepares given block devices to make it ready for fresh installation.
     '
-    umount -f "${ai_output_system}"* 2>/dev/null || \
+    umount -f "${ai_target}"* 2>/dev/null || \
         true
     umount -f "$ai_mountpoint_path" 2>/dev/null || \
         true
-    swapoff "${ai_output_system}"* 2>/dev/null || \
+    swapoff "${ai_target}"* 2>/dev/null || \
         true
 }
 alias ai.prepare_installation=ai_prepare_installation
@@ -1417,13 +1430,13 @@ ai_prepare_installation() {
         package cache directory.
     '
     mkdir --parents "$ai_cache_path"
-    if [ -b "$ai_output_system" ]; then
+    if [ -b "$ai_target" ]; then
         bl.logging.info Mount system partition.
         if $ai_system_partition_installation_only; then
             # NOTE: It is more reliable to use the specified partition since
             # auto partitioning could be turned off and labels set wrong.
             mount \
-                "$ai_output_system" \
+                "$ai_target" \
                 -o subvol=root \
                 "$ai_mountpoint_path"
         else
@@ -1439,7 +1452,7 @@ ai_prepare_installation() {
         true
     if \
         ! $ai_system_partition_installation_only && \
-        [ -b "$ai_output_system" ]
+        [ -b "$ai_target" ]
     then
         bl.logging.info \
             "Mount boot partition in \"${ai_mountpoint_path}boot/\"."
@@ -1459,7 +1472,7 @@ ai_prepare_next_boot() {
     local -r __documentation__='
         Reboots into fresh installed system if previous defined.
     '
-    if [ -b "$ai_output_system" ]; then
+    if [ -b "$ai_target" ]; then
         ai.generate_fstab_configuration_file
         ai.add_boot_entries
         ai.prepare_blockdevices
@@ -1545,7 +1558,7 @@ ai_generic_linux_steps() {
     bl.logging.info "Install needed packages \"$(
         echo "${ai_packages[@]}" | \
             command sed 's/ /", "/g'
-    )\" to \"$ai_output_system\"."
+    )\" to \"$ai_target\"."
     ai.changeroot_to_mountpoint \
         /usr/bin/pacman \
         --arch "$ai_cpu_architecture" \
@@ -1575,7 +1588,7 @@ ai_with_existing_pacman() {
     bl.logging.info "Install needed packages \"$(
         echo "${ai_packages[@]}" | \
             command sed 's/ /", "/g'
-    )\" to \"$ai_output_system\"."
+    )\" to \"$ai_target\"."
     if hash pacstrap &>/dev/null; then
         bl.logging.info Patch pacstrap to handle offline installations.
         command sed \
@@ -1631,15 +1644,15 @@ ai_main() {
     if $ai_add_common_additional_packages; then
         ai_packages+=("${ai_common_additional_packages[@]}")
     fi
-    if [ ! -e "$ai_output_system" ]; then
-        mkdir --parents "$ai_output_system"
+    if [ ! -e "$ai_target" ]; then
+        mkdir --parents "$ai_target"
     fi
-    if [ -d "$ai_output_system" ]; then
-        ai_mountpoint_path="$ai_output_system"
+    if [ -d "$ai_target" ]; then
+        ai_mountpoint_path="$ai_target"
         if [[ ! "$ai_mountpoint_path" =~ .*/$ ]]; then
             ai_mountpoint_path+=/
         fi
-    elif [ -b "$ai_output_system" ]; then
+    elif [ -b "$ai_target" ]; then
         ai_packages+=(efibootmgr)
         ai.prepare_blockdevices
         bl.exception.try
@@ -1660,8 +1673,7 @@ ai_main() {
             bl.logging.error_exception "$bl_exception_last_traceback"
         }
     else
-        bl.logging.error_exception \
-            "Could not install into \"$ai_output_system\"."
+        bl.logging.error_exception "Could not install into \"$ai_target\"."
     fi
     ai.prepare_installation
     bl.exception.try
@@ -1689,7 +1701,7 @@ ai_main() {
     ai.prepare_next_boot
     ai.pack_result
     bl.logging.info \
-        "Generating operating system into \"$ai_output_system\" has successfully finished."
+        "Generating operating system into \"$ai_target\" has successfully finished."
     bl.exception.deactivate
 }
 ## endregion
