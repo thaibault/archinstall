@@ -17,11 +17,6 @@ bootstrap@^3.3.7:
   resolved "https://registry.yarnpkg.com/bootstrap/-/bootstrap-3.4.1.tgz#c3a347d419e289ad11f4033e3c4132b87c081d72"
   integrity sha512-yN5oZVmRCwe5aKwzRj6736nSmKDX7pLYwsXiCj/EYmo16hODaBiT4En5btW/jhBF/seV+XMx3aYwukYC3A49DA==
 
-clientnode@*:
-  version "3.0.471"
-  resolved "https://registry.yarnpkg.com/clientnode/-/clientnode-3.0.471.tgz#2f2401ff90309e1ce9d54e8d66039523cdb5625e"
-  integrity sha512-hP0yHUI/RlqzbfihXvBCflRkzolaSLVyMrlT4hiKFRydm5N55VaflgemvRDFHQvR1Ow28sGu0QvU7r7sESxgFg==
-
 documentation-website@*:
   version "1.0.234"
   resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.234.tgz#bc90958f5c416b676a68c26544cfba91cc28b7d9"
@@ -31,40 +26,12 @@ documentation-website@*:
     bootstrap "^3.3.7"
     website-utilities "*"
 
-internationalisation@*:
-  version "1.0.202"
-  resolved "https://registry.yarnpkg.com/internationalisation/-/internationalisation-1.0.202.tgz#b5137d60723f447f1f6a22652917260c17cd0c44"
-  integrity sha512-yVplyr0qK6VbepVZyUzw4dXyLkn9Gm6ueuBHZumRXvReDiJ/EOn6vZKvMiXNmtINfChXeyhcEtjr0/JpyWI1Vw==
-
-jquery.scrollto@*:
-  version "2.1.2"
-  resolved "https://registry.yarnpkg.com/jquery.scrollto/-/jquery.scrollto-2.1.2.tgz#e7580d9c7ac46ef5bb25319483f6f45713fd7c6c"
-  integrity sha1-51gNnHrEbvW7JTGUg/b0VxP9fGw=
-  dependencies:
-    jquery ">=1.8"
-
-jquery@*, jquery@>=1.8:
-  version "3.5.1"
-  resolved "https://registry.yarnpkg.com/jquery/-/jquery-3.5.1.tgz#d7b4d08e1bfdb86ad2f1a3d039ea17304717abb5"
-  integrity sha512-XwIBPqcMn57FxfT+Go5pzySnm4KWkT1Tv7gjrpT1srtf8Weynl6R273VJ5GjkRb51IzMp5nbaPjJXMWeju2MKg==
-
 shellcheck@*:
-  version "0.4.2"
-  resolved "https://registry.yarnpkg.com/shellcheck/-/shellcheck-0.4.2.tgz#3f56eabeae8b19502582ae9c4aa30a44afda640d"
-  integrity sha512-ZgQ2CxhpjLIIal1Q+/lO5vKMciT0F5zDITy4iZStsPKtjs5vnX2rwE1VGhQGkSIb4XZwFg19htlCONhBNVswxw==
-
-spin.js@*:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/spin.js/-/spin.js-4.1.0.tgz#afcf12738fafd5f6aa0a385a5b4cec45c86a3555"
-  integrity sha512-WI8O1OdJlKjialIhB9Z5RfFFM4pI7Hohik76bB3N4Ep3N/vTDPZiRU8QeefyLbmpI5n2bFQXgticl2g+/KiKYA==
+  version "0.4.4"
+  resolved "https://registry.yarnpkg.com/shellcheck/-/shellcheck-0.4.4.tgz#4512714db803a0bcf300adc40e16dc12ffcf8303"
+  integrity sha512-d7LfrgEcGZes825x5Yehm6MkpfSQaDg4nP0VZEv7E2qX84zQXDbCdDvYJg9V9OByG2+h98Ol7nndixgGOj8cRQ==
 
 website-utilities@*:
-  version "1.0.221"
-  resolved "https://registry.yarnpkg.com/website-utilities/-/website-utilities-1.0.221.tgz#f7966bc8c4be08d1beb0272950a81842cc6d2a5d"
-  integrity sha512-8lIcFz6QTwBdUNzsWlzlhRJ4I2vJOsBX7oX1TH3SdC24jGo6PkTg/phhAAoX1eifG+fLliW/ocMOg3U1vyjrWw==
-  dependencies:
-    clientnode "*"
-    internationalisation "*"
-    jquery "*"
-    jquery.scrollto "*"
-    spin.js "*"
+  version "1.0.223"
+  resolved "https://registry.yarnpkg.com/website-utilities/-/website-utilities-1.0.223.tgz#741a9023d8316606df00737821a7ddbc01be3199"
+  integrity sha512-xYi68qGcTcTJSXq85/ARCh02suspBi2Uvk32C3rIBcVp/M5YcWSdlP3KyD1Q7IHNT7jgwkBIybcARKADxOr2vQ==
