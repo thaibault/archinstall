@@ -1523,7 +1523,13 @@ ai_prepare_installation() {
         if $ai_system_partition_installation_only; then
             local source_selector="$ai_target"
             if $ai_encrypt; then
-                cryptsetup open "$ai_target" cryptroot
+                echo "$ai_password" | \
+                    cryptsetup \
+                        --batch-mode \
+                        --key-file - \
+                        open \
+                        "$ai_target" \
+                        cryptroot
                 source_selector=/dev/mapper/cryptroot
             fi
             # NOTE: It is more reliable to use the specified partition since
@@ -1535,10 +1541,13 @@ ai_prepare_installation() {
         else
             local source_selector="PARTLABEL=${ai_system_partition_label}"
             if $ai_encrypt; then
-                cryptsetup \
-                    open \
-                    PARTLABEL="$ai_system_partition_label" \
-                    cryptroot
+                echo "$ai_password" | \
+                    cryptsetup \
+                        --batch-mode \
+                        --key-file - \
+                        open \
+                        "PARTLABEL=${ai_system_partition_label}" \
+                        cryptroot
                 source_selector=/dev/mapper/cryptroot
             fi
             mount \
