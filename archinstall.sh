@@ -1579,9 +1579,10 @@ ai_prepare_next_boot() {
     if $ai_encrypt; then
         # NOTE: We have to rebuild initramfs to support decryption utilities
         # during boot.
-        ai.changeroot_to_mountpoint mkinitcpio --allpresets
+        # NOTE: Because of non matching "btrfs.fsck" binary it results on non
+        # zero exit code.
+        ai.changeroot_to_mountpoint mkinitcpio --allpresets || trie
     fi
-    # TODO not going further yet.
     if [ -b "$ai_target" ]; then
         ai.generate_fstab_configuration_file
         ai.add_boot_entries
