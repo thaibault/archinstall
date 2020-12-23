@@ -755,10 +755,6 @@ ai_configure() {
     if $ai_encrypt; then
         bl.logging.info \
             Configure initramfs to support decrypting root system at boot.
-        # TODO test
-        #'s/^(HOOKS=\().+(\))$/\1base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt filesystems\2/' \
-
-        #'s/^(HOOKS=\().+(\))$/\1autodetect block keyboard sd-encrypt sd-vconsole systemd\2/' \
         sed \
             --in-place \
             --regexp-extended \
