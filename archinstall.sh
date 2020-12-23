@@ -1546,7 +1546,7 @@ ai_prepare_installation() {
                         --batch-mode \
                         --key-file - \
                         open \
-                        "$(ai.determine_partition_uuid "$ai_system_partition_label")" \
+                        "/dev/disk/by-uuid/$(ai.determine_partition_uuid "$ai_system_partition_label")" \
                         cryptroot
                 source_selector=/dev/mapper/cryptroot
             fi
