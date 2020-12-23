@@ -1584,7 +1584,7 @@ ai_prepare_next_boot() {
         # during boot.
         # NOTE: Because of non matching "btrfs.fsck" binary it results on non
         # zero exit code.
-        ai.changeroot_to_mountpoint mkinitcpio --allpresets || trie
+        ai.changeroot_to_mountpoint mkinitcpio --allpresets || true
     fi
     if [ -b "$ai_target" ]; then
         ai.generate_fstab_configuration_file
