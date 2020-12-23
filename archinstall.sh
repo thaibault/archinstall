@@ -755,6 +755,7 @@ ai_configure() {
         # TODO test this shorter / faster version:
         # 's/^(HOOKS=\().+(\))$/\1autodetect block keyboard sd-encrypt sd-vconsole systemd\2/' \
         sed \
+            --in-place \
             --regexp-extended \
             's/^(HOOKS=\().+(\))$/\1base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt filesystems fsck\2/' \
             "${ai_mountpoint_path}etc/mkinitcpio.conf"
