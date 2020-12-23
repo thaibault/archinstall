@@ -721,7 +721,7 @@ EOF
             "${service_name}.service"
     done
 }
-alias ai.determine_partition_uuid=ai_determine_uuid
+alias ai.determine_partition_uuid=ai_determine_partition_uuid
 ai_determine_partition_uuid() {
     local -r __documentation__='
         Determines uuid by given identifier.
@@ -755,6 +755,7 @@ ai_configure() {
         # TODO test this shorter / faster version:
         # 's/^(HOOKS=\().+(\))$/\1autodetect block keyboard sd-encrypt sd-vconsole systemd\2/' \
         sed \
+            --in-place \
             --regexp-extended \
             's/^(HOOKS=\().+(\))$/\1base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt filesystems fsck\2/' \
             "${ai_mountpoint_path}etc/mkinitcpio.conf"
@@ -1318,14 +1319,14 @@ ai_format_system_partition() {
     if $ai_encrypt; then
         bl.logging.info \
             "Encrypt system partition at \"$output_device\" and map to \"cryptroot\"."
-        echo "$ai_password" | \
+        echo -n "$ai_password" | \
             cryptsetup \
                 --batch-mode \
                 --force-password \
                 --key-file - \
                 luksFormat \
                 "$output_device"
-        echo "$ai_password" | \
+        echo -n "$ai_password" | \
             cryptsetup \
                 --batch-mode \
                 --key-file - \
@@ -1360,7 +1361,7 @@ ai_generate_fstab_configuration_file() {
         Writes the fstab configuration file.
     '
     bl.logging.info Generate fstab config.
-    if hash genfstab 2>/dev/null; then
+    if ! $ai_encrypt && hash genfstab 2>/dev/null; then
         # NOTE: Mountpoint shouldn't have a path separator at the end.
         genfstab \
             -L \
@@ -1523,7 +1524,7 @@ ai_prepare_installation() {
         if $ai_system_partition_installation_only; then
             local source_selector="$ai_target"
             if $ai_encrypt; then
-                echo "$ai_password" | \
+                echo -n "$ai_password" | \
                     cryptsetup \
                         --batch-mode \
                         --key-file - \
@@ -1541,12 +1542,12 @@ ai_prepare_installation() {
         else
             local source_selector="PARTLABEL=${ai_system_partition_label}"
             if $ai_encrypt; then
-                echo "$ai_password" | \
+                echo -n "$ai_password" | \
                     cryptsetup \
                         --batch-mode \
                         --key-file - \
                         open \
-                        "$(ai.determine_partition_uuid "$ai_system_partition_label")" \
+                        "/dev/disk/by-partlabel/${ai_system_partition_label}" \
                         cryptroot
                 source_selector=/dev/mapper/cryptroot
             fi
@@ -1575,6 +1576,13 @@ ai_prepare_next_boot() {
     local -r __documentation__='
         Reboots into fresh installed system if previous defined.
     '
+    if $ai_encrypt; then
+        # NOTE: We have to rebuild initramfs to support decryption utilities
+        # during boot.
+        # NOTE: Because of non matching "btrfs.fsck" binary it results on non
+        # zero exit code.
+        ai.changeroot_to_mountpoint mkinitcpio --allpresets || trie
+    fi
     if [ -b "$ai_target" ]; then
         ai.generate_fstab_configuration_file
         ai.add_boot_entries
