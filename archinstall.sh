@@ -762,6 +762,11 @@ ai_configure() {
         sed \
             --in-place \
             --regexp-extended \
+            's/^(MODULES=\().+(\))$/\1vfat\2/' \
+            "${ai_mountpoint_path}etc/mkinitcpio.conf"
+        sed \
+            --in-place \
+            --regexp-extended \
             's/^(HOOKS=\().+(\))$/\1base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt filesystems\2/' \
             "${ai_mountpoint_path}etc/mkinitcpio.conf"
     fi
