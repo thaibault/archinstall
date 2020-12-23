@@ -571,7 +571,10 @@ ai_add_boot_entries() {
         bl.logging.info Configure efi boot manager.
         local root_boot_selector="root=PARTLABEL=${ai_system_partition_label}"
         if $ai_encrypt; then
-            root_boot_selector="rd.luks.name=$(ai.determine_partition_uuid "$ai_system_partition_label")=cryptroot root=/dev/mapper/cryptroot rw rootflags=subvol=root"
+            mkdir --parents "${ai_mountpoint_path}boot/keys"
+            echo -n "$ai_password" \
+                >"${ai_mountpoint_path}boot/keys/boot.luks.password.txt"
+            root_boot_selector="rd.luks.key=/keys/boot.luks.password.txt:UUID=$(ai.determine_partition_uuid "$ai_boot_partition_label") rd.luks.name=$(ai.determine_partition_uuid "$ai_system_partition_label")=cryptroot rd.luks.options=timeout=36000 rd.luks.options=keyfile-timeout=2s root=/dev/mapper/cryptroot rw rootflags=subvol=root rootflags=x-systemd.device-timeout=36030"
         fi
         local -r kernel_command_line="initrd=\\initramfs-linux.img ${root_boot_selector} quiet loglevel=2"
         echo "\\vmlinuz-linux ${kernel_command_line}" \
