@@ -1318,14 +1318,14 @@ ai_format_system_partition() {
     if $ai_encrypt; then
         bl.logging.info \
             "Encrypt system partition at \"$output_device\" and map to \"cryptroot\"."
-        echo "$ai_password" | \
+        echo -n "$ai_password" | \
             cryptsetup \
                 --batch-mode \
                 --force-password \
                 --key-file - \
                 luksFormat \
                 "$output_device"
-        echo "$ai_password" | \
+        echo -n "$ai_password" | \
             cryptsetup \
                 --batch-mode \
                 --key-file - \
@@ -1523,7 +1523,7 @@ ai_prepare_installation() {
         if $ai_system_partition_installation_only; then
             local source_selector="$ai_target"
             if $ai_encrypt; then
-                echo "$ai_password" | \
+                echo -n "$ai_password" | \
                     cryptsetup \
                         --batch-mode \
                         --key-file - \
@@ -1541,7 +1541,7 @@ ai_prepare_installation() {
         else
             local source_selector="PARTLABEL=${ai_system_partition_label}"
             if $ai_encrypt; then
-                echo "$ai_password" | \
+                echo -n "$ai_password" | \
                     cryptsetup \
                         --batch-mode \
                         --key-file - \
