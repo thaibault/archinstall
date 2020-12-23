@@ -758,7 +758,7 @@ ai_configure() {
         sed \
             --in-place \
             --regexp-extended \
-            's/^(MODULES=\().+(\))$/\1vfat\2/' \
+            's/^(MODULES=\().*(\))$/\1vfat\2/' \
             "${ai_mountpoint_path}etc/mkinitcpio.conf"
         sed \
             --in-place \
