@@ -556,7 +556,6 @@ ai_changeroot_to_mountpoint() {
     local -r __documentation__='
         This function performs a changeroot to currently set mountpoint path.
     '
-    # TODO
     ai.changeroot "$ai_mountpoint_path" "$@"
     return $?
 }
@@ -1582,6 +1581,7 @@ ai_prepare_next_boot() {
         # during boot.
         ai.changeroot_to_mountpoint mkinitcpio --allpresets
     fi
+    # TODO not going further yet.
     if [ -b "$ai_target" ]; then
         ai.generate_fstab_configuration_file
         ai.add_boot_entries
