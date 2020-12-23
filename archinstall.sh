@@ -556,6 +556,7 @@ ai_changeroot_to_mountpoint() {
     local -r __documentation__='
         This function performs a changeroot to currently set mountpoint path.
     '
+    # TODO
     ai.changeroot "$ai_mountpoint_path" "$@"
     return $?
 }
@@ -1361,7 +1362,7 @@ ai_generate_fstab_configuration_file() {
         Writes the fstab configuration file.
     '
     bl.logging.info Generate fstab config.
-    if hash genfstab 2>/dev/null; then
+    if ! $ai_encrypt && hash genfstab 2>/dev/null; then
         # NOTE: Mountpoint shouldn't have a path separator at the end.
         genfstab \
             -L \
