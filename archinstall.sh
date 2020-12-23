@@ -574,7 +574,7 @@ ai_add_boot_entries() {
             mkdir --parents "${ai_mountpoint_path}boot/keys"
             echo -n "$ai_password" \
                 >"${ai_mountpoint_path}boot/keys/boot.luks.password.txt"
-            root_boot_selector="rd.luks.key=/keys/boot.luks.password.txt:UUID=$(ai.determine_partition_uuid "$ai_boot_partition_label") rd.luks.name=$(ai.determine_partition_uuid "$ai_system_partition_label")=cryptroot rd.luks.options=timeout=36000 rd.luks.options=keyfile-timeout=2s root=/dev/mapper/cryptroot rw rootflags=subvol=root rootflags=x-systemd.device-timeout=36030"
+            root_boot_selector="rd.luks.key=$(ai.determine_partition_uuid "$ai_system_partition_label")=/keys/boot.luks.password.txt:UUID=$(ai.determine_partition_uuid "$ai_boot_partition_label") rd.luks.name=$(ai.determine_partition_uuid "$ai_system_partition_label")=cryptroot rd.luks.options=timeout=36000 rd.luks.options=$(ai.determine_partition_uuid "$ai_system_partition_label")=keyfile-timeout=2s root=/dev/mapper/cryptroot rw rootflags=subvol=root rootflags=x-systemd.device-timeout=36030"
         fi
         local -r kernel_command_line="initrd=\\initramfs-linux.img ${root_boot_selector} quiet loglevel=2"
         echo "\\vmlinuz-linux ${kernel_command_line}" \
@@ -755,12 +755,15 @@ ai_configure() {
     if $ai_encrypt; then
         bl.logging.info \
             Configure initramfs to support decrypting root system at boot.
-        # TODO test this shorter / faster version:
-        # 's/^(HOOKS=\().+(\))$/\1autodetect block keyboard sd-encrypt sd-vconsole systemd\2/' \
         sed \
             --in-place \
             --regexp-extended \
-            's/^(HOOKS=\().+(\))$/\1base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt filesystems fsck\2/' \
+            's/^(MODULES=\().+(\))$/\1vfat\2/' \
+            "${ai_mountpoint_path}etc/mkinitcpio.conf"
+        sed \
+            --in-place \
+            --regexp-extended \
+            's/^(HOOKS=\().+(\))$/\1base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt filesystems\2/' \
             "${ai_mountpoint_path}etc/mkinitcpio.conf"
     fi
     bl.logging.info \
@@ -1584,7 +1587,7 @@ ai_prepare_next_boot() {
         # during boot.
         # NOTE: Because of non matching "btrfs.fsck" binary it results on non
         # zero exit code.
-        ai.changeroot_to_mountpoint mkinitcpio --allpresets || trie
+        ai.changeroot_to_mountpoint mkinitcpio --allpresets || true
     fi
     if [ -b "$ai_target" ]; then
         ai.generate_fstab_configuration_file
