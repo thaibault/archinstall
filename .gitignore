@@ -55,6 +55,7 @@ build
 dist
 target
 *Bundle.*
+*.bundle.*
 *.compiled.*
 *.compiled
 *.dll-manifest.json
@@ -97,6 +98,7 @@ nosetests.xml
 .pydevproject
 
 # Vim temporary file
+.nvimlog
 .ropeproject
 .viminfo
 *.swp
