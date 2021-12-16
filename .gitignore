@@ -36,6 +36,7 @@ source/image/sprite.png
 .Trash-*
 .cache
 .config
+.gnupg
 .goutputstream-*
 .local
 .node-gyp
@@ -141,6 +142,11 @@ yarn-error.log
 
 # JavaScript / TypeScript
 *.ngfactory.ts
+*.d.ts
+types/*.d.ts
+@types/*.d.ts
+typings/*.d.ts
+!declarations.d.ts
 
 # Python
 __pycache__
@@ -150,7 +156,7 @@ __pycache__
 *.crdownload
 
 # Project specific
-# ...
+*.js
 # region vim modline
 # vim: set tabstop=4 shiftwidth=4 expandtab:
 # vim: foldmethod=marker foldmarker=region,endregion:
