@@ -31,12 +31,11 @@ environment. You can create your own linux distribution based on the rolling
 released ArchLinux. A rock solid decorator pattern allows to automate a fully
 unattended individual installation process.
 
-<!--|deDE:Inhalt-->
-Content
--------
-
 <!--Place for automatic generated table of contents.-->
-[TOC]
+<div class="doc-toc" style="display:none">
+    <!--|deDE:Inhalt-->
+    <h2 id="content">Content</h2>
+</div>
 
 <!--|deDE:Einstieg-->
 Quick-Start
