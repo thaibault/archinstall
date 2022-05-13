@@ -51,25 +51,24 @@ Simply load the newest version from:
 
 ```bash
 >>> curl https://goo.gl/YbxT3F >archinstall.sh && chmod +x archinstall.sh
-
 ```
 
 oder ohne Link-Shortener:
 
 ```bash
 >>> curl \
-        https://torben.website/archinstall/data/distributionBundle/archinstall.sh \
-            >archinstall.sh && \
-        chmod +x archinstall.sh
+    https://torben.website/archinstall/data/distributionBundle/archinstall.sh \
+        >archinstall.sh && \
+    chmod +x archinstall.sh
 ```
 
 neuste unstable Version:
 
 ```bash
 >>> curl \
-        https://raw.githubusercontent.com/thaibault/archinstall/master/archinstall.sh \
-            >archinstall.sh && \
-        chmod +x archinstall.sh
+    https://raw.githubusercontent.com/thaibault/archinstall/master/archinstall.sh \
+        >archinstall.sh && \
+    chmod +x archinstall.sh
 ```
 
 archinstall ist das zentrale Modul um eine Reihe von Aufgaben im Zuge der
@@ -157,8 +156,8 @@ folgende Optionen genutzt werden:
 
 ```bash
 >>> ./archinstall.sh \
-        --boot-partition-label uefiBoot \
-        --system-partition-label system
+    --boot-partition-label uefiBoot \
+    --system-partition-label system
 ```
 
 <!--|deDE:Installation auf eine Partition-->
@@ -181,9 +180,9 @@ definieren dessen Label:
 
 ```bash
 >>> ./archinstall.sh \
-        --boot-entry-label archLinux \
-        --fallback-boot-entry-label archLinuxFallback \
-        --target /dev/sdb2
+    --boot-entry-label archLinux \
+    --fallback-boot-entry-label archLinuxFallback \
+    --target /dev/sdb2
 ```
 
 <!--|deDE:Installation in Ordner-->
