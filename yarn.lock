@@ -30,9 +30,9 @@ detect-node@^2.0.4:
   integrity sha512-T0NIuQpnTvFDATNuHN5roPwSBG83rFsuO+MXXH9/3N1eFbn4wcPjttvjMLEPWJ0RGUYgQE7cGgS3tNxbqCGM7g==
 
 documentation-website@*:
-  version "1.0.273"
-  resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.273.tgz#d48f0062c3bcd1cf1c8ff35b52e3a036f66cde96"
-  integrity sha512-+oK0RcY3VZMLjUcdyYy52BFlMaAMRaP2tw049aVRvgFpGZ2fDzzi6mn/BMEsDFU7vb6gx2xKKnmGVled8zB/uA==
+  version "1.0.275"
+  resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.275.tgz#d92e7e56262bc25191f3b121cff58359b383bd24"
+  integrity sha512-5tg7am5a2CuYqHBF5/ZJrdAm988R+qakz0Y28SOIDj9GAiASEbB+956j2aU8zjyEc1hesHlJlmgsx8yjEL5E2Q==
   dependencies:
     "@types/webpack" "https://registry.yarnpkg.com/@favware/skip-dependency/-/skip-dependency-1.1.1.tgz"
 
