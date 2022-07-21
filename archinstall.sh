@@ -640,7 +640,7 @@ EOF
 
         cat << EOF 1>>"${ai_mountpoint_path}boot/loader/entries/default.conf"
 title   default
-linux   /vmlinuz-linux.signed
+linux   /vmlinuz-linux
 initrd  /initramfs-linux.img
 
 options ${kernel_command_line_options}
