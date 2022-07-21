@@ -287,6 +287,10 @@ ai_get_commandline_option_description() {
 
 
 -x --timeout NUMBER_OF_SECONDS Defines time to wait for requests (default: $ai_network_timeout_in_seconds).
+
+Presets:
+
+-A TARGET Is the same as "--auto-partitioning --debug --host-name archlinux --target TARGET".
 EOF
 }
 alias ai.get_help_message=ai_get_help_message
@@ -480,14 +484,27 @@ ai_commandline_interface() {
                 shift
                 ;;
 
+            -A)
+                shift
+
+                ai_auto_partitioning=true
+                ai_host_name=archlinux
+                ai_target="$1"
+
+                bl.logging.set_level debug
+
+                shift
+                ;;
+
             '')
                 shift || \
                     true
                 break
                 ;;
             *)
-                logging.error "Given argument: \"$1\" is not available."
+                logging.error Given argument: \"$1\" is not available.
                 bl.logging.plain "$(ai.get_help_message)"
+
                 return 1
         esac
     done
