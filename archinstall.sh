@@ -1709,9 +1709,8 @@ ai_with_existing_pacman() {
                 1>"${ai_cache_path}patchedOfflinePacstrap.sh"
         chmod +x "${ai_cache_path}patchedOfflinePacstrap.sh"
         "${ai_cache_path}patchedOfflinePacstrap.sh" \
-            -d "$ai_mountpoint_path" \
-            "${ai_packages[@]}" \
-            --overwrite
+            "$ai_mountpoint_path" \
+            "${ai_packages[@]}"
         local return_code=$?
         rm "${ai_cache_path}patchedOfflinePacstrap.sh"
         return $return_code
