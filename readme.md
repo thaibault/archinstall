@@ -17,11 +17,6 @@ Project status
 [![npm](https://img.shields.io/npm/v/archinstall?color=%23d55e5d&label=npm%20package%20version&logoColor=%23d55e5d)](https://www.npmjs.com/package/archinstall)
 [![npm downloads](https://img.shields.io/npm/dy/archinstall.svg)](https://www.npmjs.com/package/archinstall)
 
-<!-- Too unstable yet
-[![dependencies](https://img.shields.io/david/thaibault/archinstall.svg)](https://david-dm.org/thaibault/archinstall)
-[![development dependencies](https://img.shields.io/david/dev/thaibault/archinstall.svg)](https://david-dm.org/thaibault/archinstall?type=dev)
-[![peer dependencies](https://img.shields.io/david/peer/thaibault/archinstall.svg)](https://david-dm.org/thaibault/archinstall?type=peer)
--->
 [![documentation website](https://img.shields.io/website-up-down-green-red/https/torben.website/archinstall.svg?label=documentation-website)](https://torben.website/archinstall)
 
 <!--|deDE:Einsatz-->
