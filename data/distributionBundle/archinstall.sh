@@ -124,7 +124,8 @@ declare -agr ai__optional_dependencies__=(
     'blockdev: Call block device ioctls from the command line (part of util-linux).'
     'btrfs: Control a btrfs filesystem (part of btrfs-progs).'
     'cryptsetup: Userspace setup tool for transparent encryption of block devices using dm-crypt.'
-    'efibootmgr: Manipulate the EFI Boot Manager (part of efibootmgr).'
+    # Only needed for boot without boot loader.
+    #'efibootmgr: Manipulate the EFI Boot Manager (part of efibootmgr).'
     'gdisk: Interactive GUID partition table (GPT) manipulator (part of gptfdisk).'
     # Native arch install script helper.
     'arch-chroot: Performs an arch chroot with api file system binding (part of package "arch-install-scripts").'
@@ -286,6 +287,10 @@ ai_get_commandline_option_description() {
 
 
 -x --timeout NUMBER_OF_SECONDS Defines time to wait for requests (default: $ai_network_timeout_in_seconds).
+
+Presets:
+
+-A TARGET Is the same as "--auto-partitioning --debug --host-name archlinux --target TARGET".
 EOF
 }
 alias ai.get_help_message=ai_get_help_message
@@ -479,14 +484,27 @@ ai_commandline_interface() {
                 shift
                 ;;
 
+            -A)
+                shift
+
+                ai_auto_partitioning=true
+                ai_host_name=archlinux
+                ai_target="$1"
+
+                bl.logging.set_level debug
+
+                shift
+                ;;
+
             '')
                 shift || \
                     true
                 break
                 ;;
             *)
-                logging.error "Given argument: \"$1\" is not available."
+                logging.error Given argument: \"$1\" is not available.
                 bl.logging.plain "$(ai.get_help_message)"
+
                 return 1
         esac
     done
@@ -565,45 +583,73 @@ ai_add_boot_entries() {
     local -r __documentation__='
         Creates an uefi boot entry.
     '
-    if ai.changeroot_to_mountpoint bash -c 'hash efibootmgr' \
-        2>/dev/null
-    then
+    # NOTE: See boot without boot loader down here:
+    #if ai.changeroot_to_mountpoint bash -c 'hash efibootmgr' \
+    #    2>/dev/null
+    #then
         bl.logging.info Configure efi boot manager.
-        local root_boot_selector="root=PARTLABEL=${ai_system_partition_label}"
+        local root_boot_selector="root=PARTLABEL=${ai_system_partition_label} rootflags=subvol=root"
         if $ai_encrypt; then
             mkdir --parents "${ai_mountpoint_path}boot/keys"
             echo -n "$ai_password" \
                 >"${ai_mountpoint_path}boot/keys/boot.luks.password.txt"
             root_boot_selector="rd.luks.key=$(ai.determine_partition_uuid "$ai_system_partition_label")=/keys/boot.luks.password.txt:UUID=$(ai.determine_partition_uuid "$ai_boot_partition_label") rd.luks.name=$(ai.determine_partition_uuid "$ai_system_partition_label")=cryptroot rd.luks.options=timeout=36000 rd.luks.options=$(ai.determine_partition_uuid "$ai_system_partition_label")=keyfile-timeout=2s root=/dev/mapper/cryptroot rw rootflags=subvol=root rootflags=x-systemd.device-timeout=36030"
         fi
-        local -r kernel_command_line="initrd=\\initramfs-linux.img ${root_boot_selector} quiet loglevel=2"
+        local -r kernel_command_line_options="${root_boot_selector} quiet loglevel=2"
+        local -r kernel_command_line="initrd=\\initramfs-linux.img ${kernel_command_line_options}"
         echo "\\vmlinuz-linux ${kernel_command_line}" \
             >"${ai_mountpoint_path}/boot/startup.nsh"
-        ai.changeroot_to_mountpoint efibootmgr \
-            --create \
-            --disk "$ai_target" \
-            --label "$ai_fallback_boot_entry_label" \
-            --loader '\vmlinuz-linux' \
-            --part 1 \
-            --unicode \
-            "initrd=\\initramfs-linux-fallback.img ${root_boot_selector} break=premount break=postmount" || \
-                bl.logging.warn \
-                    "Adding boot entry \"${ai_fallback_boot_entry_label}\" failed."
+
+        # Version to skip boot loader and register linux kernel as boot entry
+        # directly:
+        #
+        #ai.changeroot_to_mountpoint efibootmgr \
+        #    --create \
+        #    --disk "$ai_target" \
+        #    --label "$ai_fallback_boot_entry_label" \
+        #    --loader '\vmlinuz-linux' \
+        #    --part 1 \
+        #    --unicode \
+        #    "initrd=\\initramfs-linux-fallback.img ${root_boot_selector} break=premount break=postmount" || \
+        #        bl.logging.warn \
+        #            "Adding boot entry \"${ai_fallback_boot_entry_label}\" failed."
         # NOTE: Boot entry to boot on next reboot should be added at last.
-        ai.changeroot_to_mountpoint efibootmgr \
-            --create \
-            --disk "$ai_target" \
-            --label "$ai_boot_entry_label" \
-            --loader '\vmlinuz-linux' \
-            --part 1 \
-            --unicode \
-            "$kernel_command_line" || \
-                bl.logging.warn \
-                    "Adding boot entry \"${ai_boot_entry_label}\" failed."
-    else
-        bl.logging.warn \
-            "\"efibootmgr\" doesn't seem to be installed. Creating a boot entry failed."
-    fi
+        #ai.changeroot_to_mountpoint efibootmgr \
+        #    --create \
+        #    --disk "$ai_target" \
+        #    --label "$ai_boot_entry_label" \
+        #    --loader '\vmlinuz-linux' \
+        #    --part 1 \
+        #    --unicode \
+        #    "$kernel_command_line" || \
+        #        bl.logging.warn \
+        #            "Adding boot entry \"${ai_boot_entry_label}\" failed."
+
+        # Add boot entry via systemds bootloader.
+        ai.changeroot_to_mountpoint bootctl install
+        cat << EOF 1>>"${ai_mountpoint_path}boot/loader/loader.conf"
+# Added during installation by "archinstall".
+
+# Boot the default named boot configuration.
+default default
+# Do not show the boot selector.
+editor  0
+# Do not wait for user input.
+timeout 0
+EOF
+
+        cat << EOF 1>>"${ai_mountpoint_path}boot/loader/entries/default.conf"
+title   default
+linux   /vmlinuz-linux
+initrd  /initramfs-linux.img
+
+options ${kernel_command_line_options}
+EOF
+    #else
+    #    bl.logging.warn \
+    #        \"efibootmgr\" doesn't seem to be installed. Creating a boot \
+    #        entry failed.
+    #fi
 }
 alias ai.append_temporary_install_mirrors=ai_append_temporary_install_mirrors
 ai_append_temporary_install_mirrors() {
@@ -1709,9 +1755,8 @@ ai_with_existing_pacman() {
                 1>"${ai_cache_path}patchedOfflinePacstrap.sh"
         chmod +x "${ai_cache_path}patchedOfflinePacstrap.sh"
         "${ai_cache_path}patchedOfflinePacstrap.sh" \
-            -d "$ai_mountpoint_path" \
-            "${ai_packages[@]}" \
-            --overwrite
+            "$ai_mountpoint_path" \
+            "${ai_packages[@]}"
         local return_code=$?
         rm "${ai_cache_path}patchedOfflinePacstrap.sh"
         return $return_code
@@ -1764,7 +1809,9 @@ ai_main() {
             ai_mountpoint_path+=/
         fi
     elif [ -b "$ai_target" ]; then
-        ai_packages+=(efibootmgr)
+        # NOTE: Only needed for booting without boot loader:
+        # ai_packages+=(efibootmgr)
+        ai_packages+=()
         ai.prepare_blockdevices
         bl.exception.try
         {
