@@ -61,7 +61,7 @@ neuste unstable Version:
 
 ```bash
 >>> curl \
-    https://raw.githubusercontent.com/thaibault/archinstall/master/archinstall.sh \
+    https://raw.githubusercontent.com/thaibault/archinstall/main/archinstall.sh \
         >archinstall.sh && \
     chmod +x archinstall.sh
 ```

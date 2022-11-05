@@ -35,7 +35,7 @@ else
     if ! (
         [ -f "${bl_module_remote_module_cache_path}/module.sh" ] || \
         command curl \
-            https://raw.githubusercontent.com/thaibault/bashlink/master/module.sh \
+            https://raw.githubusercontent.com/thaibault/bashlink/main/module.sh \
                 >"${bl_module_remote_module_cache_path}/module.sh"
     ); then
         echo Needed bashlink library could not be retrieved. 1>&2
@@ -70,7 +70,7 @@ declare -gr ai__documentation__='
 
     ```bash
         curl \
-            https://raw.githubusercontent.com/thaibault/archinstall/master/archinstall.sh \
+            https://raw.githubusercontent.com/thaibault/archinstall/main/archinstall.sh \
                 >archinstall.sh && \
             chmod +x archinstall.sh
     ```
