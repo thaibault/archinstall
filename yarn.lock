@@ -7,9 +7,9 @@
   resolved "https://registry.yarnpkg.com/@favware/skip-dependency/-/skip-dependency-1.1.1.tgz#f8cae15d883ffc0abc663b5eaaa711fcc64bb5c2"
 
 bashlink@*:
-  version "1.0.225"
-  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.225.tgz#11e3ffe3333fb4232966841eaf92ca92fd478c15"
-  integrity sha512-7/RCcuZyW0IqM9Q9kE5ED7k9EtWKNbtKDngT2apX4Ke+MEJzdbLvG5dApVipYPz1YCu+cKzHXExwVubnivZEFw==
+  version "1.0.226"
+  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.226.tgz#deee8214abc9f557b629f3e3f4f2c3582528c8c2"
+  integrity sha512-BvUzRZs+1v3lZ/fA+/ljitZS36chLwHDepiYZkh0mc8JcUtY2V1rBOmYkQ2XeOmgKYB+nVqA/2ZxZUqkL91QvQ==
 
 boolean@^3.0.1:
   version "3.2.0"
@@ -30,9 +30,9 @@ detect-node@^2.0.4:
   integrity sha512-T0NIuQpnTvFDATNuHN5roPwSBG83rFsuO+MXXH9/3N1eFbn4wcPjttvjMLEPWJ0RGUYgQE7cGgS3tNxbqCGM7g==
 
 documentation-website@*:
-  version "1.0.280"
-  resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.280.tgz#7d26cf30a315dda2958e8accb64c5bc09837529b"
-  integrity sha512-GIBI2JQiAAAuWtGBnAE3g9smdAbjYLEehf0KEvkzNpUHjB8a3AHHfLyCauUrsgP/SA5W054ahGnH/ghiDVQrgQ==
+  version "1.0.283"
+  resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.283.tgz#acbe07c2fd6f74107b8221c87a9735a502fbe3b4"
+  integrity sha512-NVWAm/q+Gh34MWRqYrrBvZ7U6wgVzlCKdPmms5odPTP1bfZc+S6QAgSv8whogJQsgw+wy7OpCdnHFX89SP1KzQ==
   dependencies:
     "@types/webpack" "https://registry.yarnpkg.com/@favware/skip-dependency/-/skip-dependency-1.1.1.tgz"
 
