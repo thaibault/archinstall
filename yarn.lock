@@ -2,14 +2,10 @@
 # yarn lockfile v1
 
 
-"@types/webpack@https://registry.yarnpkg.com/@favware/skip-dependency/-/skip-dependency-1.1.1.tgz":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@favware/skip-dependency/-/skip-dependency-1.1.1.tgz#f8cae15d883ffc0abc663b5eaaa711fcc64bb5c2"
-
 bashlink@*:
-  version "1.0.226"
-  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.226.tgz#deee8214abc9f557b629f3e3f4f2c3582528c8c2"
-  integrity sha512-BvUzRZs+1v3lZ/fA+/ljitZS36chLwHDepiYZkh0mc8JcUtY2V1rBOmYkQ2XeOmgKYB+nVqA/2ZxZUqkL91QvQ==
+  version "1.0.229"
+  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.229.tgz#d0b0033f8c5acc5deeb45d3af4d0e3447a94176d"
+  integrity sha512-TFfli6P1kdH8RUx2NIqk7gvQdWO0U2Ai3RHWOYAX8o9hFTWIQkpHCJSlYZOYmvczXdryWd5tKGO5HkoqtQoiRw==
 
 boolean@^3.0.1:
   version "3.2.0"
@@ -30,11 +26,9 @@ detect-node@^2.0.4:
   integrity sha512-T0NIuQpnTvFDATNuHN5roPwSBG83rFsuO+MXXH9/3N1eFbn4wcPjttvjMLEPWJ0RGUYgQE7cGgS3tNxbqCGM7g==
 
 documentation-website@*:
-  version "1.0.283"
-  resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.283.tgz#acbe07c2fd6f74107b8221c87a9735a502fbe3b4"
-  integrity sha512-NVWAm/q+Gh34MWRqYrrBvZ7U6wgVzlCKdPmms5odPTP1bfZc+S6QAgSv8whogJQsgw+wy7OpCdnHFX89SP1KzQ==
-  dependencies:
-    "@types/webpack" "https://registry.yarnpkg.com/@favware/skip-dependency/-/skip-dependency-1.1.1.tgz"
+  version "1.0.289"
+  resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.289.tgz#573246949efff554d562a80a724d911f5e85f4d3"
+  integrity sha512-c76mZJqhvA1PzVvpNvuUFdBW4GE5qx5GGJH2pdd2Po/1tNxnWrI2xKeyOAFXE72ar5R75RzNIqrTcIRW/CL6Gg==
 
 es6-error@^4.1.1:
   version "4.1.1"
