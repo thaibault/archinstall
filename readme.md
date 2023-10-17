@@ -14,10 +14,10 @@ endregion -->
 Project status
 --------------
 
-[![npm](https://img.shields.io/npm/v/archinstall?color=%23d55e5d&label=npm%20package%20version&logoColor=%23d55e5d)](https://www.npmjs.com/package/archinstall)
-[![npm downloads](https://img.shields.io/npm/dy/archinstall.svg)](https://www.npmjs.com/package/archinstall)
+[![npm](https://img.shields.io/npm/v/archinstall?color=%23d55e5d&label=npm%20package%20version&logoColor=%23d55e5d&style=for-the-badge)](https://www.npmjs.com/package/archinstall)
+[![npm downloads](https://img.shields.io/npm/dy/archinstall.svg?style=for-the-badge)](https://www.npmjs.com/package/archinstall)
 
-[![documentation website](https://img.shields.io/website-up-down-green-red/https/torben.website/archinstall.svg?label=documentation-website)](https://torben.website/archinstall)
+[![documentation website](https://img.shields.io/website-up-down-green-red/https/torben.website/archinstall.svg?label=documentation-website&style=for-the-badge)](https://torben.website/archinstall)
 
 <!--|deDE:Einsatz-->
 Use case
