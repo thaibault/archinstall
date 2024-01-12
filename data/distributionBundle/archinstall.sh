@@ -1,4 +1,474 @@
- -o|--cache-path)
+#!/usr/bin/env bash
+# -*- coding: utf-8 -*-
+# region header
+# [Project page](https://torben.website/archinstall)
+
+# Copyright Torben Sickert (info["~at~"]torben.website) 16.12.2012
+
+# License
+# -------
+
+# This library written by Torben Sickert stand under a creative commons naming
+# 3.0 unported license. See https://creativecommons.org/licenses/by/3.0/deed.de
+# endregion
+# shellcheck disable=SC1004,SC2016,SC2034,SC2155
+# region import
+alias ai.download=ai_download
+ai_download() {
+    local -r __documentation__='
+        Simply downloads missing modules.
+
+        >>> ai.download --silent https://domain.tld/path/to/file.ext; echo $?
+        6
+    '
+    command curl --insecure "$@"
+    return $?
+}
+
+if [ -f "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh" ]; then
+    # shellcheck disable=SC1090
+    source "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh"
+elif [ -f "/usr/lib/bashlink/module.sh" ]; then
+    # shellcheck disable=SC1091
+    source "/usr/lib/bashlink/module.sh"
+else
+    declare -g ai_cache_path="$(
+        echo "$@" | \
+            sed \
+                --regexp-extended \
+                's/(^| )(-o|--cache-path)(=| +)(.+[^ ])($| +-)/\4/'
+    )"
+    [ "$ai_cache_path" = "$*" ] && \
+        ai_cache_path=archInstallCache
+    ai_cache_path="${ai_cache_path%/}/"
+    declare -gr bl_module_remote_module_cache_path="${ai_cache_path}bashlink"
+    mkdir --parents "$bl_module_remote_module_cache_path"
+    declare -gr bl_module_retrieve_remote_modules=true
+    if ! (
+        [ -f "${bl_module_remote_module_cache_path}/module.sh" ] || \
+        ai_download \
+            https://raw.githubusercontent.com/thaibault/bashlink/main/module.sh \
+                >"${bl_module_remote_module_cache_path}/module.sh"
+    ); then
+        echo Needed bashlink library could not be retrieved. 1>&2
+        rm \
+            --force \
+            --recursive \
+            "${bl_module_remote_module_cache_path}/module.sh"
+        exit 1
+    fi
+    # shellcheck disable=SC1091
+    source "${bl_module_remote_module_cache_path}/module.sh"
+fi
+bl.module.import bashlink.changeroot
+bl.module.import bashlink.dictionary
+bl.module.import bashlink.exception
+bl.module.import bashlink.logging
+bl.module.import bashlink.number
+bl.module.import bashlink.tools
+# endregion
+# region variables
+declare -gr ai__documentation__='
+    This module installs a linux from scratch by the arch way. You will end up
+    in ligtweigth linux with pacman as packet manager. You can directly install
+    into a given blockdevice, partition or any directory (see command line
+    option "--target"). Note that every needed information which is not given
+    via command line will be asked interactively on start. This script is as
+    unnatted it could be, which means you can relax after providing all needed
+    informations in the beginning till your new system is ready to boot.
+
+    Start install progress command (Assuming internet is available):
+
+    ```bash
+        curl \
+            https://raw.githubusercontent.com/thaibault/archinstall/main/archinstall.sh \
+                >archinstall.sh && \
+            chmod +x archinstall.sh
+    ```
+
+    Note that you only get very necessary output until you provide "--verbose"
+    as commandline option.
+
+    Examples:
+
+    Start install progress command on first found blockdevice:
+
+    ```bash
+        arch-install --target /dev/sda
+    ```
+
+    Install directly into a given partition with verbose output:
+
+    ```bash
+        arch-install --target /dev/sda1 --verbose
+    ```
+
+    Install directly into a given directory with additional packages included:
+
+    ```bash
+        arch-install --target /dev/sda1 --verbose -f vim net-tools
+    ```
+'
+declare -agr ai__dependencies__=(
+    bash
+    cat
+    chroot
+    curl
+    grep
+    ln
+    lsblk
+    mktemp
+    mount
+    mountpoint
+    rm
+    sed
+    sort
+    sync
+    touch
+    tar
+    uname
+    which
+    xz
+)
+declare -agr ai__optional_dependencies__=(
+    # Dependencies for blockdevice integration
+    'blockdev: Call block device ioctls from the command line (part of util-linux).'
+    'btrfs: Control a btrfs filesystem (part of btrfs-progs).'
+    'cryptsetup: Userspace setup tool for transparent encryption of block devices using dm-crypt.'
+    # Only needed for boot without boot loader.
+    #'efibootmgr: Manipulate the EFI Boot Manager (part of efibootmgr).'
+    'gdisk: Interactive GUID partition table (GPT) manipulator (part of gptfdisk).'
+    # Native arch install script helper.
+    'arch-chroot: Performs an arch chroot with api file system binding (part of package "arch-install-scripts").'
+    # Needed for smart dos filesystem labeling, installing without root
+    # permissions or automatic network configuration.
+    'dosfslabel: Handle dos file systems (part of dosfstools).'
+    'fakeroot: Run a command in an environment faking root privileges for file manipulation.'
+    'fakechroot: Wraps some c-lib functions to enable programs like "chroot" running without root privileges.'
+    'ip: Determines network adapter (part of iproute2).'
+    'os-prober: Detects presence of other operating systems.'
+    'pacstrap: Installs arch linux from an existing linux system (part of package "arch-install-scripts").'
+)
+declare -agr ai_basic_packages=(base linux ntp which)
+declare -agr ai_common_additional_packages=(base-devel python sudo)
+
+declare -ag ai_additional_packages=()
+declare -g ai_add_common_additional_packages=false
+# After determining dependencies a list like this will be stored:
+# "bash", "curl", "glibc", "openssl", "pacman", "readline", "xz", "tar" ...
+declare -ag ai_needed_packages=(filesystem pacman)
+
+# Defines where to mount temporary new filesystem.
+# NOTE: Path has to be end with a system specified delimiter.
+declare -g ai_mountpoint_path=/mnt/
+
+bl.dictionary.set ai_known_dependency_aliases libncursesw.so ncurses
+
+declare -ag ai_package_source_urls=(
+    'https://www.archlinux.org/mirrorlist/?country=DE&protocol=http&ip_version=4&use_mirror_status=on'
+)
+declare -ag ai_package_urls=(
+    https://mirrors.kernel.org/archlinux
+)
+
+declare -gi ai_network_timeout_in_seconds=6
+
+declare -ag ai_unneeded_file_locations=(.INSTALL .PKGINFO var/cache/pacman)
+## region command line arguments
+
+declare -g ai_auto_partitioning=false
+declare -g ai_boot_entry_label=archLinux
+declare -g ai_boot_partition_label=uefiBoot
+# NOTE: A FAT32 partition has to be at least 2048 MB large.
+declare -gi ai_boot_space_in_mega_byte=2048
+declare -g ai_fallback_boot_entry_label=archLinuxFallback
+
+declare -gi ai_needed_system_space_in_mega_byte=512
+declare -g ai_system_partition_label=system
+declare -g ai_system_partition_installation_only=false
+
+# NOTE: Each value which is present in "/etc/pacman.d/mirrorlist" is ok.
+declare -g ai_country_with_mirrors=Germany
+# NOTE: This properties aren't needed in the future with supporting "localectl"
+# program.
+declare -g ai_local_time=EUROPE/Berlin
+
+# NOTE: Possible constant values are "i686", "x86_64" "arm" or "any".
+declare -g ai_cpu_architecture="$(uname -m)"
+
+declare -g ai_host_name=''
+
+declare -g ai_keyboard_layout=de-latin1
+declare -g ai_key_map_configuration_file_content="KEYMAP=${ai_keyboard_layout}"$'\nFONT=Lat2-Terminus16\nFONT_MAP='
+
+declare -ag ai_needed_services=(ntpd systemd-networkd systemd-resolved)
+
+declare -g ai_target=archInstall
+
+declare -g ai_encrypt=false
+declare -g ai_password=root
+declare -ag ai_user_names=()
+
+declare -g ai_prevent_using_native_arch_changeroot=false
+declare -g ai_prevent_using_existing_pacman=false
+declare -g ai_automatic_reboot=false
+## endregion
+bl_module_scope_rewrites+=('^archinstall([._][a-zA-Z_-]+)?$/ai\1/')
+# endregion
+# region functions
+## region command line interface
+alias ai.get_commandline_option_description=ai_get_commandline_option_description
+ai_get_commandline_option_description() {
+    local -r __documentation__='
+        Prints descriptions about each available command line option.
+        NOTE: All letters are used for short options.
+        NOTE: "-k" and "--key-map-configuration" is not needed in the future.
+
+        >>> ai.get_commandline_option_description
+        +bl.doctest.contains
+        +bl.doctest.multiline_ellipsis
+        -h --help Shows this help message.
+        ...
+    '
+    cat << EOF
+-h --help Shows this help message.
+
+-v --verbose Tells you what is going on.
+
+-d --debug Gives you any output from all tools which are used.
+
+
+-u --user-names [USER_NAMES [USER_NAMES ...]], Defines user names for new system (default: "${ai_user_names[@]}").
+
+-n --host-name HOST_NAME Defines name for new system (default: "$ai_host_name").
+
+
+-c --cpu-architecture CPU_ARCHITECTURE Defines architecture (default: "$ai_cpu_architecture").
+
+-t --target TARGET Defines where to install new operating system. You can provide a full disk or patition via blockdevice such as "/dev/sda" or "/dev/sda1". You can also provide a diretory path such as "/tmp/lifesystem" (default: "$ai_target").
+
+
+-l --local-time LOCAL_TIME Local time for you system (default: "$ai_local_time").
+
+-i --keyboard-layout LAYOUT Defines needed keyboard layout (default: "$ai_keyboard_layout").
+
+-k --key-map-configuration FILE_CONTENT Keyboard map configuration (default: "$ai_key_map_configuration_file_content").
+
+-m --country-with-mirrors COUNTRY Country for enabling servers to get packages from (default: "$ai_country_with_mirrors").
+
+
+-r --reboot Reboot after finishing installation.
+
+-p --prevent-using-existing-pacman Ignores presence of pacman to use it for install operating system (default: "$ai_prevent_using_existing_pacman").
+
+-y --prevent-using-native-arch-chroot Ignores presence of "arch-chroot" to use it for chroot into newly created operating system (default: "$ai_prevent_using_native_arch_changeroot").
+
+-a --auto-partioning Defines to do partitioning on founded block device automatic.
+
+
+-b --boot-partition-label LABEL Partition label for uefi boot partition (default: "$ai_boot_partition_label").
+
+-s --system-partition-label LABEL Partition label for system partition (default: "$ai_system_partition_label").
+
+
+-e --boot-entry-label LABEL Boot entry label (default: "$ai_boot_entry_label").
+
+-f --fallback-boot-entry-label LABEL Fallback boot entry label (default: "$ai_fallback_boot_entry_label").
+
+
+-w --boot-space-in-mega-byte NUMBER In case if selected auto partitioning you can define the minimum space needed for your boot partition (default: "$ai_boot_space_in_mega_byte megabyte"). This partition is used for kernel and initramfs only.
+
+-q --needed-system-space-in-mega-byte NUMBER In case if selected auto partitioning you can define the minimum space needed for your system partition (default: "$ai_needed_system_space_in_mega_byte megabyte"). This partition is used for the whole operating system.
+
+
+-z --install-common-additional-packages, (default: "$ai_add_common_additional_packages") If present the following packages will be installed: "${ai_common_additional_packages[*]}".
+
+-g --additional-packages [PACKAGES [PACKAGES ...]], You can give a list with additional available packages (default: "${ai_additional_packages[@]}").
+
+-j --needed-services [SERVICES [SERVICES ...]], You can give a list with additional available services (default: "${ai_needed_services[@]}").
+
+-o --cache-path PATH Define where to load and save downloaded dependencies (default: "$ai_cache_path").
+
+
+-S --system-partition-installation-only Interpret given input as single partition to use as target only (Will be determined automatically if not set explicitely).
+
+-E --encrypt Encrypts system partition.
+
+-P --password Password to use for root login (and encryption if corresponding flag is set).
+
+
+-x --timeout NUMBER_OF_SECONDS Defines time to wait for requests (default: $ai_network_timeout_in_seconds).
+
+Presets:
+
+-A TARGET Is the same as "--auto-partitioning --debug --host-name archlinux --target TARGET".
+EOF
+}
+alias ai.get_help_message=ai_get_help_message
+ai_get_help_message() {
+    local -r __documentation__='
+        Provides a help message for this module.
+
+        >>> ai.get_help_message
+        +bl.doctest.contains
+        +bl.doctest.multiline_ellipsis
+        ...
+        Usage: arch-install [options]
+        ...
+    '
+    echo -e $'\nUsage: arch-install [options]\n'
+    echo -e "$ai__documentation__"
+    echo -e $'\nOption descriptions:\n'
+    ai.get_commandline_option_description "$@"
+    echo
+}
+# NOTE: Depends on "ai.get_commandline_option_description" and
+# "ai.get_help_message".
+alias ai.commandline_interface=ai_commandline_interface
+ai_commandline_interface() {
+    local -r __documentation__='
+        Provides the command line interface and interactive questions.
+
+        >>> ai.commandline_interface --help
+        +bl.doctest.contains
+        +bl.doctest.multiline_ellipsis
+        ...
+        Usage: arch-install [options]
+        ...
+    '
+    bl.logging.set_command_level debug
+    while true; do
+        case "$1" in
+            -h|--help)
+                shift
+                bl.logging.plain "$(ai.get_help_message "$0")"
+                exit 0
+                ;;
+            -v|--verbose)
+                shift
+                if ! bl.logging.is_enabled info; then
+                    bl.logging.set_level info
+                fi
+                ;;
+            -d|--debug)
+                shift
+                bl.logging.set_level debug
+                ;;
+
+            -u|--user-names)
+                shift
+                while [[ "$1" =~ ^[^-].+$ ]]; do
+                    ai_user_names+=("$1")
+                    shift
+                done
+                ;;
+            -n|--host-name)
+                shift
+                ai_host_name="$1"
+                shift
+                ;;
+
+            -c|--cpu-architecture)
+                shift
+                ai_cpu_architecture="$1"
+                shift
+                ;;
+            -t|--target)
+                shift
+                ai_target="$1"
+                shift
+                ;;
+
+            -l|--local-time)
+                shift
+                ai_local_time="$1"
+                shift
+                ;;
+            -i|--keyboard-layout)
+                shift
+                ai_keyboard_layout="$1"
+                shift
+                ;;
+            -k|--key-map-configuation)
+                shift
+                ai_key_map_configuration_file_content="$1"
+                shift
+                ;;
+            -m|--country-with-mirrors)
+                shift
+                ai_country_with_mirrors="$1"
+                shift
+                ;;
+
+            -r|--reboot)
+                shift
+                ai_automatic_reboot=true
+                ;;
+            -a|--auto-partitioning)
+                shift
+                ai_auto_partitioning=true
+                ;;
+            -p|--prevent-using-existing-pacman)
+                shift
+                ai_prevent_using_existing_pacman=true
+                ;;
+            -y|--prevent-using-native-arch-chroot)
+                shift
+                ai_prevent_using_native_arch_changeroot=true
+                ;;
+
+            -b|--boot-partition-label)
+                shift
+                ai_boot_partition_label="$1"
+                shift
+                ;;
+            -s|--system-partition-label)
+                shift
+                ai_system_partition_label="$1"
+                shift
+                ;;
+
+            -e|--boot-entry-label)
+                shift
+                ai_boot_entry_label="$1"
+                shift
+                ;;
+            -f|--fallback-boot-entry-label)
+                shift
+                ai_fallback_boot_entry_label="$1"
+                shift
+                ;;
+
+            -w|--boot-space-in-mega-byte)
+                shift
+                ai_boot_space_in_mega_byte="$1"
+                shift
+                ;;
+            -q|--needed-system-space-in-mega-byte)
+                shift
+                ai_needed_system_space_in_mega_byte="$1"
+                shift
+                ;;
+
+            -z|--add-common-additional-packages)
+                shift
+                ai_add_common_additional_packages=true
+                ;;
+            -g|--additional-packages)
+                shift
+                while [[ "$1" =~ ^[^-].+$ ]]; do
+                    ai_additional_packages+=("$1")
+                    shift
+                done
+                ;;
+            -j|--needed-services)
+                shift
+                while [[ "$1" =~ ^[^-].+$ ]]; do
+                    ai_needed_services+=("$1")
+                    shift
+                done
+                ;;
+            -o|--cache-path)
                 shift
                 ai_cache_path="${1%/}/"
                 shift
@@ -462,466 +932,7 @@ ai_determine_auto_partitioning() {
             local auto_partitioning
             read -r auto_partitioning
             if \
-         #!/usr/bin/env bash
-# -*- coding: utf-8 -*-
-# region header
-# [Project page](https://torben.website/archinstall)
-
-# Copyright Torben Sickert (info["~at~"]torben.website) 16.12.2012
-
-# License
-# -------
-
-# This library written by Torben Sickert stand under a creative commons naming
-# 3.0 unported license. See https://creativecommons.org/licenses/by/3.0/deed.de
-# endregion
-# shellcheck disable=SC1004,SC2016,SC2034,SC2155
-# region import
-if [ -f "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh" ]; then
-    # shellcheck disable=SC1090
-    source "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh"
-elif [ -f "/usr/lib/bashlink/module.sh" ]; then
-    # shellcheck disable=SC1091
-    source "/usr/lib/bashlink/module.sh"
-else
-    declare -g ai_cache_path="$(
-        echo "$@" | \
-            sed \
-                --regexp-extended \
-                's/(^| )(-o|--cache-path)(=| +)(.+[^ ])($| +-)/\4/'
-    )"
-    [ "$ai_cache_path" = "$*" ] && \
-        ai_cache_path=archInstallCache
-    ai_cache_path="${ai_cache_path%/}/"
-    declare -gr bl_module_remote_module_cache_path="${ai_cache_path}bashlink"
-    mkdir --parents "$bl_module_remote_module_cache_path"
-    declare -gr bl_module_retrieve_remote_modules=true
-    if ! (
-        [ -f "${bl_module_remote_module_cache_path}/module.sh" ] || \
-        command curl \
-            https://raw.githubusercontent.com/thaibault/bashlink/main/module.sh \
-                >"${bl_module_remote_module_cache_path}/module.sh"
-    ); then
-        echo Needed bashlink library could not be retrieved. 1>&2
-        rm \
-            --force \
-            --recursive \
-            "${bl_module_remote_module_cache_path}/module.sh"
-        exit 1
-    fi
-    # shellcheck disable=SC1091
-    source "${bl_module_remote_module_cache_path}/module.sh"
-    rm --force --recursive "${bl_module_remote_module_cache_path}/module.sh"
-fi
-bl.module.import bashlink.changeroot
-bl.module.import bashlink.dictionary
-bl.module.import bashlink.exception
-bl.module.import bashlink.logging
-bl.module.import bashlink.number
-bl.module.import bashlink.tools
-# endregion
-# region variables
-declare -gr ai__documentation__='
-    This module installs a linux from scratch by the arch way. You will end up
-    in ligtweigth linux with pacman as packet manager. You can directly install
-    into a given blockdevice, partition or any directory (see command line
-    option "--target"). Note that every needed information which is not given
-    via command line will be asked interactively on start. This script is as
-    unnatted it could be, which means you can relax after providing all needed
-    informations in the beginning till your new system is ready to boot.
-
-    Start install progress command (Assuming internet is available):
-
-    ```bash
-        curl \
-            https://raw.githubusercontent.com/thaibault/archinstall/main/archinstall.sh \
-                >archinstall.sh && \
-            chmod +x archinstall.sh
-    ```
-
-    Note that you only get very necessary output until you provide "--verbose"
-    as commandline option.
-
-    Examples:
-
-    Start install progress command on first found blockdevice:
-
-    ```bash
-        arch-install --target /dev/sda
-    ```
-
-    Install directly into a given partition with verbose output:
-
-    ```bash
-        arch-install --target /dev/sda1 --verbose
-    ```
-
-    Install directly into a given directory with additional packages included:
-
-    ```bash
-        arch-install --target /dev/sda1 --verbose -f vim net-tools
-    ```
-'
-declare -agr ai__dependencies__=(
-    bash
-    cat
-    chroot
-    curl
-    grep
-    ln
-    lsblk
-    mktemp
-    mount
-    mountpoint
-    rm
-    sed
-    sort
-    sync
-    touch
-    tar
-    uname
-    which
-    xz
-)
-declare -agr ai__optional_dependencies__=(
-    # Dependencies for blockdevice integration
-    'blockdev: Call block device ioctls from the command line (part of util-linux).'
-    'btrfs: Control a btrfs filesystem (part of btrfs-progs).'
-    'cryptsetup: Userspace setup tool for transparent encryption of block devices using dm-crypt.'
-    # Only needed for boot without boot loader.
-    #'efibootmgr: Manipulate the EFI Boot Manager (part of efibootmgr).'
-    'gdisk: Interactive GUID partition table (GPT) manipulator (part of gptfdisk).'
-    # Native arch install script helper.
-    'arch-chroot: Performs an arch chroot with api file system binding (part of package "arch-install-scripts").'
-    # Needed for smart dos filesystem labeling, installing without root
-    # permissions or automatic network configuration.
-    'dosfslabel: Handle dos file systems (part of dosfstools).'
-    'fakeroot: Run a command in an environment faking root privileges for file manipulation.'
-    'fakechroot: Wraps some c-lib functions to enable programs like "chroot" running without root privileges.'
-    'ip: Determines network adapter (part of iproute2).'
-    'os-prober: Detects presence of other operating systems.'
-    'pacstrap: Installs arch linux from an existing linux system (part of package "arch-install-scripts").'
-)
-declare -agr ai_basic_packages=(base linux ntp which)
-declare -agr ai_common_additional_packages=(base-devel python sudo)
-
-declare -ag ai_additional_packages=()
-declare -g ai_add_common_additional_packages=false
-# After determining dependencies a list like this will be stored:
-# "bash", "curl", "glibc", "openssl", "pacman", "readline", "xz", "tar" ...
-declare -ag ai_needed_packages=(filesystem pacman)
-
-# Defines where to mount temporary new filesystem.
-# NOTE: Path has to be end with a system specified delimiter.
-declare -g ai_mountpoint_path=/mnt/
-
-bl.dictionary.set ai_known_dependency_aliases libncursesw.so ncurses
-
-declare -ag ai_package_source_urls=(
-    'https://www.archlinux.org/mirrorlist/?country=DE&protocol=http&ip_version=4&use_mirror_status=on'
-)
-declare -ag ai_package_urls=(
-    https://mirrors.kernel.org/archlinux
-)
-
-declare -gi ai_network_timeout_in_seconds=6
-
-declare -ag ai_unneeded_file_locations=(.INSTALL .PKGINFO var/cache/pacman)
-## region command line arguments
-
-declare -g ai_auto_partitioning=false
-declare -g ai_boot_entry_label=archLinux
-declare -g ai_boot_partition_label=uefiBoot
-# NOTE: A FAT32 partition has to be at least 2048 MB large.
-declare -gi ai_boot_space_in_mega_byte=2048
-declare -g ai_fallback_boot_entry_label=archLinuxFallback
-
-declare -gi ai_needed_system_space_in_mega_byte=512
-declare -g ai_system_partition_label=system
-declare -g ai_system_partition_installation_only=false
-
-# NOTE: Each value which is present in "/etc/pacman.d/mirrorlist" is ok.
-declare -g ai_country_with_mirrors=Germany
-# NOTE: This properties aren't needed in the future with supporting "localectl"
-# program.
-declare -g ai_local_time=EUROPE/Berlin
-
-# NOTE: Possible constant values are "i686", "x86_64" "arm" or "any".
-declare -g ai_cpu_architecture="$(uname -m)"
-
-declare -g ai_host_name=''
-
-declare -g ai_keyboard_layout=de-latin1
-declare -g ai_key_map_configuration_file_content="KEYMAP=${ai_keyboard_layout}"$'\nFONT=Lat2-Terminus16\nFONT_MAP='
-
-declare -ag ai_needed_services=(ntpd systemd-networkd systemd-resolved)
-
-declare -g ai_target=archInstall
-
-declare -g ai_encrypt=false
-declare -g ai_password=root
-declare -ag ai_user_names=()
-
-declare -g ai_prevent_using_native_arch_changeroot=false
-declare -g ai_prevent_using_existing_pacman=false
-declare -g ai_automatic_reboot=false
-## endregion
-bl_module_scope_rewrites+=('^archinstall([._][a-zA-Z_-]+)?$/ai\1/')
-# endregion
-# region functions
-## region command line interface
-alias ai.get_commandline_option_description=ai_get_commandline_option_description
-ai_get_commandline_option_description() {
-    local -r __documentation__='
-        Prints descriptions about each available command line option.
-        NOTE: All letters are used for short options.
-        NOTE: "-k" and "--key-map-configuration" is not needed in the future.
-
-        >>> ai.get_commandline_option_description
-        +bl.doctest.contains
-        +bl.doctest.multiline_ellipsis
-        -h --help Shows this help message.
-        ...
-    '
-    cat << EOF
--h --help Shows this help message.
-
--v --verbose Tells you what is going on.
-
--d --debug Gives you any output from all tools which are used.
-
-
--u --user-names [USER_NAMES [USER_NAMES ...]], Defines user names for new system (default: "${ai_user_names[@]}").
-
--n --host-name HOST_NAME Defines name for new system (default: "$ai_host_name").
-
-
--c --cpu-architecture CPU_ARCHITECTURE Defines architecture (default: "$ai_cpu_architecture").
-
--t --target TARGET Defines where to install new operating system. You can provide a full disk or patition via blockdevice such as "/dev/sda" or "/dev/sda1". You can also provide a diretory path such as "/tmp/lifesystem" (default: "$ai_target").
-
-
--l --local-time LOCAL_TIME Local time for you system (default: "$ai_local_time").
-
--i --keyboard-layout LAYOUT Defines needed keyboard layout (default: "$ai_keyboard_layout").
-
--k --key-map-configuration FILE_CONTENT Keyboard map configuration (default: "$ai_key_map_configuration_file_content").
-
--m --country-with-mirrors COUNTRY Country for enabling servers to get packages from (default: "$ai_country_with_mirrors").
-
-
--r --reboot Reboot after finishing installation.
-
--p --prevent-using-existing-pacman Ignores presence of pacman to use it for install operating system (default: "$ai_prevent_using_existing_pacman").
-
--y --prevent-using-native-arch-chroot Ignores presence of "arch-chroot" to use it for chroot into newly created operating system (default: "$ai_prevent_using_native_arch_changeroot").
-
--a --auto-paritioning Defines to do partitioning on founded block device automatic.
-
-
--b --boot-partition-label LABEL Partition label for uefi boot partition (default: "$ai_boot_partition_label").
-
--s --system-partition-label LABEL Partition label for system partition (default: "$ai_system_partition_label").
-
-
--e --boot-entry-label LABEL Boot entry label (default: "$ai_boot_entry_label").
-
--f --fallback-boot-entry-label LABEL Fallback boot entry label (default: "$ai_fallback_boot_entry_label").
-
-
--w --boot-space-in-mega-byte NUMBER In case if selected auto partitioning you can define the minimum space needed for your boot partition (default: "$ai_boot_space_in_mega_byte megabyte"). This partition is used for kernel and initramfs only.
-
--q --needed-system-space-in-mega-byte NUMBER In case if selected auto partitioning you can define the minimum space needed for your system partition (default: "$ai_needed_system_space_in_mega_byte megabyte"). This partition is used for the whole operating system.
-
-
--z --install-common-additional-packages, (default: "$ai_add_common_additional_packages") If present the following packages will be installed: "${ai_common_additional_packages[*]}".
-
--g --additional-packages [PACKAGES [PACKAGES ...]], You can give a list with additional available packages (default: "${ai_additional_packages[@]}").
-
--j --needed-services [SERVICES [SERVICES ...]], You can give a list with additional available services (default: "${ai_needed_services[@]}").
-
--o --cache-path PATH Define where to load and save downloaded dependencies (default: "$ai_cache_path").
-
-
--S --system-partition-installation-only Interpret given input as single partition to use as target only (Will be determined automatically if not set explicitely).
-
--E --encrypt Encrypts system partition.
-
--P --password Password to use for root login (and encryption if corresponding flag is set).
-
-
--x --timeout NUMBER_OF_SECONDS Defines time to wait for requests (default: $ai_network_timeout_in_seconds).
-
-Presets:
-
--A TARGET Is the same as "--auto-partitioning --debug --host-name archlinux --target TARGET".
-EOF
-}
-alias ai.get_help_message=ai_get_help_message
-ai_get_help_message() {
-    local -r __documentation__='
-        Provides a help message for this module.
-
-        >>> ai.get_help_message
-        +bl.doctest.contains
-        +bl.doctest.multiline_ellipsis
-        ...
-        Usage: arch-install [options]
-        ...
-    '
-    echo -e $'\nUsage: arch-install [options]\n'
-    echo -e "$ai__documentation__"
-    echo -e $'\nOption descriptions:\n'
-    ai.get_commandline_option_description "$@"
-    echo
-}
-# NOTE: Depends on "ai.get_commandline_option_description" and
-# "ai.get_help_message".
-alias ai.commandline_interface=ai_commandline_interface
-ai_commandline_interface() {
-    local -r __documentation__='
-        Provides the command line interface and interactive questions.
-
-        >>> ai.commandline_interface --help
-        +bl.doctest.contains
-        +bl.doctest.multiline_ellipsis
-        ...
-        Usage: arch-install [options]
-        ...
-    '
-    bl.logging.set_command_level debug
-    while true; do
-        case "$1" in
-            -h|--help)
-                shift
-                bl.logging.plain "$(ai.get_help_message "$0")"
-                exit 0
-                ;;
-            -v|--verbose)
-                shift
-                if ! bl.logging.is_enabled info; then
-                    bl.logging.set_level info
-                fi
-                ;;
-            -d|--debug)
-                shift
-                bl.logging.set_level debug
-                ;;
-
-            -u|--user-names)
-                shift
-                while [[ "$1" =~ ^[^-].+$ ]]; do
-                    ai_user_names+=("$1")
-                    shift
-                done
-                ;;
-            -n|--host-name)
-                shift
-                ai_host_name="$1"
-                shift
-                ;;
-
-            -c|--cpu-architecture)
-                shift
-                ai_cpu_architecture="$1"
-                shift
-                ;;
-            -t|--target)
-                shift
-                ai_target="$1"
-                shift
-                ;;
-
-            -l|--local-time)
-                shift
-                ai_local_time="$1"
-                shift
-                ;;
-            -i|--keyboard-layout)
-                shift
-                ai_keyboard_layout="$1"
-                shift
-                ;;
-            -k|--key-map-configuation)
-                shift
-                ai_key_map_configuration_file_content="$1"
-                shift
-                ;;
-            -m|--country-with-mirrors)
-                shift
-                ai_country_with_mirrors="$1"
-                shift
-                ;;
-
-            -r|--reboot)
-                shift
-                ai_automatic_reboot=true
-                ;;
-            -a|--auto-partitioning)
-                shift
-                ai_auto_partitioning=true
-                ;;
-            -p|--prevent-using-existing-pacman)
-                shift
-                ai_prevent_using_existing_pacman=true
-                ;;
-            -y|--prevent-using-native-arch-chroot)
-                shift
-                ai_prevent_using_native_arch_changeroot=true
-                ;;
-
-            -b|--boot-partition-label)
-                shift
-                ai_boot_partition_label="$1"
-                shift
-                ;;
-            -s|--system-partition-label)
-                shift
-                ai_system_partition_label="$1"
-                shift
-                ;;
-
-            -e|--boot-entry-label)
-                shift
-                ai_boot_entry_label="$1"
-                shift
-                ;;
-            -f|--fallback-boot-entry-label)
-                shift
-                ai_fallback_boot_entry_label="$1"
-                shift
-                ;;
-
-            -w|--boot-space-in-mega-byte)
-                shift
-                ai_boot_space_in_mega_byte="$1"
-                shift
-                ;;
-            -q|--needed-system-space-in-mega-byte)
-                shift
-                ai_needed_system_space_in_mega_byte="$1"
-                shift
-                ;;
-
-            -z|--add-common-additional-packages)
-                shift
-                ai_add_common_additional_packages=true
-                ;;
-            -g|--additional-packages)
-                shift
-                while [[ "$1" =~ ^[^-].+$ ]]; do
-                    ai_additional_packages+=("$1")
-                    shift
-                done
-                ;;
-            -j|--needed-services)
-                shift
-                while [[ "$1" =~ ^[^-].+$ ]]; do
-                    ai_needed_services+=("$1")
-                    shift
-                done
-                ;;
-                  [ "$auto_partitioning" = '' ] || \
+                [ "$auto_partitioning" = '' ] || \
                 [ "$(
                     echo "$auto_partitioning" | tr '[:upper:]' '[:lower:]'
                 )" = no ]
