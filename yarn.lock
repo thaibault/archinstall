@@ -8,9 +8,9 @@ base64-js@^1.3.1:
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
 
 bashlink@*:
-  version "1.0.237"
-  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.237.tgz#7704c6314a6762a6b6bcbb766dce51bafd7dcd19"
-  integrity sha512-9PZwMI0OVi+MuHKVt7Oe6qav6HblIq3nVzKh8VOjjp5hQz9n9hgPLWD4E6cXtuOUT6PD2ONPK7Y3WCC5Eep6ww==
+  version "1.0.243"
+  resolved "https://registry.yarnpkg.com/bashlink/-/bashlink-1.0.243.tgz#6c04941599328f304e54d71d97c91228affde9a1"
+  integrity sha512-7zawH7y8+gsej/Fn+pNFI/LSghUw24XB22vgkk22lv3cNqimKggFgQF0wEpBbYZbhs0kpt4N3QJWlvrpeOz2yg==
 
 bl@^1.0.0:
   version "1.2.3"
@@ -143,9 +143,9 @@ detect-node@^2.0.4:
   integrity sha512-T0NIuQpnTvFDATNuHN5roPwSBG83rFsuO+MXXH9/3N1eFbn4wcPjttvjMLEPWJ0RGUYgQE7cGgS3tNxbqCGM7g==
 
 documentation-website@*:
-  version "1.0.315"
-  resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.315.tgz#a4350e6b119e01547a12ead2775a40fc335ac07b"
-  integrity sha512-IEiXSgtJXvVl5NsYnYBZNWqBWCgcQvAP64hhbyEMGN6T1iiBn6+Chm8KZH3UGb5KzgVy5HyUpVF8UGr1haZQbw==
+  version "1.0.321"
+  resolved "https://registry.yarnpkg.com/documentation-website/-/documentation-website-1.0.321.tgz#c9adb6777eb4a7d8b022e75d5734b0f14d759498"
+  integrity sha512-EjEKiyWv5ID+zGNUb+Zoafp1/tY1cKBsCyljRtpHIcHQdsPW2O6I3/uw4ApKexF/Ffj34Ia8FYbnSWJGQRBNOw==
 
 end-of-stream@^1.0.0:
   version "1.4.4"

@@ -13,6 +13,18 @@
 # endregion
 # shellcheck disable=SC1004,SC2016,SC2034,SC2155
 # region import
+alias ai.download=ai_download
+ai_download() {
+    local -r __documentation__='
+        Simply downloads missing modules.
+
+        >>> ai.download --silent https://domain.tld/path/to/file.ext; echo $?
+        6
+    '
+    command curl --insecure "$@"
+    return $?
+}
+
 if [ -f "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh" ]; then
     # shellcheck disable=SC1090
     source "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh"
@@ -34,7 +46,7 @@ else
     declare -gr bl_module_retrieve_remote_modules=true
     if ! (
         [ -f "${bl_module_remote_module_cache_path}/module.sh" ] || \
-        command curl \
+        ai_download \
             https://raw.githubusercontent.com/thaibault/bashlink/main/module.sh \
                 >"${bl_module_remote_module_cache_path}/module.sh"
     ); then
@@ -47,7 +59,6 @@ else
     fi
     # shellcheck disable=SC1091
     source "${bl_module_remote_module_cache_path}/module.sh"
-    rm --force --recursive "${bl_module_remote_module_cache_path}/module.sh"
 fi
 bl.module.import bashlink.changeroot
 bl.module.import bashlink.dictionary
