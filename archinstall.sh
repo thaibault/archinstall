@@ -13,6 +13,10 @@
 # endregion
 # shellcheck disable=SC1004,SC2016,SC2034,SC2155
 # region import
+load() {
+    command curl --insecure "$@"
+}
+
 if [ -f "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh" ]; then
     # shellcheck disable=SC1090
     source "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh"
@@ -34,7 +38,7 @@ else
     declare -gr bl_module_retrieve_remote_modules=true
     if ! (
         [ -f "${bl_module_remote_module_cache_path}/module.sh" ] || \
-        command curl \
+        load \
             https://raw.githubusercontent.com/thaibault/bashlink/main/module.sh \
                 >"${bl_module_remote_module_cache_path}/module.sh"
     ); then
