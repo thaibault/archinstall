@@ -13,7 +13,14 @@
 # endregion
 # shellcheck disable=SC1004,SC2016,SC2034,SC2155
 # region import
-load() {
+alias ai.download=ai_download
+ai_download() {
+    local -r __documentation__='
+        Simply downloads missing modules.
+
+        >>> ai.download https://domain.tld/path/to/file.ext
+        1
+    '
     command curl --insecure "$@"
     return $?
 }
@@ -39,7 +46,7 @@ else
     declare -gr bl_module_retrieve_remote_modules=true
     if ! (
         [ -f "${bl_module_remote_module_cache_path}/module.sh" ] || \
-        load \
+        ai.download \
             https://raw.githubusercontent.com/thaibault/bashlink/main/module.sh \
                 >"${bl_module_remote_module_cache_path}/module.sh"
     ); then
