@@ -18,7 +18,7 @@ ai_download() {
     local -r __documentation__='
         Simply downloads missing modules.
 
-        >>> ai.download https://domain.tld/path/to/file.ext
+        >>> ai.download --silent https://domain.tld/path/to/file.ext
         1
     '
     command curl --insecure "$@"
