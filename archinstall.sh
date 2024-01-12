@@ -46,7 +46,7 @@ else
     declare -gr bl_module_retrieve_remote_modules=true
     if ! (
         [ -f "${bl_module_remote_module_cache_path}/module.sh" ] || \
-        ai.download \
+        ai_download \
             https://raw.githubusercontent.com/thaibault/bashlink/main/module.sh \
                 >"${bl_module_remote_module_cache_path}/module.sh"
     ); then
