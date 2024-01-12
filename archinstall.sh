@@ -15,6 +15,7 @@
 # region import
 load() {
     command curl --insecure "$@"
+    return $?
 }
 
 if [ -f "$(dirname "${BASH_SOURCE[0]}")/node_modules/bashlink/module.sh" ]; then
