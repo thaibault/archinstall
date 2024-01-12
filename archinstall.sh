@@ -19,7 +19,7 @@ ai_download() {
         Simply downloads missing modules.
 
         >>> ai.download --silent https://domain.tld/path/to/file.ext; echo $?
-        1
+        6
     '
     command curl --insecure "$@"
     return $?
