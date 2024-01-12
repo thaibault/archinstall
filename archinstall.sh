@@ -263,7 +263,7 @@ ai_get_commandline_option_description() {
 
 -y --prevent-using-native-arch-chroot Ignores presence of "arch-chroot" to use it for chroot into newly created operating system (default: "$ai_prevent_using_native_arch_changeroot").
 
--a --auto-paritioning Defines to do partitioning on founded block device automatic.
+-a --auto-partioning Defines to do partitioning on founded block device automatic.
 
 
 -b --boot-partition-label LABEL Partition label for uefi boot partition (default: "$ai_boot_partition_label").
