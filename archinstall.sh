@@ -882,7 +882,7 @@ ai_configure() {
         bl.logging.info "Set password for \"$user_name\" to \"$user_name\"."
         ai.changeroot_to_mountpoint \
             /usr/bin/env bash -c \
-                "echo ${user_name}:${user_name} | \$(which chpasswd)"
+                "echo '${user_name}:${user_name}' | \$(which chpasswd)"
     done
     return $?
 }
