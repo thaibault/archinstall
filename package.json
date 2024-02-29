@@ -42,7 +42,7 @@
     "lint:given": "shellcheck -x",
     "postversion": "yarn publish --non-interactive; git push --tags && git push",
     "test": "bashlink-doctest --verbose ../../archinstall; bashlink-doctest --verbose ../../pack-into-archiso",
-    "update": "yarn version --patch",
+    "update": "yarn version patch && git push --tags",
     "update:documentation": "documentation-website"
   },
   "dependencies": {
