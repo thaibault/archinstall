@@ -34,7 +34,7 @@
     "url": "https://github.com/thaibault/archinstall"
   },
   "scripts": {
-    "clear": "rm --recursive apiDocumentation &>/dev/null || true",
+    "clear": "[ ! -e apiDocumentation ] || rm --recursive apiDocumentation",
     "document": "mkdir --parents apiDocumentation/archinstall/latest && yarn document:show 1>apiDocumentation/archinstall/latest/index.html",
     "document:show": "bashlink-document ../../archinstall",
     "document:show:error": "bashlink-document archinstall 1>/dev/null",
