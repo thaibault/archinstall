@@ -376,7 +376,8 @@ pia_main() {
     pia.tidy_up || \
         bl.logging.critical Tidying up failed.
     bl.logging.info
-        "Remastering given image \"$pia_source_path\" to \"$pia_target_path\" has successfully finished."
+        Remastering given image \""$pia_source_path"\" to \
+        \""$pia_target_path"\" has successfully finished.
 }
 ## endregion
 # endregion
