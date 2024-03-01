@@ -51,5 +51,10 @@
   "devDependencies": {
     "documentation-website": "*",
     "shellcheck": "*"
+  },
+  "engines": {
+    "node": ">=20",
+    "npm": ">=10",
+    "yarn": ">=4"
   }
 }
