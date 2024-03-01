@@ -513,7 +513,7 @@ ai_commandline_interface() {
                 break
                 ;;
             *)
-                logging.error Given argument: \"$1\" is not available.
+                logging.error Given argument: \""$1"\" is not available.
                 bl.logging.plain "$(ai.get_help_message)"
 
                 return 1
@@ -608,6 +608,7 @@ ai_add_boot_entries() {
         fi
         local -r kernel_command_line_options="${root_boot_selector} quiet loglevel=2"
         local -r kernel_command_line="initrd=\\initramfs-linux.img ${kernel_command_line_options}"
+        # shellcheck disable=SC2028
         echo "\\vmlinuz-linux ${kernel_command_line}" \
             >"${ai_mountpoint_path}/boot/startup.nsh"
 
@@ -899,7 +900,7 @@ ai_configure_pacman() {
         local -i line_number=0
         local line
         while read -r line; do
-            (( line_number = (( line_number + 1 )) ))
+            (( line_number = ( line_number + 1 ) ))
             if [ "$line" = "## $ai_country_with_mirrors" ]; then
                 in_area=true
             elif [ "$line" = '' ]; then
