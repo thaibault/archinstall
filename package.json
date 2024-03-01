@@ -35,6 +35,7 @@
   },
   "scripts": {
     "clear": "[ ! -e apiDocumentation ] || rm --recursive apiDocumentation",
+    "build": "echo nothing to build.",
     "document": "mkdir --parents apiDocumentation/archinstall/latest && yarn document:show 1>apiDocumentation/archinstall/latest/index.html",
     "document:show": "bashlink-document ../../archinstall",
     "document:show:error": "bashlink-document archinstall 1>/dev/null",
