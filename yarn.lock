@@ -9,9 +9,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "archinstall@workspace:."
   dependencies:
-    bashlink: "npm:^1.0.245"
-    documentation-website: "npm:^1.0.326"
-    shellcheck: "npm:^2.2.0"
+    bashlink: "npm:^1.0.249"
+    documentation-website: "npm:^1.0.327"
+    shellcheck: "npm:^3.0.0"
   bin:
     archinstall: archinstall.sh
     pack-into-archiso: pack-into-archiso.sh
@@ -25,13 +25,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bashlink@npm:^1.0.245":
-  version: 1.0.245
-  resolution: "bashlink@npm:1.0.245"
+"bashlink@npm:^1.0.249":
+  version: 1.0.249
+  resolution: "bashlink@npm:1.0.249"
   bin:
     bashlink-doctest: doctest.sh
     bashlink-document: documentation.sh
-  checksum: 10c0/8179286c36f256ad89677a5ff867e9691b8b83b28dbe554616a872a9156de7345c3e9ffac89ab14998e0fd7ade1395118fbc189a5d50e84ac90398e0f651c400
+  checksum: 10c0/86e4db19688a551bbd3ac007228745255dcba9d67e65afa339591c0a117121846878a1d5df88eb75a4468c48919e487de10523923bac28efb3a77d9439e1c964
   languageName: node
   linkType: hard
 
@@ -199,12 +199,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"documentation-website@npm:^1.0.326":
-  version: 1.0.326
-  resolution: "documentation-website@npm:1.0.326"
+"documentation-website@npm:^1.0.327":
+  version: 1.0.327
+  resolution: "documentation-website@npm:1.0.327"
   bin:
     documentation-website: build/deploy.js
-  checksum: 10c0/9e79827aac4256666b05c413f37018bf54ccd1dea2d1ba955eb232a7af37d134e1b7a85d9d8f316d7993bfc4107d3d17c6e762fca2876830146003c3820a8e68
+  checksum: 10c0/6026b2a09c65f14ec516ac02ea4e9f83d1dd1f214d8e5062915794cb6f541b88a0cb5206c96e071f26158b02320034d3895fee2aa68474aec6258fc710298ccb
   languageName: node
   linkType: hard
 
@@ -214,6 +214,15 @@ __metadata:
   dependencies:
     once: "npm:^1.4.0"
   checksum: 10c0/870b423afb2d54bb8d243c63e07c170409d41e20b47eeef0727547aea5740bd6717aca45597a9f2745525667a6b804c1e7bede41f856818faee5806dd9ff3975
+  languageName: node
+  linkType: hard
+
+"envalid@npm:^8.0.0":
+  version: 8.0.0
+  resolution: "envalid@npm:8.0.0"
+  dependencies:
+    tslib: "npm:2.6.2"
+  checksum: 10c0/8a12cdce071f54d780b2efa68ed77c1c1f397e44e47b2e23d9ec2130d7decc7502ffabff962760371e4eecf696a40a79188fdbd7bfc080d7283d484a8798c6e4
   languageName: node
   linkType: hard
 
@@ -586,15 +595,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"shellcheck@npm:^2.2.0":
-  version: 2.2.0
-  resolution: "shellcheck@npm:2.2.0"
+"shellcheck@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "shellcheck@npm:3.0.0"
   dependencies:
     decompress: "npm:^4.2.1"
+    envalid: "npm:^8.0.0"
     global-agent: "npm:^3.0.0"
   bin:
     shellcheck: bin/shellcheck.js
-  checksum: 10c0/778b09a57ba54cacfcb0d14e34aaa202d892c63bf8581a69d1c51698c96a61bdce489f34b6bf8a9efeab941fdf372e41fa1bd184f904ba561cfab4e8f4ac1dbb
+  checksum: 10c0/8c4a66b4fe0307c6cc6d9cdf27b66888bfae00d77ceca178a15b26bf4b099265364d7ff6460f05beb124ccdb762d7c4f11773b231c5e06107bdc9970cf551c49
   languageName: node
   linkType: hard
 
@@ -649,6 +659,13 @@ __metadata:
   version: 1.1.1
   resolution: "to-buffer@npm:1.1.1"
   checksum: 10c0/fb9fc6a0103f2b06e2e01c3d291586d0148759d5584f35d0973376434d1b58bd6ee5df9273f0bb1190eb2a5747c894bf49fed571325a7ac10208a48f31736439
+  languageName: node
+  linkType: hard
+
+"tslib@npm:2.6.2":
+  version: 2.6.2
+  resolution: "tslib@npm:2.6.2"
+  checksum: 10c0/e03a8a4271152c8b26604ed45535954c0a45296e32445b4b87f8a5abdb2421f40b59b4ca437c4346af0f28179780d604094eb64546bee2019d903d01c6c19bdb
   languageName: node
   linkType: hard
 
