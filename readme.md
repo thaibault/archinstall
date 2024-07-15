@@ -394,8 +394,3 @@ Um die Installation zu beschleunigen kann auf ein Cache verwiesen werden:
 ```bash
 >>> ./archinstall.sh --cache-path /var/cache/archinstall/
 ```
-
-<!-- region vim modline
-vim: set tabstop=4 shiftwidth=4 expandtab:
-vim: foldmethod=marker foldmarker=region,endregion:
-endregion -->
