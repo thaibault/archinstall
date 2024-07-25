@@ -58,7 +58,3 @@ package() {
         "${srcdir}/pack-into-archiso.sh" \
         "${pkgdir}/usr/bin/pack-into-archiso"
 }
-# region vim modline
-# vim: set tabstop=4 shiftwidth=4 expandtab:
-# vim: foldmethod=marker foldmarker=region,endregion:
-# endregion
