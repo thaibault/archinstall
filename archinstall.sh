@@ -175,7 +175,6 @@ declare -gi AI_NETWORK_TIMEOUT_IN_SECONDS=6
 
 declare -ag AI_UNNEEDED_FILE_LOCATIONS=(.INSTALL .PKGINFO var/cache/pacman)
 ## region command line arguments
-
 declare -g AI_AUTO_PARTITIONING=false
 declare -g AI_BOOT_ENTRY_LABEL=archLinux
 declare -g AI_BOOT_PARTITION_LABEL=uefiBoot
@@ -213,7 +212,8 @@ declare -g AI_PREVENT_USING_NATIVE_ARCH_CHANGEROOT=false
 declare -g AI_PREVENT_USING_EXISTING_PACMAN=false
 declare -g AI_AUTOMATIC_REBOOT=false
 ## endregion
-BL_MODULE_SCOPE_REWRITES+=('^archinstall([._][a-zA-Z_-]+)?$/ai\1/')
+BL_MODULE_FUNCTION_SCOPE_REWRITES+=('^archinstall([._][a-zA-Z_-]+)?$/ai\1/')
+BL_MODULE_GLOBAL_SCOPE_REWRITES+=('^ARCHINSTALL(_[a-zA-Z_-]+)?$/AI\1/')
 # endregion
 # region functions
 ## region command line interface
