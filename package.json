@@ -49,7 +49,7 @@
     "bashlink": "^1.0.249"
   },
   "devDependencies": {
-    "documentation-website": "^1.0.327",
+    "documentation-website": "^1.0.332",
     "shellcheck": "^3.0.0"
   },
   "engines": {
