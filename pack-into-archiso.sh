@@ -88,7 +88,7 @@ declare -g PIA_RELATIVE_TARGET_FILE_PATH=usr/bin/
 declare -g PIA_BASHRC_CODE=$'\nalias getInstallScript='"'wget https://goo.gl/bPAqXB --output-document archInstall.sh && chmod +x archInstall.sh'"$'\nalias install='"'([ -f /root/archInstall.sh ] || getInstallScript);/root/archInstall.sh'"
 
 BL_MODULE_FUNCTION_SCOPE_REWRITES+=('^packIntoArchiso([._][a-zA-Z_-]+)?$/pai\1/')
-BL_MODULE_GLOBAL_SCOPE_REWRITES+=('^packIntoArchiso(_[a-zA-Z_-]+)?$/PAI\1/')
+BL_MODULE_GLOBAL_SCOPE_REWRITES+=('^PACK_INTO_ARCHISO(_[a-zA-Z_-]+)?$/PIA\1/')
 # endregion
 # region functions
 ## region command line interface
