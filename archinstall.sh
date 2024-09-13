@@ -12,6 +12,7 @@
 # 3.0 unported license. See https://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
 # shellcheck disable=SC1004,SC2016,SC2034,SC2155
+shopt -s expand_aliases
 # region import
 alias ai.download=ai_download
 ai_download() {
@@ -46,7 +47,7 @@ else
     declare -gr BL_MODULE_RETRIEVE_REMOTE_MODULES=true
     if ! (
         [ -f "${BL_MODULE_REMOTE_MODULE_CACHE_PATH}/module.sh" ] || \
-        AI_DOWNLOAD \
+        ai.download \
             https://raw.githubusercontent.com/thaibault/bashlink/main/module.sh \
                 >"${BL_MODULE_REMOTE_MODULE_CACHE_PATH}/module.sh"
     ); then
