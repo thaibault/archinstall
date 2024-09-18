@@ -880,8 +880,9 @@ ai_configure() {
                 ) --no-user-group --shell /usr/bin/bash" \
                 "$user_name"
         bl.exception.catch_single
-            bl.logging.warn "Adding user \"$user_name\" failed."
-        bl.logging.info "Set password for \"$user_name\" to \"$user_name\"."
+            bl.logging.warn "Adding user \"${user_name}\" failed."
+        bl.logging.info \
+            "Set password for \"${user_name}\" to \"${user_name}\"."
         ai.changeroot_to_mountpoint \
             /usr/bin/env bash -c \
                 "echo '${user_name}:${user_name}' | \$(which chpasswd)"
