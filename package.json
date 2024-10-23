@@ -1,6 +1,6 @@
 {
   "name": "archinstall",
-  "version": "1.0.193",
+  "version": "1.0.194",
   "license": "CC-BY-3.0",
   "description": "automate your installation process",
   "homepage": "https://torben.website/archinstall",
@@ -46,10 +46,10 @@
     "update:documentation": "documentation-website"
   },
   "dependencies": {
-    "bashlink": "^1.0.254"
+    "bashlink": "^1.0.255"
   },
   "devDependencies": {
-    "documentation-website": "^1.0.332",
+    "documentation-website": "^1.0.336",
     "shellcheck": "^3.0.0"
   },
   "engines": {
@@ -57,5 +57,5 @@
     "npm": ">=10",
     "yarn": ">=4"
   },
-  "packageManager": "yarn@4.1.0+sha256.81a00df816059803e6b5148acf03ce313cad36b7f6e5af6efa040a15981a6ffb"
+  "packageManager": "yarn@4.5.1+sha512.341db9396b6e289fecc30cd7ab3af65060e05ebff4b3b47547b278b9e67b08f485ecd8c79006b405446262142c7a38154445ef7f17c1d5d1de7d90bf9ce7054d"
 }
