@@ -1,6 +1,6 @@
 {
   "name": "archinstall",
-  "version": "1.0.194",
+  "version": "1.0.195",
   "license": "CC-BY-3.0",
   "description": "automate your installation process",
   "homepage": "https://torben.website/archinstall",
@@ -46,10 +46,10 @@
     "update:documentation": "documentation-website"
   },
   "dependencies": {
-    "bashlink": "^1.0.255"
+    "bashlink": "^1.0.258"
   },
   "devDependencies": {
-    "documentation-website": "^1.0.336",
+    "documentation-website": "^1.0.337",
     "shellcheck": "^3.0.0"
   },
   "engines": {
