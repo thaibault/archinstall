@@ -46,10 +46,10 @@
     "update:documentation": "documentation-website"
   },
   "dependencies": {
-    "bashlink": "^1.0.255"
+    "bashlink": "^1.0.258"
   },
   "devDependencies": {
-    "documentation-website": "^1.0.336",
+    "documentation-website": "^1.0.337",
     "shellcheck": "^3.0.0"
   },
   "engines": {
