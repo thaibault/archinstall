@@ -10,7 +10,7 @@ __metadata:
   resolution: "archinstall@workspace:."
   dependencies:
     bashlink: "npm:^1.0.258"
-    documentation-website: "npm:^1.0.339"
+    documentation-website: "npm:^1.0.340"
     shellcheck: "npm:^3.0.0"
   bin:
     archinstall: archinstall.sh
@@ -199,12 +199,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"documentation-website@npm:^1.0.339":
-  version: 1.0.339
-  resolution: "documentation-website@npm:1.0.339"
+"documentation-website@npm:^1.0.340":
+  version: 1.0.340
+  resolution: "documentation-website@npm:1.0.340"
   bin:
     documentation-website: build/deploy.js
-  checksum: 10c0/0aad231f4a1d1803619cdbcd350e21f55f6f4c9ba2586971e49433b4a19831b4d86a5fda11635976813c98d828a37474a8dadd3fed5319981fc817feaf921913
+  checksum: 10c0/f8d9fb8a0a0dd42a2953e4cc0566c2636b1fdc2d143de2bb880878108d0e6943e046935de55d053fa493b0758595e0fab9001a3f839b18c1fc522be090299f77
   languageName: node
   linkType: hard
 
