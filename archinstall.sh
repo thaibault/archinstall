@@ -514,7 +514,7 @@ ai_commandline_interface() {
                 break
                 ;;
             *)
-                logging.error Given argument: \""$1"\" is not available.
+                logging.error "Given argument: \"${1}\" is not available."
                 bl.logging.plain "$(ai.get_help_message)"
 
                 return 1
