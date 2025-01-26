@@ -42,7 +42,6 @@
     "lint": "hash shellcheck && shellcheck -x *.sh || echo Please install \"shellcheck\". || true",
     "lint:given": "shellcheck -x",
     "test": "./node_modules/.bin/bashlink-doctest --verbose ./archinstall; ./node_modules/.bin/bashlink-doctest --verbose ./pack-into-archiso",
-    "update": "yarn version patch && yarn npm publish",
     "update:documentation": "documentation-website"
   },
   "dependencies": {
