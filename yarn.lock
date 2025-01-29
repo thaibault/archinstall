@@ -9,7 +9,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "archinstall@workspace:."
   dependencies:
-    bashlink: "npm:^1.0.258"
+    bashlink: "npm:^1.0.259"
     documentation-website: "npm:^1.0.342"
     shellcheck: "npm:^3.0.0"
   bin:
@@ -25,13 +25,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bashlink@npm:^1.0.258":
-  version: 1.0.258
-  resolution: "bashlink@npm:1.0.258"
+"bashlink@npm:^1.0.259":
+  version: 1.0.259
+  resolution: "bashlink@npm:1.0.259"
   bin:
     bashlink-doctest: doctest.sh
     bashlink-document: documentation.sh
-  checksum: 10c0/d3536450db7e8d14920f7a4dab2123ae5a2a7c8ed837706338a554dca7cf7473d313d81361e16b898542a5969b2657ad47450295ab97e8844e9bf5a223142af5
+  checksum: 10c0/07845aae298f5b4815ec54d2808d3205bdc94fe7d1edff3b7dc89f2b58b25e5ae09acb942ea611c91aea6de6e1ffa8201d395710c398c6b3aeddf34b7154df74
   languageName: node
   linkType: hard
 

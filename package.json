@@ -45,7 +45,7 @@
     "update:documentation": "documentation-website"
   },
   "dependencies": {
-    "bashlink": "^1.0.258"
+    "bashlink": "^1.0.259"
   },
   "devDependencies": {
     "documentation-website": "^1.0.342",
