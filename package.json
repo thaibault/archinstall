@@ -1,6 +1,6 @@
 {
   "name": "archinstall",
-  "version": "1.0.195",
+  "version": "1.0.196",
   "license": "CC-BY-3.0",
   "description": "automate your installation process",
   "homepage": "https://torben.website/archinstall",
@@ -42,14 +42,13 @@
     "lint": "hash shellcheck && shellcheck -x *.sh || echo Please install \"shellcheck\". || true",
     "lint:given": "shellcheck -x",
     "test": "./node_modules/.bin/bashlink-doctest --verbose ./archinstall; ./node_modules/.bin/bashlink-doctest --verbose ./pack-into-archiso",
-    "update": "yarn version patch && yarn npm publish",
     "update:documentation": "documentation-website"
   },
   "dependencies": {
-    "bashlink": "^1.0.258"
+    "bashlink": "^1.0.259"
   },
   "devDependencies": {
-    "documentation-website": "^1.0.337",
+    "documentation-website": "^1.0.342",
     "shellcheck": "^3.0.0"
   },
   "engines": {
@@ -57,5 +56,5 @@
     "npm": ">=10",
     "yarn": ">=4"
   },
-  "packageManager": "yarn@4.5.1+sha512.341db9396b6e289fecc30cd7ab3af65060e05ebff4b3b47547b278b9e67b08f485ecd8c79006b405446262142c7a38154445ef7f17c1d5d1de7d90bf9ce7054d"
+  "packageManager": "yarn@4.6.0+sha512.5383cc12567a95f1d668fbe762dfe0075c595b4bfff433be478dbbe24e05251a8e8c3eb992a986667c1d53b6c3a9c85b8398c35a960587fbd9fa3a0915406728"
 }

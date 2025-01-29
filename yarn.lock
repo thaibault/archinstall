@@ -9,8 +9,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "archinstall@workspace:."
   dependencies:
-    bashlink: "npm:^1.0.258"
-    documentation-website: "npm:^1.0.337"
+    bashlink: "npm:^1.0.259"
+    documentation-website: "npm:^1.0.342"
     shellcheck: "npm:^3.0.0"
   bin:
     archinstall: archinstall.sh
@@ -25,13 +25,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bashlink@npm:^1.0.258":
-  version: 1.0.258
-  resolution: "bashlink@npm:1.0.258"
+"bashlink@npm:^1.0.259":
+  version: 1.0.259
+  resolution: "bashlink@npm:1.0.259"
   bin:
     bashlink-doctest: doctest.sh
     bashlink-document: documentation.sh
-  checksum: 10c0/d3536450db7e8d14920f7a4dab2123ae5a2a7c8ed837706338a554dca7cf7473d313d81361e16b898542a5969b2657ad47450295ab97e8844e9bf5a223142af5
+  checksum: 10c0/07845aae298f5b4815ec54d2808d3205bdc94fe7d1edff3b7dc89f2b58b25e5ae09acb942ea611c91aea6de6e1ffa8201d395710c398c6b3aeddf34b7154df74
   languageName: node
   linkType: hard
 
@@ -199,12 +199,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"documentation-website@npm:^1.0.337":
-  version: 1.0.337
-  resolution: "documentation-website@npm:1.0.337"
+"documentation-website@npm:^1.0.342":
+  version: 1.0.342
+  resolution: "documentation-website@npm:1.0.342"
   bin:
     documentation-website: build/deploy.js
-  checksum: 10c0/f900c0239f80d2e1ecd40bf2c80732d2a64f2f435313610c2c3fbe5cee020f10491ca1ecdc03ebc5b099fb87d519ceb9cbe75ad686bbfcdfdb07ae3249845ac9
+  checksum: 10c0/e10ebb3b86b7f3c73ba862baef43877b6c5495396edabf7120856a4a155b0d38293f26f93ca7ed9436c73c5c7c70dbcc738a26e1bb4f6a35fd5d4e58d6cc4f0d
   languageName: node
   linkType: hard
 
