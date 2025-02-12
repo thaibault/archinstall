@@ -48,8 +48,8 @@
     "bashlink": "^1.0.259"
   },
   "devDependencies": {
-    "documentation-website": "^1.0.342",
-    "shellcheck": "^3.0.0"
+    "documentation-website": "^1.0.343",
+    "shellcheck": "^3.1.0"
   },
   "engines": {
     "node": ">=20",

@@ -10,8 +10,8 @@ __metadata:
   resolution: "archinstall@workspace:."
   dependencies:
     bashlink: "npm:^1.0.259"
-    documentation-website: "npm:^1.0.342"
-    shellcheck: "npm:^3.0.0"
+    documentation-website: "npm:^1.0.343"
+    shellcheck: "npm:^3.1.0"
   bin:
     archinstall: archinstall.sh
     pack-into-archiso: pack-into-archiso.sh
@@ -199,12 +199,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"documentation-website@npm:^1.0.342":
-  version: 1.0.342
-  resolution: "documentation-website@npm:1.0.342"
+"documentation-website@npm:^1.0.343":
+  version: 1.0.343
+  resolution: "documentation-website@npm:1.0.343"
   bin:
     documentation-website: build/deploy.js
-  checksum: 10c0/e10ebb3b86b7f3c73ba862baef43877b6c5495396edabf7120856a4a155b0d38293f26f93ca7ed9436c73c5c7c70dbcc738a26e1bb4f6a35fd5d4e58d6cc4f0d
+  checksum: 10c0/64663cfa5af0e274cbc5b3011b216a9cf5e8a958822fffdd9c6d6393d18e7edb209fcaa5825f4ee16fcef9ec7ed6bf083cf35a7fbe9a2dc37a14f2acd0d09032
   languageName: node
   linkType: hard
 
@@ -595,16 +595,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"shellcheck@npm:^3.0.0":
-  version: 3.0.0
-  resolution: "shellcheck@npm:3.0.0"
+"shellcheck@npm:^3.1.0":
+  version: 3.1.0
+  resolution: "shellcheck@npm:3.1.0"
   dependencies:
     decompress: "npm:^4.2.1"
     envalid: "npm:^8.0.0"
     global-agent: "npm:^3.0.0"
   bin:
     shellcheck: bin/shellcheck.js
-  checksum: 10c0/8c4a66b4fe0307c6cc6d9cdf27b66888bfae00d77ceca178a15b26bf4b099265364d7ff6460f05beb124ccdb762d7c4f11773b231c5e06107bdc9970cf551c49
+  checksum: 10c0/721253e0f3e64cb8c4793c06f0d478f7d728b675579640030240c370bc31984a7aa7807a48f476efe4ce60fdf86ce6df8ad68006a2884ce72df54dc547665bc5
   languageName: node
   linkType: hard
 
