@@ -19,6 +19,7 @@ Project status
 
 [![build push package](https://img.shields.io/github/actions/workflow/status/thaibault/archinstall/build-package-and-push.yaml?label=build%20push%20package&style=for-the-badge)](https://github.com/thaibault/archinstall/actions/workflows/build-package-and-push.yaml)
 
+[![deploy documentation website](https://img.shields.io/github/actions/workflow/status/thaibault/archinstall/deploy-documentation-website.yaml?label=deploy%20documentation%20website&style=for-the-badge)](https://github.com/thaibault/archinstall/actions/workflows/deploy-documentation-website.yaml)
 [![documentation website](https://img.shields.io/website-up-down-green-red/https/torben.website/archinstall.svg?label=documentation-website&style=for-the-badge)](https://torben.website/archinstall)
 
 <!--|deDE:Einsatz-->
