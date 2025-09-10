@@ -107,10 +107,11 @@ nosetests.xml
 .viminfo
 *.swp
 
-# JetBrain's idea, PHPStorm and other IDE Files
+# IntelliJ other IDE Files
 .externalToolBuilders
 
 .idea/**/*.iws
+.idea/copilot.data.migration.*.xml
 
 .project
 .pydevproject
@@ -176,8 +177,6 @@ __pycache__
 *.crdownload
 
 # Project specific
-*.js
-*.mjs
 # ...
 
 # region vim modline
