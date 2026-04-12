@@ -1711,6 +1711,20 @@ ai_generic_linux_steps() {
     mapfile -t url_lists <<<"$(ai.create_url_lists)"
     ai.download_and_extract_pacman "${url_lists[1]}"
     ai.make_pacman_portable "${url_lists[0]}"
+
+    bl.logging.info Ensure having valid install user available.
+    if ! ai.changeroot_to_mountpoint getent group alpm &>/dev/null; then
+        ai.changeroot_to_mountpoint groupadd --gid 701 alpm
+    fi
+    if ! ai.changeroot_to_mountpoint id alpm &>/dev/null; then
+      ai.changeroot_to_mountpoint useradd \
+          --uid 701 \
+          --gid alpm \
+          --home / \
+          --shell /usr/bin/nologin \
+          alpm
+    fi
+
     bl.logging.info Initialize keys.
     bl.exception.try
     {
@@ -1719,6 +1733,7 @@ ai_generic_linux_steps() {
     }
     bl.exception.catch_single
         bl.logging.warn Creating keys was not successful.
+
     bl.logging.info Update package databases.
     bl.exception.try
         ai.changeroot_to_mountpoint /usr/bin/pacman \
@@ -1727,6 +1742,7 @@ ai_generic_linux_steps() {
             --sync
     bl.exception.catch_single
         bl.logging.info Updating package database failed. Operating offline.
+
     bl.logging.info "Install needed packages \"$(
         echo "${AI_PACKAGES[@]}" | \
             command sed 's/ /", "/g'
@@ -1738,6 +1754,7 @@ ai_generic_linux_steps() {
         --overwrite \
         --sync \
         "${AI_PACKAGES[@]}"
+
     return $?
 }
 alias ai.with_existing_pacman=ai_with_existing_pacman
