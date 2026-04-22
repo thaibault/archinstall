@@ -2,7 +2,7 @@
 # Manual changes might be lost - proceed with caution!
 
 __metadata:
-  version: 8
+  version: 9
   cacheKey: 10c0
 
 "@borewit/text-codec@npm:^0.1.0":
@@ -68,9 +68,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "archinstall@workspace:."
   dependencies:
-    bashlink: "npm:^1.0.278"
-    documentation-website: "npm:^1.0.401"
+    bashlink: "npm:^1.0.279"
     shellcheck: "npm:^4.1.0"
+    web-documentation: "npm:^1.0.2"
   bin:
     archinstall: archinstall.sh
     pack-into-archiso: pack-into-archiso.sh
@@ -108,13 +108,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bashlink@npm:^1.0.278":
-  version: 1.0.278
-  resolution: "bashlink@npm:1.0.278"
+"bashlink@npm:^1.0.279":
+  version: 1.0.279
+  resolution: "bashlink@npm:1.0.279"
   bin:
     bashlink-doctest: doctest.sh
     bashlink-document: documentation.sh
-  checksum: 10c0/7b0cb9d3fe4184d7498782ee796480e800e2cfa63f1c4a3555cbc6eb9ca933179e59104ff6e40ab25d91f9f0fb454192e16d90deec658de2d81e14761dcd00ed
+  checksum: 10c0/1dc47ae7aa21486694ec78bd9043c6abc606de7646da4d286b611ea64410850f89551ec95ede062d8d8a75a170b595088df23540a5162a7922767e279cf74221
   languageName: node
   linkType: hard
 
@@ -291,15 +291,6 @@ __metadata:
   version: 2.1.0
   resolution: "detect-node@npm:2.1.0"
   checksum: 10c0/f039f601790f2e9d4654e499913259a798b1f5246ae24f86ab5e8bd4aaf3bce50484234c494f11fb00aecb0c6e2733aa7b1cf3f530865640b65fbbd65b2c4e09
-  languageName: node
-  linkType: hard
-
-"documentation-website@npm:^1.0.401":
-  version: 1.0.401
-  resolution: "documentation-website@npm:1.0.401"
-  bin:
-    documentation-website: build/deploy.js
-  checksum: 10c0/cd8a550517c38a702b4fd8e8eb740d092b3f7158f10f5fcf5438ffd6f512b1646ec808b81c846ba49cddeef6c1e9f9bfe95310171eb7eae5cb4eec1f75c6bc58
   languageName: node
   linkType: hard
 
@@ -901,6 +892,15 @@ __metadata:
   version: 1.0.2
   resolution: "util-deprecate@npm:1.0.2"
   checksum: 10c0/41a5bdd214df2f6c3ecf8622745e4a366c4adced864bc3c833739791aeeeb1838119af7daed4ba36428114b5c67dcda034a79c882e97e43c03e66a4dd7389942
+  languageName: node
+  linkType: hard
+
+"web-documentation@npm:^1.0.2":
+  version: 1.0.2
+  resolution: "web-documentation@npm:1.0.2"
+  bin:
+    web-documentation: build/deploy.js
+  checksum: 10c0/e95ffd9e7ffefa0f8b1b44161079c21b6dcf80ae16343dbc63452430c6768cf3cee09f2039c4cf4672b811bc884231cc02b193c4f0d6d37174af53627d6d1aa5
   languageName: node
   linkType: hard
 
