@@ -42,13 +42,13 @@
     "lint": "hash shellcheck && shellcheck -x *.sh || echo Please install \"shellcheck\". || true",
     "lint:given": "shellcheck -x",
     "test": "./node_modules/.bin/bashlink-doctest --verbose ./archinstall; ./node_modules/.bin/bashlink-doctest --verbose ./pack-into-archiso",
-    "update:documentation": "documentation-website"
+    "update:documentation": "web-documentation"
   },
   "dependencies": {
     "bashlink": "^1.0.278"
   },
   "devDependencies": {
-    "documentation-website": "^1.0.401",
+    "web-documentation": "^1.0.0",
     "shellcheck": "^4.1.0"
   },
   "engines": {
