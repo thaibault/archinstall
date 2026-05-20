@@ -6,7 +6,7 @@ Copyright Torben Sickert (info["~at~"]torben.website) 16.12.2012
 License
 -------
 
-This library written by Torben Sickert stand under a creative commons naming
+This library written by Torben Sickert stands under a creative commons naming
 3.0 unported license. See https://creativecommons.org/licenses/by/3.0/deed.de
 endregion -->
 
@@ -43,7 +43,7 @@ Quick-Start
 
 Simply load the newest version from:
 <!--deDE:
-    Um die neuste Version zu erhalten sollte man das Bash-Script runterladen:
+    Um die neueste Version zuerhalten sollte man das Bash-Script runterladen:
 -->
 [archinstall](https://torben.website/archinstall/data/distributionBundle/archinstall.sh)
 
