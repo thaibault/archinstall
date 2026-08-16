@@ -150,7 +150,7 @@ declare -agr AI__OPTIONAL_DEPENDENCIES__=(
     'os-prober: Detects presence of other operating systems.'
     'pacstrap: Installs arch linux from an existing linux system (part of package "arch-install-scripts").'
 )
-declare -agr AI_BASIC_PACKAGES=(base linux ntp which)
+declare -agr AI_BASIC_PACKAGES=(base iwd linux ntp which)
 declare -agr AI_COMMON_ADDITIONAL_PACKAGES=(base-devel python sudo)
 
 declare -ag AI_ADDITIONAL_PACKAGES=()
