@@ -871,13 +871,17 @@ ai_configure() {
         # are root.
         bl.exception.try
             ai.changeroot_to_mountpoint \
-                useradd "$(
+                useradd \
+                "$(
                     if (( UID == 0 )); then
                         echo --create-home
                     else
                         echo --no-create-home
                     fi
-                ) --no-user-group --shell /usr/bin/bash" \
+                )" \
+                --no-user-group \
+                --shell \
+                /usr/bin/bash \
                 "$user_name"
         bl.exception.catch_single
             bl.logging.warn "Adding user \"${user_name}\" failed."
