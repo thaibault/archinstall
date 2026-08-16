@@ -4,12 +4,11 @@
   "license": "CC-BY-3.0",
   "description": "automate your installation process",
   "homepage": "https://torben.website/archinstall",
-  "documentationWebsite": {
+  "webDocumentation": {
     "languages": [
       "enUS",
       "deDE"
     ],
-    "name": "archinstall",
     "tagline": "automate your installation process<!--deDE:Automatisiere deinen Installationsprozess-->",
     "trackingCode": "UA-40192634-12"
   },

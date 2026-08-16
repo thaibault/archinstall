@@ -8,7 +8,7 @@
 # License
 # -------
 
-# This library written by Torben Sickert stand under a creative commons naming
+# This library written by Torben Sickert stands under a creative commons naming
 # 3.0 unported license. See https://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
 # shellcheck disable=SC1004,SC2016,SC2034,SC2155
@@ -871,13 +871,17 @@ ai_configure() {
         # are root.
         bl.exception.try
             ai.changeroot_to_mountpoint \
-                useradd "$(
+                useradd \
+                "$(
                     if (( UID == 0 )); then
                         echo --create-home
                     else
                         echo --no-create-home
                     fi
-                ) --no-user-group --shell /usr/bin/bash" \
+                )" \
+                --no-user-group \
+                --shell \
+                /usr/bin/bash \
                 "$user_name"
         bl.exception.catch_single
             bl.logging.warn "Adding user \"${user_name}\" failed."
