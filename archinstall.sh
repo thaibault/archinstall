@@ -191,7 +191,7 @@ declare -g AI_SYSTEM_PARTITION_INSTALLATION_ONLY=false
 declare -g AI_COUNTRY_WITH_MIRRORS=Germany
 # NOTE: This properties aren't needed in the future with supporting "localectl"
 # program.
-declare -g AI_LOCAL_TIME=EUROPE/Berlin
+declare -g AI_LOCAL_TIME=Europe/Berlin
 
 # NOTE: Possible constant values are "i686", "x86_64" "arm" or "any".
 declare -g AI_CPU_ARCHITECTURE="$(uname -m)"
