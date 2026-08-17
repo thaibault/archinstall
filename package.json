@@ -44,11 +44,11 @@
     "update:documentation": "web-documentation"
   },
   "dependencies": {
-    "bashlink": "^1.0.279"
+    "bashlink": "^1.0.280"
   },
   "devDependencies": {
     "shellcheck": "^4.1.0",
-    "web-documentation": "^1.0.2"
+    "web-documentation": "^1.0.45"
   },
   "engines": {
     "node": ">=24",
