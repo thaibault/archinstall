@@ -43,8 +43,8 @@
     "web-documentation": "^1.0.45"
   },
   "engines": {
-    "node": ">=24",
-    "npm": ">=11",
+    "node": ">=26",
+    "npm": ">=12",
     "yarn": ">=4"
   },
   "webDocumentation": {
