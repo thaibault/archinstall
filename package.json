@@ -1,17 +1,7 @@
 {
   "name": "archinstall",
   "version": "1.0.213",
-  "license": "CC-BY-3.0",
   "description": "automate your installation process",
-  "homepage": "https://torben.website/archinstall",
-  "webDocumentation": {
-    "languages": [
-      "enUS",
-      "deDE"
-    ],
-    "tagline": "automate your installation process<!--deDE:Automatisiere deinen Installationsprozess-->",
-    "trackingCode": "UA-40192634-12"
-  },
   "keywords": [
     "archLinux",
     "arch",
@@ -20,21 +10,23 @@
     "automatism",
     "automatic"
   ],
-  "files": [
-    "pack-into-archiso.sh"
-  ],
+  "homepage": "https://torben.website/archinstall",
+  "license": "CC-BY-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thaibault/archinstall"
+  },
   "main": "archinstall.sh",
   "bin": {
     "archinstall": "archinstall.sh",
     "pack-into-archiso": "pack-into-archiso.sh"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/thaibault/archinstall"
-  },
+  "files": [
+    "pack-into-archiso.sh"
+  ],
   "scripts": {
-    "clear": "[ ! -e apiDocumentation ] || rm --recursive apiDocumentation",
     "build": "echo nothing to build.",
+    "clear": "[ ! -e apiDocumentation ] || rm --recursive apiDocumentation",
     "document": "mkdir --parents apiDocumentation/archinstall/latest && yarn document:show 1>apiDocumentation/archinstall/latest/index.html",
     "document:show": "bashlink-document ../../archinstall",
     "document:show:error": "bashlink-document archinstall 1>/dev/null",
@@ -54,6 +46,14 @@
     "node": ">=24",
     "npm": ">=11",
     "yarn": ">=4"
+  },
+  "webDocumentation": {
+    "languages": [
+      "enUS",
+      "deDE"
+    ],
+    "tagline": "automate your installation process<!--deDE:Automatisiere deinen Installationsprozess-->",
+    "trackingCode": "UA-40192634-12"
   },
   "packageManager": "yarn@4.14.1+sha512.64df448055b2d37ba269d7db535a469b8da93f8ef1140c25fd7a83c00a8fbaacb214ca0e02553b92a2c54cef78bb67d0b4817fab02001df0e24fac0faccc3b42"
 }
