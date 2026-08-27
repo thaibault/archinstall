@@ -2,7 +2,7 @@
 # Manual changes might be lost - proceed with caution!
 
 __metadata:
-  version: 9
+  version: 10
   cacheKey: 10c0
 
 "@borewit/text-codec@npm:^0.1.0":
@@ -70,7 +70,7 @@ __metadata:
   dependencies:
     bashlink: "npm:^1.0.280"
     shellcheck: "npm:^4.1.0"
-    web-documentation: "npm:^1.0.45"
+    web-documentation: "npm:^1.0.51"
   bin:
     archinstall: archinstall.sh
     pack-into-archiso: pack-into-archiso.sh
@@ -895,12 +895,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"web-documentation@npm:^1.0.45":
-  version: 1.0.45
-  resolution: "web-documentation@npm:1.0.45"
+"web-documentation@npm:^1.0.51":
+  version: 1.0.51
+  resolution: "web-documentation@npm:1.0.51"
   bin:
     web-documentation: build/deploy.js
-  checksum: 10c0/e0781f5c8a9a345a0168d91a912930ebdc79ae192802e9bb7a55bec5cebe825aa9bf64f09d5bb19fe18a4ed285e3e0969cbd7c975ab75254729bf0e64415382d
+  checksum: 10c0/2701c8d95fd82a3badc040c65c86d8c5dc15cfed486bd8665d09a6da5e656c912f5647916e0f3a1d90edbf16ef366b3be69033181515ab84e8b100d5610e1ecd
   languageName: node
   linkType: hard
 

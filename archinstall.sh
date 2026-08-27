@@ -825,6 +825,7 @@ ai_configure() {
             's/^(HOOKS=\().+(\))$/\1base systemd autodetect block filesystems keyboard kms modconf sd-encrypt sd-vconsole\2/' \
             "${AI_MOUNTPOINT_PATH}etc/mkinitcpio.conf"
     fi
+
     bl.logging.info \
         "Make keyboard layout permanent to \"${AI_KEYBOARD_LAYOUT}\"."
     if [ "$1" = true ]; then
@@ -835,6 +836,7 @@ ai_configure() {
         echo -e "$AI_KEY_MAP_CONFIGURATION_FILE_CONTENT" \
             1>"${AI_MOUNTPOINT_PATH}etc/vconsole.conf"
     fi
+
     bl.logging.info "Set localtime \"${AI_LOCAL_TIME}\"."
     if [ "$1" = true ]; then
         ai.changeroot_to_mountpoint timedatectl set-timezone "$AI_LOCAL_TIME"
@@ -844,6 +846,10 @@ ai_configure() {
             --force "/usr/share/zoneinfo/${AI_LOCAL_TIME}" \
             "${AI_MOUNTPOINT_PATH}etc/localtime"
     fi
+
+    bl.logging.info Activate date time synchronization.
+    ai.changeroot_to_mountpoint timedatectl set-ntp true
+
     bl.logging.info "Set hostname to \"$AI_HOST_NAME\"."
     if [ "$1" = true ]; then
         ai.changeroot_to_mountpoint hostnamectl set-hostname "$AI_HOST_NAME"
@@ -851,19 +857,23 @@ ai_configure() {
         echo "$AI_HOST_NAME" \
             1>"${AI_MOUNTPOINT_PATH}etc/hostname"
     fi
+
     bl.logging.info Set hosts.
     ai.get_hosts_content "$AI_HOST_NAME" \
         1>"${AI_MOUNTPOINT_PATH}etc/hosts"
+
     if [[ "$1" != true ]]; then
         bl.logging.info "Set root password to \"root\"."
         ai.changeroot_to_mountpoint \
             /usr/bin/env bash -c \
                 "echo root:${AI_PASSWORD} | \$(which chpasswd)"
     fi
+
     bl.exception.try
         ai.enable_services
     bl.exception.catch_single
         bl.logging.warn Enabling services has failed.
+
     local user_name
     for user_name in "${AI_USER_NAMES[@]}"; do
         bl.logging.info "Add user: \"$user_name\"."
@@ -891,6 +901,7 @@ ai_configure() {
             /usr/bin/env bash -c \
                 "echo '${user_name}:${user_name}' | \$(which chpasswd)"
     done
+
     return $?
 }
 alias ai.configure_pacman=ai_configure_pacman
