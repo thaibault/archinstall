@@ -201,7 +201,7 @@ declare -g AI_HOST_NAME=''
 declare -g AI_KEYBOARD_LAYOUT=de-latin1
 declare -g AI_KEY_MAP_CONFIGURATION_FILE_CONTENT="KEYMAP=${AI_KEYBOARD_LAYOUT}"$'\nFONT=Lat2-Terminus16\nFONT_MAP='
 
-declare -ag AI_NEEDED_SERVICES=(ntpd systemd-networkd systemd-resolved)
+declare -ag AI_NEEDED_SERVICES=(systemd-networkd systemd-resolved)
 
 declare -g AI_TARGET=archInstall
 
