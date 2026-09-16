@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "shellcheck": "^4.1.0",
-    "web-documentation": "^1.0.51"
+    "web-documentation": "^1.0.60"
   },
   "engines": {
     "node": ">=26",
