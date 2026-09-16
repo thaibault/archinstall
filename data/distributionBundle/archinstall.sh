@@ -8,7 +8,7 @@
 # License
 # -------
 
-# This library written by Torben Sickert stand under a creative commons naming
+# This library written by Torben Sickert stands under a creative commons naming
 # 3.0 unported license. See https://creativecommons.org/licenses/by/3.0/deed.de
 # endregion
 # shellcheck disable=SC1004,SC2016,SC2034,SC2155
@@ -150,7 +150,7 @@ declare -agr AI__OPTIONAL_DEPENDENCIES__=(
     'os-prober: Detects presence of other operating systems.'
     'pacstrap: Installs arch linux from an existing linux system (part of package "arch-install-scripts").'
 )
-declare -agr AI_BASIC_PACKAGES=(base linux ntp which)
+declare -agr AI_BASIC_PACKAGES=(base iwd linux linux-firmware ntp which)
 declare -agr AI_COMMON_ADDITIONAL_PACKAGES=(base-devel python sudo)
 
 declare -ag AI_ADDITIONAL_PACKAGES=()
@@ -191,7 +191,7 @@ declare -g AI_SYSTEM_PARTITION_INSTALLATION_ONLY=false
 declare -g AI_COUNTRY_WITH_MIRRORS=Germany
 # NOTE: This properties aren't needed in the future with supporting "localectl"
 # program.
-declare -g AI_LOCAL_TIME=EUROPE/Berlin
+declare -g AI_LOCAL_TIME=Europe/Berlin
 
 # NOTE: Possible constant values are "i686", "x86_64" "arm" or "any".
 declare -g AI_CPU_ARCHITECTURE="$(uname -m)"
@@ -201,7 +201,7 @@ declare -g AI_HOST_NAME=''
 declare -g AI_KEYBOARD_LAYOUT=de-latin1
 declare -g AI_KEY_MAP_CONFIGURATION_FILE_CONTENT="KEYMAP=${AI_KEYBOARD_LAYOUT}"$'\nFONT=Lat2-Terminus16\nFONT_MAP='
 
-declare -ag AI_NEEDED_SERVICES=(ntpd systemd-networkd systemd-resolved)
+declare -ag AI_NEEDED_SERVICES=(systemd-networkd systemd-resolved)
 
 declare -g AI_TARGET=archInstall
 
@@ -825,6 +825,7 @@ ai_configure() {
             's/^(HOOKS=\().+(\))$/\1base systemd autodetect block filesystems keyboard kms modconf sd-encrypt sd-vconsole\2/' \
             "${AI_MOUNTPOINT_PATH}etc/mkinitcpio.conf"
     fi
+
     bl.logging.info \
         "Make keyboard layout permanent to \"${AI_KEYBOARD_LAYOUT}\"."
     if [ "$1" = true ]; then
@@ -835,6 +836,7 @@ ai_configure() {
         echo -e "$AI_KEY_MAP_CONFIGURATION_FILE_CONTENT" \
             1>"${AI_MOUNTPOINT_PATH}etc/vconsole.conf"
     fi
+
     bl.logging.info "Set localtime \"${AI_LOCAL_TIME}\"."
     if [ "$1" = true ]; then
         ai.changeroot_to_mountpoint timedatectl set-timezone "$AI_LOCAL_TIME"
@@ -844,6 +846,10 @@ ai_configure() {
             --force "/usr/share/zoneinfo/${AI_LOCAL_TIME}" \
             "${AI_MOUNTPOINT_PATH}etc/localtime"
     fi
+
+    bl.logging.info Activate date time synchronization.
+    ai.changeroot_to_mountpoint timedatectl set-ntp true
+
     bl.logging.info "Set hostname to \"$AI_HOST_NAME\"."
     if [ "$1" = true ]; then
         ai.changeroot_to_mountpoint hostnamectl set-hostname "$AI_HOST_NAME"
@@ -851,19 +857,23 @@ ai_configure() {
         echo "$AI_HOST_NAME" \
             1>"${AI_MOUNTPOINT_PATH}etc/hostname"
     fi
+
     bl.logging.info Set hosts.
     ai.get_hosts_content "$AI_HOST_NAME" \
         1>"${AI_MOUNTPOINT_PATH}etc/hosts"
+
     if [[ "$1" != true ]]; then
         bl.logging.info "Set root password to \"root\"."
         ai.changeroot_to_mountpoint \
             /usr/bin/env bash -c \
                 "echo root:${AI_PASSWORD} | \$(which chpasswd)"
     fi
+
     bl.exception.try
         ai.enable_services
     bl.exception.catch_single
         bl.logging.warn Enabling services has failed.
+
     local user_name
     for user_name in "${AI_USER_NAMES[@]}"; do
         bl.logging.info "Add user: \"$user_name\"."
@@ -871,13 +881,17 @@ ai_configure() {
         # are root.
         bl.exception.try
             ai.changeroot_to_mountpoint \
-                useradd "$(
+                useradd \
+                "$(
                     if (( UID == 0 )); then
                         echo --create-home
                     else
                         echo --no-create-home
                     fi
-                ) --no-user-group --shell /usr/bin/bash" \
+                )" \
+                --no-user-group \
+                --shell \
+                /usr/bin/bash \
                 "$user_name"
         bl.exception.catch_single
             bl.logging.warn "Adding user \"${user_name}\" failed."
@@ -887,6 +901,7 @@ ai_configure() {
             /usr/bin/env bash -c \
                 "echo '${user_name}:${user_name}' | \$(which chpasswd)"
     done
+
     return $?
 }
 alias ai.configure_pacman=ai_configure_pacman
