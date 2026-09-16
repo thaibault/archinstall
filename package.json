@@ -32,7 +32,7 @@
     "document:show:error": "bashlink-document archinstall 1>/dev/null",
     "lint": "hash shellcheck && shellcheck -x *.sh || echo Please install \"shellcheck\". || true",
     "lint:given": "shellcheck -x",
-    "test": "./node_modules/.bin/bashlink-doctest --verbose ./archinstall; ./node_modules/.bin/bashlink-doctest --verbose ./pack-into-archiso",
+    "test": "./node_modules/.bin/bashlink-doctest --verbose ./archinstall && ./node_modules/.bin/bashlink-doctest --verbose ./pack-into-archiso",
     "update:documentation": "web-documentation"
   },
   "dependencies": {
