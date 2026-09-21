@@ -1,7 +1,7 @@
 <!-- #!/usr/bin/env markdown
 -*- coding: utf-8 -*-
 region header
-Copyright Torben Sickert (info["~at~"]torben.website) 16.12.2012
+Copyright Torben Sickert (info["~at~"]tsickert.com) 16.12.2012
 
 License
 -------
@@ -20,7 +20,7 @@ Project Status
 [![build push package](https://img.shields.io/github/actions/workflow/status/thaibault/archinstall/build-package-and-push.yaml?label=build%20push%20package&style=for-the-badge)](https://github.com/thaibault/archinstall/actions/workflows/build-package-and-push.yaml)
 
 [![deploy web documentation](https://img.shields.io/github/actions/workflow/status/thaibault/archinstall/deploy-web-documentation.yaml?label=deploy%20web%20documentation&style=for-the-badge)](https://github.com/thaibault/archinstall/actions/workflows/deploy-web-documentation.yaml)
-[![web documentation](https://img.shields.io/website-up-down-green-red/https/torben.website/archinstall.svg?label=web-documentation&style=for-the-badge)](https://torben.website/archinstall)
+[![web documentation](https://img.shields.io/website-up-down-green-red/https/tsickert.com/archinstall.svg?label=web-documentation&style=for-the-badge)](https://tsickert.com/archinstall)
 
 <!--|deDE:Verwendung-->
 Use case
@@ -64,7 +64,7 @@ Simply load the newest version from:
 <!--deDE:
     Um die neueste Version zuerhalten sollte man das Bash-Script runterladen:
 -->
-[archinstall](https://torben.website/archinstall/data/distributionBundle/archinstall.sh)
+[archinstall](https://tsickert.com/archinstall/data/distributionBundle/archinstall.sh)
 
 ```bash
 >>> curl \
