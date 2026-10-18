@@ -1,7 +1,7 @@
 <!-- #!/usr/bin/env markdown
 -*- coding: utf-8 -*-
 region header
-Copyright Torben Sickert (info["~at~"]torben.website) 16.12.2012
+Copyright Torben Sickert (info["~at~"]tsickert.com) 16.12.2012
 
 License
 -------
@@ -10,8 +10,8 @@ This library written by Torben Sickert stands under a creative commons naming
 3.0 unported license. See https://creativecommons.org/licenses/by/3.0/deed.de
 endregion -->
 
-<!--|deDE:Projekt Status-->
-Project status
+<!--|deDE:Projektstatus-->
+Project Status
 --------------
 
 [![npm](https://img.shields.io/npm/v/archinstall?color=%23d55e5d&label=npm%20package%20version&logoColor=%23d55e5d&style=for-the-badge)](https://www.npmjs.com/package/archinstall)
@@ -20,9 +20,9 @@ Project status
 [![build push package](https://img.shields.io/github/actions/workflow/status/thaibault/archinstall/build-package-and-push.yaml?label=build%20push%20package&style=for-the-badge)](https://github.com/thaibault/archinstall/actions/workflows/build-package-and-push.yaml)
 
 [![deploy web documentation](https://img.shields.io/github/actions/workflow/status/thaibault/archinstall/deploy-web-documentation.yaml?label=deploy%20web%20documentation&style=for-the-badge)](https://github.com/thaibault/archinstall/actions/workflows/deploy-web-documentation.yaml)
-[![web documentation](https://img.shields.io/website-up-down-green-red/https/torben.website/archinstall.svg?label=web-documentation&style=for-the-badge)](https://torben.website/archinstall)
+[![web documentation](https://img.shields.io/website-up-down-green-red/https/tsickert.com/archinstall.svg?label=web-documentation&style=for-the-badge)](https://tsickert.com/archinstall)
 
-<!--|deDE:Einsatz-->
+<!--|deDE:Verwendung-->
 Use case
 --------
 
@@ -31,11 +31,30 @@ environment. You can create your own linux distribution based on the rolling
 released ArchLinux. A rock solid decorator pattern allows to automate a fully
 unattended individual installation process.
 
-<!--Place for automatic generated table of contents.-->
-<div class="doc-toc" style="display:none">
-    <!--|deDE:Inhalt-->
-    <h2 id="content">Content</h2>
+<div class="wd-table-of-contents">
+    <h2 id="content">Content<!--deDE:Inhalt--><!--frFR:Contenu--></h2>
+    <!--wd-table-of-contents-->
 </div>
+
+Installation
+------------
+
+You can install via package manager, simply download the compiled version as
+zip file here and inject or request via CDN in HTML:
+<!--deDE:
+    Sie können das Paket über den Paketmanager installieren oder einfach die
+    kompilierte Version als ZIP-Datei hier herunterladen und in HTML einbinden
+    oder über ein CDN abrufen:
+-->
+<!--frFR:
+    Vous pouvez installer le paquet via le gestionnaire de paquets ou
+    simplement télécharger ici la version compilée sous forme de fichier ZIP,
+    puis l'intégrer dans une page HTML ou la récupérer via un CDN:
+-->
+
+```bash
+npm install archinstall
+```
 
 <!--|deDE:Einstieg-->
 Quick-Start
@@ -45,7 +64,7 @@ Simply load the newest version from:
 <!--deDE:
     Um die neueste Version zuerhalten sollte man das Bash-Script runterladen:
 -->
-[archinstall](https://torben.website/archinstall/data/distributionBundle/archinstall.sh)
+[archinstall](https://tsickert.com/archinstall/data/distributionBundle/archinstall.sh)
 
 ```bash
 >>> curl \

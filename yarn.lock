@@ -70,7 +70,7 @@ __metadata:
   dependencies:
     bashlink: "npm:^1.0.280"
     shellcheck: "npm:^4.1.0"
-    web-documentation: "npm:^1.0.51"
+    web-documentation: "npm:^1.0.61"
   bin:
     archinstall: archinstall.sh
     pack-into-archiso: pack-into-archiso.sh
@@ -895,12 +895,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"web-documentation@npm:^1.0.51":
-  version: 1.0.51
-  resolution: "web-documentation@npm:1.0.51"
+"web-documentation@npm:^1.0.61":
+  version: 1.0.61
+  resolution: "web-documentation@npm:1.0.61"
   bin:
     web-documentation: build/deploy.js
-  checksum: 10c0/2701c8d95fd82a3badc040c65c86d8c5dc15cfed486bd8665d09a6da5e656c912f5647916e0f3a1d90edbf16ef366b3be69033181515ab84e8b100d5610e1ecd
+  checksum: 10c0/061910670f04e036b2cba54db2f680c37b7725feb40bfca1fdd85fd3658a255047b384c091e9389e3c2412e35279276c669370782cbb40d0c348f74e8832b94c
   languageName: node
   linkType: hard
 

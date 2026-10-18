@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
 # region header
-# Copyright Torben Sickert (info["~at~"]torben.website) 16.12.2012
+# Copyright Torben Sickert (info["~at~"]tsickert.com) 16.12.2012
 
 # License
 # -------
@@ -14,7 +14,7 @@ pkgver=1.0.19
 pkgrel=25
 pkgdesc='Automate your installation process.'
 arch=(any)
-url=https://torben.website/archinstall
+url=https://tsickert.com/archinstall
 license=(CC-BY-3.0)
 devdepends=(shellcheck)
 depends=(
