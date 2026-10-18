@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "shellcheck": "^4.1.0",
-    "web-documentation": "^1.0.60"
+    "web-documentation": "^1.0.61"
   },
   "engines": {
     "node": ">=26",
@@ -55,5 +55,5 @@
     "tagline": "automate your installation process<!--deDE:Automatisiere deinen Installationsprozess-->",
     "trackingCode": "UA-40192634-12"
   },
-  "packageManager": "yarn@4.18.0"
+  "packageManager": "yarn@4.18.1+sha512.b2e1e7524f654f2749d32b4ebcb4622473cb5bcbc485df2007e12a154e50162a4d795526768bc5f5b8f81717bfd79deb2472813d86fb5ae2eb551fa9c872b08f"
 }
