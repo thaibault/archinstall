@@ -1,6 +1,6 @@
 {
   "name": "archinstall",
-  "version": "1.0.217",
+  "version": "1.0.218",
   "description": "automate your installation process",
   "keywords": [
     "archLinux",
@@ -14,7 +14,7 @@
   "license": "CC-BY-3.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/thaibault/archinstall"
+    "url": "git+https://github.com/thaibault/archinstall.git"
   },
   "main": "archinstall.sh",
   "bin": {
@@ -32,7 +32,7 @@
     "document:show:error": "bashlink-document archinstall 1>/dev/null",
     "lint": "hash shellcheck && shellcheck -x *.sh || echo Please install \"shellcheck\". || true",
     "lint:given": "shellcheck -x",
-    "test": "./node_modules/.bin/bashlink-doctest --verbose ./archinstall && ./node_modules/.bin/bashlink-doctest --verbose ./pack-into-archiso",
+    "test": "bashlink-doctest --verbose ./archinstall && ./node_modules/.bin/bashlink-doctest --verbose ./pack-into-archiso",
     "update:documentation": "web-documentation"
   },
   "dependencies": {
