@@ -36,11 +36,11 @@
     "update:documentation": "web-documentation"
   },
   "dependencies": {
-    "bashlink": "^1.0.280"
+    "bashlink": "^1.0.282"
   },
   "devDependencies": {
     "shellcheck": "^4.1.0",
-    "web-documentation": "^1.0.64"
+    "web-documentation": "^1.0.65"
   },
   "engines": {
     "node": ">=26",
