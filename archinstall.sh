@@ -61,6 +61,9 @@ else
     # shellcheck disable=SC1091
     source "${BL_MODULE_REMOTE_MODULE_CACHE_PATH}/module.sh"
 fi
+# NOTE: Shortens this module's scope to "ai_*" and "AI_*" names.
+BL_MODULE_FUNCTION_SCOPE_REWRITES+=('^archinstall$/ai/')
+BL_MODULE_GLOBAL_SCOPE_REWRITES+=('^ARCHINSTALL$/AI/')
 bl.module.import bashlink.changeroot
 bl.module.import bashlink.dictionary
 bl.module.import bashlink.exception
