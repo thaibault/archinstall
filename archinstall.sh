@@ -1247,6 +1247,9 @@ ai_determine_package_dependencies() {
                         '^[a-zA-Z0-9@_+][-a-zA-Z0-9@._+]*' | \
                             sed --regexp-extended 's/^(.+)[><=].+$/\1/'
             )"
+            # NOTE: The dependency section may end with an empty line.
+            [[ "$package_name" = '' ]] && \
+                continue
             local alias
             if alias="$(
                 bl.dictionary.get \
