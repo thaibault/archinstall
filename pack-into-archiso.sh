@@ -21,6 +21,9 @@ else
     echo Needed bashlink library not found 1>&2
     exit 1
 fi
+# NOTE: Shortens this module's scope to "pia_*" and "PIA_*" names.
+BL_MODULE_FUNCTION_SCOPE_REWRITES+=('^pack\.into\.archiso$/pia/')
+BL_MODULE_GLOBAL_SCOPE_REWRITES+=('^PACK_INTO_ARCHISO$/PIA/')
 bl.module.import bashlink.logging
 bl.module.import bashlink.tools
 # endregion
