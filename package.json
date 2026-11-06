@@ -28,15 +28,15 @@
     "build": "echo nothing to build.",
     "clear": "[ ! -e apiDocumentation ] || rm --recursive apiDocumentation",
     "document": "mkdir --parents apiDocumentation/archinstall/latest && yarn document:show 1>apiDocumentation/archinstall/latest/index.html",
-    "document:show": "bashlink-document ../../archinstall",
-    "document:show:error": "bashlink-document archinstall 1>/dev/null",
-    "lint": "hash shellcheck && shellcheck -x *.sh || echo Please install \"shellcheck\". || true",
+    "document:show": "bash ./node_modules/.bin/bashlink-document ../../archinstall",
+    "document:show:error": "bash ./node_modules/.bin/bashlink-document archinstall 1>/dev/null",
+    "lint": "shellcheck -x *.sh",
     "lint:given": "shellcheck -x",
-    "test": "bashlink-doctest --verbose ./archinstall && ./node_modules/.bin/bashlink-doctest --verbose ./pack-into-archiso",
+    "test": "bash ./node_modules/.bin/bashlink-doctest --verbose ./archinstall && bash ./node_modules/.bin/bashlink-doctest --verbose ./pack-into-archiso",
     "update:documentation": "web-documentation"
   },
   "dependencies": {
-    "bashlink": "^1.0.288"
+    "bashlink": "^1.0.291"
   },
   "devDependencies": {
     "shellcheck": "^4.1.0",
