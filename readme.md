@@ -19,6 +19,9 @@ Project Status
 
 [![build push package](https://img.shields.io/github/actions/workflow/status/thaibault/archinstall/build-package-and-push.yaml?label=build%20push%20package&style=for-the-badge)](https://github.com/thaibault/archinstall/actions/workflows/build-package-and-push.yaml)
 
+[![lint](https://img.shields.io/github/actions/workflow/status/thaibault/archinstall/lint.yaml?label=lint&style=for-the-badge)](https://github.com/thaibault/archinstall/actions/workflows/lint.yaml)
+[![test](https://img.shields.io/github/actions/workflow/status/thaibault/archinstall/test.yaml?label=test&style=for-the-badge)](https://github.com/thaibault/archinstall/actions/workflows/test.yaml)
+
 [![deploy web documentation](https://img.shields.io/github/actions/workflow/status/thaibault/archinstall/deploy-web-documentation.yaml?label=deploy%20web%20documentation&style=for-the-badge)](https://github.com/thaibault/archinstall/actions/workflows/deploy-web-documentation.yaml)
 [![web documentation](https://img.shields.io/website-up-down-green-red/https/tsickert.com/archinstall.svg?label=web-documentation&style=for-the-badge)](https://tsickert.com/archinstall)
 
