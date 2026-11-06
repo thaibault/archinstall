@@ -21,6 +21,9 @@ else
     echo Needed bashlink library not found 1>&2
     exit 1
 fi
+# NOTE: Shortens this module's scope to "pia_*" and "PIA_*" names.
+BL_MODULE_FUNCTION_SCOPE_REWRITES+=('^pack\.into\.archiso$/pia/')
+BL_MODULE_GLOBAL_SCOPE_REWRITES+=('^PACK_INTO_ARCHISO$/PIA/')
 bl.module.import bashlink.logging
 bl.module.import bashlink.tools
 # endregion
@@ -83,11 +86,11 @@ declare -ag PIA_RELATIVE_PATHS_TO_SQUASH_FILESYSTEM=(
     arch/i686/root-image.fs.sfs
     arch/x86_64/root-image.fs.sfs
 )
-declare -g PIA_RELATIVE_SOURCE_FILE_PATH=archInstall.sh
+declare -g PIA_RELATIVE_SOURCE_FILE_PATH=archinstall.sh
 declare -g PIA_RELATIVE_TARGET_FILE_PATH=usr/bin/
-declare -g PIA_BASHRC_CODE=$'\nalias getInstallScript='"'wget https://goo.gl/bPAqXB --output-document archInstall.sh && chmod +x archInstall.sh'"$'\nalias install='"'([ -f /root/archInstall.sh ] || getInstallScript);/root/archInstall.sh'"
+declare -g PIA_BASHRC_CODE=$'\nalias getInstallScript='"'wget https://raw.githubusercontent.com/thaibault/archinstall/main/archinstall.sh --output-document archinstall.sh && chmod +x archinstall.sh'"$'\nalias install='"'([ -f ./archinstall.sh ] || getInstallScript);./archinstall.sh'"
 
-BL_MODULE_FUNCTION_SCOPE_REWRITES+=('^packIntoArchiso([._][a-zA-Z_-]+)?$/pai\1/')
+BL_MODULE_FUNCTION_SCOPE_REWRITES+=('^pack\.into\.archiso([._][a-zA-Z_-]+)?$/pia\1/')
 BL_MODULE_GLOBAL_SCOPE_REWRITES+=('^PACK_INTO_ARCHISO(_[a-zA-Z_-]+)?$/PIA\1/')
 # endregion
 # region functions
@@ -146,6 +149,20 @@ pia_commandline_interface() {
         +bl.doctest.multiline_ellipsis
         You have to provide source and target file path.
         ...
+
+        >>> pia.commandline_interface source.iso target.iso \
+        >>>     --keyboard-layout us --squash-filesystem-compressor xz
+        >>> echo "$PIA_SOURCE_PATH $PIA_TARGET_PATH"
+        >>> echo "$PIA_KEYBOARD_LAYOUT $PIA_SQUASH_FILESYSTEM_COMPRESSOR"
+        source.iso target.iso
+        us xz
+
+        >>> local target_path="$(pia_bl_doctest_mktemp --directory)"
+        >>> pia.commandline_interface path/to/source.iso "$target_path"
+        >>> [ "$PIA_TARGET_PATH" = \
+        >>>     "$(readlink --canonicalize "$target_path")/source.iso" ] && \
+        >>>         echo yes
+        yes
     '
     while true; do
         case "$1" in
@@ -222,7 +239,7 @@ pia_remaster_iso() {
     '
     bl.logging.info \
         "Mount \"$PIA_SOURCE_PATH\" to \"$PIA_MOUNTPOINT_PATH\"."
-    mount -t iso9660 -o loop "$PIA_SOURCE_PATH" "$PIA_TARGET_PATH"
+    mount -t iso9660 -o loop "$PIA_SOURCE_PATH" "$PIA_MOUNTPOINT_PATH"
     bl.logging.info \
         "Copy content in \"$PIA_MOUNTPOINT_PATH\" to \"$PIA_TEMPORARY_REMASTERING_PATH\"."
     cp --archiv "${PIA_MOUNTPOINT_PATH}/"* "$PIA_TEMPORARY_REMASTERING_PATH"
@@ -237,12 +254,12 @@ pia_remaster_iso() {
         bl.logging.info "Mount root file system in \"${PIA_TEMPORARY_FILESYSTEM_REMASTERING_PATH}\" to \"${PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}\"."
         mount \
             "${PIA_TEMPORARY_FILESYSTEM_REMASTERING_PATH}/"* \
-            "$_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH"
+            "$PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH"
         bl.logging.info "Copy \"$(
             dirname "$(readlink --canonicalize "$0")"
         )/${PIA_RELATIVE_SOURCE_FILE_PATH}\" to \"${PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}/${PIA_RELATIVE_TARGET_FILE_PATH}\"."
         cp \
-            "$(dirname "$(readlink --canonicalize "$0")")/$_RELATIVE_SOURCE_FILE_PATH" \
+            "$(dirname "$(readlink --canonicalize "$0")")/$PIA_RELATIVE_SOURCE_FILE_PATH" \
             "${PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}/${PIA_RELATIVE_TARGET_FILE_PATH}"
         bl.logging.info "Set key map to \"$PIA_KEYBOARD_LAYOUT\"."
         if [ "$1" = true ]; then
@@ -318,6 +335,24 @@ alias pia.tidy_up=pia_tidy_up
 pia_tidy_up() {
     local -r __documentation__='
         Removes temporary created files.
+
+        >>> local PIA_MOUNTPOINT_PATH="$(pia_bl_doctest_mktemp --directory)"
+        >>> local PIA_TEMPORARY_REMASTERING_PATH="$(
+        >>>     pia_bl_doctest_mktemp --directory)"
+        >>> local PIA_TEMPORARY_FILESYSTEM_REMASTERING_PATH="$(
+        >>>     pia_bl_doctest_mktemp --directory)"
+        >>> local PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH="$(
+        >>>     pia_bl_doctest_mktemp --directory)"
+        >>> touch "${PIA_MOUNTPOINT_PATH}/file"
+        >>> pia.tidy_up
+        >>> ls --directory \
+        >>>     "$PIA_MOUNTPOINT_PATH" \
+        >>>     "$PIA_TEMPORARY_REMASTERING_PATH" \
+        >>>     "$PIA_TEMPORARY_FILESYSTEM_REMASTERING_PATH" \
+        >>>     "$PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH" \
+        >>>         2>/dev/null
+        >>> echo $?
+        2
     '
     bl.logging.info \
         "Remove temporary created location \"${PIA_MOUNTPOINT_PATH}\"."

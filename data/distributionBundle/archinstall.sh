@@ -61,6 +61,9 @@ else
     # shellcheck disable=SC1091
     source "${BL_MODULE_REMOTE_MODULE_CACHE_PATH}/module.sh"
 fi
+# NOTE: Shortens this module's scope to "ai_*" and "AI_*" names.
+BL_MODULE_FUNCTION_SCOPE_REWRITES+=('^archinstall$/ai/')
+BL_MODULE_GLOBAL_SCOPE_REWRITES+=('^ARCHINSTALL$/AI/')
 bl.module.import bashlink.changeroot
 bl.module.import bashlink.dictionary
 bl.module.import bashlink.exception
@@ -130,6 +133,7 @@ declare -agr AI__DEPENDENCIES__=(
     uname
     which
     xz
+    zstd
 )
 declare -agr AI__OPTIONAL_DEPENDENCIES__=(
     # Dependencies for blockdevice integration
@@ -336,6 +340,15 @@ ai_commandline_interface() {
         ...
         Usage: arch-install [options]
         ...
+
+        >>> ai.commandline_interface --not-existing; echo $?
+        +bl.doctest.contains
+        +bl.doctest.multiline_ellipsis
+        Given argument: "--not-existing" is not available.
+        ...
+        Usage: arch-install [options]
+        ...
+        1
     '
     bl.logging.set_command_level debug
     while true; do
@@ -514,7 +527,7 @@ ai_commandline_interface() {
                 break
                 ;;
             *)
-                logging.error "Given argument: \"${1}\" is not available."
+                bl.logging.error "Given argument: \"${1}\" is not available."
                 bl.logging.plain "$(ai.get_help_message)"
 
                 return 1
@@ -669,6 +682,13 @@ ai_append_temporary_install_mirrors() {
     local -r __documentation__='
         Appends temporary used mirrors to download missing packages during
         installation.
+
+        >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+        >>> mkdir --parents "${AI_MOUNTPOINT_PATH}etc/pacman.d"
+        >>> ai.append_temporary_install_mirrors "https://a.tld https://b.tld"
+        >>> cat "${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
+        Server = https://a.tld/$repo/os/$arch
+        Server = https://b.tld/$repo/os/$arch
     '
     local url
     for url in $1; do
@@ -680,12 +700,25 @@ alias ai.cache=ai_cache
 ai_cache() {
     local -r __documentation__='
         Cache previous downloaded packages and database.
+
+        >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+        >>> local AI_CACHE_PATH="$(ai_bl_doctest_mktemp --directory)/"
+        >>> mkdir --parents \
+        >>>     "${AI_MOUNTPOINT_PATH}var/cache/pacman/pkg" \
+        >>>     "${AI_MOUNTPOINT_PATH}var/lib/pacman/sync"
+        >>> touch "${AI_MOUNTPOINT_PATH}var/cache/pacman/pkg/"{a.pkg.tar.xz,b.pkg.tar.zst}
+        >>> touch "${AI_MOUNTPOINT_PATH}var/lib/pacman/sync/core.db"
+        >>> ai.cache
+        >>> ls "$AI_CACHE_PATH"
+        a.pkg.tar.xz
+        b.pkg.tar.zst
+        core.db
     '
     bl.logging.info Cache loaded packages.
     cp \
         --force \
         --preserve \
-        "${AI_MOUNTPOINT_PATH}var/cache/pacman/pkg/"*.pkg.tar.xz \
+        "${AI_MOUNTPOINT_PATH}var/cache/pacman/pkg/"*.pkg.tar.* \
         "$AI_CACHE_PATH"
     bl.logging.info Cache loaded databases.
     cp \
@@ -796,6 +829,11 @@ alias ai.get_hosts_content=ai_get_hosts_content
 ai_get_hosts_content() {
     local -r __documentation__='
         Provides the file content for the "/etc/hosts".
+
+        >>> ai.get_hosts_content my-host
+        #<IP-Adress> <computername.workgroup> <computernames>
+        127.0.0.1    localhost.localdomain    localhost my-host
+        ::1          ipv6-localhost           ipv6-localhost ipv6-my-host
     '
     cat << EOF
 #<IP-Adress> <computername.workgroup> <computernames>
@@ -907,7 +945,21 @@ ai_configure() {
 alias ai.configure_pacman=ai_configure_pacman
 ai_configure_pacman() {
     local -r __documentation__='
-        Disables signature checking for incoming packages.
+        Enables all mirrors of configured country in mirror list.
+
+        >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+        >>> mkdir --parents "${AI_MOUNTPOINT_PATH}etc/pacman.d"
+        >>> printf "%s\n" \
+        >>>     "## Germany" "#Server = https://de.tld" "" \
+        >>>     "## France" "#Server = https://fr.tld" \
+        >>>         >"${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
+        >>> ai.configure_pacman
+        >>> command grep --invert-match "^$" \
+        >>>     "${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
+        ## Germany
+        Server = https://de.tld
+        ## France
+        #Server = https://fr.tld
     '
     bl.logging.info "Enable mirrors in \"${AI_COUNTRY_WITH_MIRRORS}\"."
     local buffer_file="$(mktemp --suffix -archinstall-processed-mirrorlist)"
@@ -943,6 +995,19 @@ alias ai.determine_auto_partitioning=ai_determine_auto_partitioning
 ai_determine_auto_partitioning() {
     local -r __documentation__='
         Determine whether we should perform our auto partitioning mechanism.
+
+        >>> ai.determine_auto_partitioning <<<YES
+        >>> echo " $AI_AUTO_PARTITIONING"
+        Do you want auto partioning? [yes|NO]: true
+
+        >>> ai.determine_auto_partitioning < <(printf "maybe\n\n")
+        >>> echo " $AI_AUTO_PARTITIONING"
+        Do you want auto partioning? [yes|NO]:Do you want auto partioning? [yes|NO]: false
+
+        >>> local AI_AUTO_PARTITIONING=true
+        >>> ai.determine_auto_partitioning
+        >>> echo "$AI_AUTO_PARTITIONING"
+        true
     '
     if ! $AI_AUTO_PARTITIONING; then
         while true; do
@@ -984,6 +1049,7 @@ ai_create_url_lists() {
         if serialized_url_list="$(
             command curl \
                 "$url" \
+                --location \
                 --max-time "$AI_NETWORK_TIMEOUT_IN_SECONDS" \
                 --retry 10 \
                 --retry-all-errors \
@@ -1009,11 +1075,12 @@ ai_create_url_lists() {
         "${url_list[@]}" "${AI_PACKAGE_URLS[@]}")
     local -a package_urls=()
     local name
-    for name in core community extra; do
+    for name in core extra; do
         for url in "${AI_PACKAGE_URLS[@]}"; do
             bl.logging.info "Retrieve repository \"$name\" from \"$url\"."
             if serialized_url_list="$(
                 command curl \
+                    --location \
                     --retry 3 \
                     --retry-all-errors \
                     --retry-delay 1 \
@@ -1021,7 +1088,7 @@ ai_create_url_lists() {
                     "${url}/$name/os/${AI_CPU_ARCHITECTURE}" | \
                         command sed \
                             --quiet \
-                            "s>.*href=\"\\([^\"]*.\\(tar.xz\\|db\\)\\).*>${url}/$name/os/${AI_CPU_ARCHITECTURE}/\\1>p" | \
+                            "s>.*href=\"\\([^\"]*.\\(tar.xz\\|tar.zst\\|db\\)\\).*>${url}/$name/os/${AI_CPU_ARCHITECTURE}/\\1>p" | \
                                 command sed 's:/./:/:g' | \
                                     sort --unique
             )"; then
@@ -1041,6 +1108,70 @@ ai_create_url_lists() {
     echo "${package_urls[@]}"
     return $return_code
 }
+alias ai.decode_url=ai_decode_url
+ai_decode_url() {
+    local -r __documentation__='
+        Decodes given url encoded string.
+
+        >>> ai.decode_url libsigc%2B%2B-2.12.1-1-x86_64.pkg.tar.zst
+        libsigc++-2.12.1-1-x86_64.pkg.tar.zst
+    '
+    printf '%b' "${1//%/\\x}"
+}
+alias ai.determine_cached_package_file_name=ai_determine_cached_package_file_name
+ai_determine_cached_package_file_name() {
+    local -r __documentation__='
+        Determines the newest package file name for given package name in
+        current package cache.
+
+        >>> local AI_CACHE_PATH="$(ai_bl_doctest_mktemp --directory)/"
+        >>> touch "${AI_CACHE_PATH}"{a-1.0-1-any.pkg.tar.xz,aab-2.0-1-any.pkg.tar.zst}
+        >>> touch "${AI_CACHE_PATH}"{a-1.2-1-any.pkg.tar.zst,a-1.2-1-any.pkg.tar.zst.sig}
+        >>> touch "${AI_CACHE_PATH}"{a-extra-3.0-1-any.pkg.tar.zst,a+b-3.0-1-any.pkg.tar.zst}
+        >>> ai.determine_cached_package_file_name a
+        >>> ai.determine_cached_package_file_name a+b
+        >>> ai.determine_cached_package_file_name b; echo $?
+        a-1.2-1-any.pkg.tar.zst
+        a+b-3.0-1-any.pkg.tar.zst
+        1
+    '
+    local -r package_name="$1"
+    local -r file_names="$(
+        command find \
+            "$AI_CACHE_PATH" \
+            -mindepth 1 \
+            -maxdepth 1 \
+            -regex ".*/$(
+                ai.escape_regular_expression "$package_name"
+            )-[0-9][^/]*\.pkg\.tar\.[^/.]+" | \
+                command sed --regexp-extended 's:^.*/([^/]+)$:\1:')"
+    local file_name=''
+    local -i highest_raw_version=0
+    local name
+    for name in $file_names; do
+        local -i raw_version="$(bl.number.normalize_version "$name")"
+        if [[ "$file_name" = '' ]] || (( raw_version > highest_raw_version ))
+        then
+            file_name="$name"
+            highest_raw_version=$raw_version
+        fi
+    done
+    [[ "$file_name" = '' ]] && return 1
+    echo "$file_name"
+}
+alias ai.escape_regular_expression=ai_escape_regular_expression
+ai_escape_regular_expression() {
+    local -r __documentation__='
+        Escapes all characters with special meaning in regular expressions.
+        Needed since package names may contain characters like "." or "+"
+        (e.g. "libsigc++").
+
+        >>> ai.escape_regular_expression libsigc++-2.12
+        libsigc\+\+-2\.12
+    '
+    echo "$1" | \
+        command sed 's/[][\.*^$+?]/\\&/g'
+}
 alias ai.determine_package_dependencies=ai_determine_package_dependencies
 ai_determine_package_dependencies() {
     local -r __documentation__='
@@ -1053,6 +1184,28 @@ ai_determine_package_dependencies() {
         ```
             ai.determine_package_dependencies glibc /path/to/db
         ```
+
+        >>> local database_path="$(ai_bl_doctest_mktemp --directory)"
+        >>> mkdir "${database_path}/"{alpha-1.0-1,beta-2.0-1,gamma-1.0-1,z-1.0-1}
+        >>> mkdir "${database_path}/"{lib-1.0-1,lib_c-1.0-1}
+        >>> printf "%%NAME%%\nalpha\n\n%%DEPENDS%%\nbeta>=2\ngamma\nz\nlib_c>=2\n" \
+        >>>     >"${database_path}/alpha-1.0-1/desc"
+        >>> printf "%%NAME%%\nbeta\n" >"${database_path}/beta-2.0-1/desc"
+        >>> printf "%%NAME%%\nz\n" >"${database_path}/z-1.0-1/desc"
+        >>> printf "%%NAME%%\nlib\n" >"${database_path}/lib-1.0-1/desc"
+        >>> printf "%%NAME%%\nlib_c\n" >"${database_path}/lib_c-1.0-1/desc"
+        >>> printf "%%NAME%%\ngamma\n\n%%DEPENDS%%\nbeta\n" \
+        >>>     >"${database_path}/gamma-1.0-1/desc"
+        >>> ai.determine_package_dependencies alpha "$database_path"
+        alpha
+        beta
+        gamma
+        z
+        lib_c
+
+        >>> local database_path="$(ai_bl_doctest_mktemp --directory)"
+        >>> ai.determine_package_dependencies alpha "$database_path"; echo $?
+        1
     '
     local -r given_package_name="$1"
     local -r database_directory_path="$2"
@@ -1091,7 +1244,7 @@ ai_determine_package_dependencies() {
                     command grep \
                         --extended-regexp \
                         --only-matching \
-                        '^[a-zA-Z0-9][-a-zA-Z0-9.]+' | \
+                        '^[a-zA-Z0-9@_+][-a-zA-Z0-9@._+]*' | \
                             sed --regexp-extended 's/^(.+)[><=].+$/\1/'
             )"
             local alias
@@ -1102,8 +1255,7 @@ ai_determine_package_dependencies() {
             )"; then
                 package_name="$alias"
             fi
-            if echo "$package_names_to_ignore" | grep --quiet " $package_name "
-            then
+            if [[ "$package_names_to_ignore" == *" $package_name "* ]]; then
                 continue
             fi
             dependent_package_names+=("$package_name")
@@ -1125,16 +1277,42 @@ ai_determine_package_dependencies() {
     return 0
 }
 alias ai.determine_package_description_file_path=ai_determine_package_description_file_path
-ai.determine_package_description_file_path() {
+ai_determine_package_description_file_path() {
     local -r __documentation__='
         Determines the package directory name from given package name in given
         database folder.
+
+        >>> local database_path="$(ai_bl_doctest_mktemp --directory)"
+        >>> mkdir "${database_path}/"{a-1.0-1,a-1.2-1,b-2.0-1,c-1.0-1,aab-1.0-1,a+b-1.0-1}
+        >>> printf "%%NAME%%\nb\n\n%%PROVIDES%%\nlibb\n\n" \
+        >>>     >"${database_path}/b-2.0-1/desc"
+        >>> printf "%%NAME%%\nc\n\n%%PROVIDES%%\nlibfoo++\n\n" \
+        >>>     >"${database_path}/c-1.0-1/desc"
+        >>> ai.determine_package_description_file_path a "$database_path" | \
+        >>>     sed "s:${database_path}/::"
+        >>> ai.determine_package_description_file_path libb "$database_path" | \
+        >>>     sed "s:${database_path}/::"
+        >>> ai.determine_package_description_file_path libfoo++ "$database_path" | \
+        >>>     sed "s:${database_path}/::"
+        >>> ai.determine_package_description_file_path a+b "$database_path" | \
+        >>>     sed "s:${database_path}/::"
+        >>> ai.determine_package_description_file_path xyz "$database_path"; \
+        >>>     echo $?
+        a-1.2-1/desc
+        b-2.0-1/desc
+        c-1.0-1/desc
+        a+b-1.0-1/desc
+        1
     '
     local -r package_name="$1"
     local -r database_directory_path="$2"
-    local -r package_description_file_path="$(
+    # NOTE: Package names may contain regular expression special characters
+    # like "+" (e.g. "libsigc++").
+    local -r escaped_package_name="$(
+        ai.escape_regular_expression "$package_name")"
+    local package_description_file_path="$(
         command grep \
-            "%PROVIDES%\\n(.+\\n)*$package_name\\n(.+\\n)*\\n" \
+            "%PROVIDES%\\n(.+\\n)*\\Q${package_name}\\E\\n(.+\\n)*\\n" \
             --files-with-matches \
             --null-data \
             --perl-regexp \
@@ -1144,21 +1322,22 @@ ai.determine_package_description_file_path() {
     if [ "$package_description_file_path" = '' ]; then
         local regular_expression
         for regular_expression in \
-            '^\(.*/\)?'"$package_name"'$' \
-            '^\(.*/\)?'"$package_name"'-[0-9]+[0-9.\-]*$' \
-            '^\(.*/\)?'"$package_name"'-[0-9]+[0-9.a-zA-Z-]*$' \
-            '^\(.*/\)?'"$package_name"'-git-[0-9]+[0-9.a-zA-Z-]*$' \
-            '^\(.*/\)?'"$package_name"'[0-9]+-[0-9.a-zA-Z-]+\(-[0-9.a-zA-Z-]\)*$' \
-            '^\(.*/\)?[0-9]+'"$package_name"'[0-9]+-[0-9a-zA-Z\.]+\(-[0-9a-zA-Z\.]\)*$' \
-            '^\(.*/\)?'"$package_name"'-.+$' \
-            '^\(.*/\)?.+-'"$package_name"'-.+$' \
-            '^\(.*/\)?'"$package_name"'.+$' \
-            '^\(.*/\)?'"$package_name"'.*$' \
-            '^\(.*/\)?.*'"$package_name"'.*$'
+            '^\(.*/\)?'"$escaped_package_name"'$' \
+            '^\(.*/\)?'"$escaped_package_name"'-[0-9]+[0-9.\-]*$' \
+            '^\(.*/\)?'"$escaped_package_name"'-[0-9]+[0-9.a-zA-Z-]*$' \
+            '^\(.*/\)?'"$escaped_package_name"'-git-[0-9]+[0-9.a-zA-Z-]*$' \
+            '^\(.*/\)?'"$escaped_package_name"'[0-9]+-[0-9.a-zA-Z-]+\(-[0-9.a-zA-Z-]\)*$' \
+            '^\(.*/\)?[0-9]+'"$escaped_package_name"'[0-9]+-[0-9a-zA-Z\.]+\(-[0-9a-zA-Z\.]\)*$' \
+            '^\(.*/\)?'"$escaped_package_name"'-.+$' \
+            '^\(.*/\)?.+-'"$escaped_package_name"'-.+$' \
+            '^\(.*/\)?'"$escaped_package_name"'.+$' \
+            '^\(.*/\)?'"$escaped_package_name"'.*$' \
+            '^\(.*/\)?.*'"$escaped_package_name"'.*$'
         do
             package_description_file_path="$(
                 command find \
                     "$database_directory_path" \
+                    -mindepth 1 \
                     -maxdepth 1 \
                     -regex "$regular_expression"
             )"
@@ -1173,9 +1352,11 @@ ai.determine_package_description_file_path() {
                     local -i highest_raw_version=0
                     for description_file_path in $package_description_file_path
                     do
+                        # NOTE: Only the package directory name should be
+                        # considered since database paths may contain digits.
                         local raw_version="$(
                             bl.number.normalize_version \
-                                "$description_file_path")"
+                                "$(basename "$description_file_path")")"
                         if (( raw_version > highest_raw_version )); then
                             package_description_file_path="$description_file_path"
                             highest_raw_version=$raw_version
@@ -1208,11 +1389,11 @@ ai_determine_pacmans_needed_packages() {
         bl.exception.try
             command curl \
                 "$core_database_url" \
+                --location \
                 --retry 3 \
                 --retry-all-errors \
                 --retry-delay 1 \
-                --max-time="$AI_NETWORK_TIMEOUT_IN_SECONDS" \
-                --netrc-file "$(basename "$core_database_url")" \
+                --max-time "$AI_NETWORK_TIMEOUT_IN_SECONDS" \
                     >"${AI_CACHE_PATH}$(basename "$core_database_url")"
         bl.exception.catch_single
             bl.logging.warn \
@@ -1259,6 +1440,49 @@ alias ai.download_and_extract_pacman=ai_download_and_extract_pacman
 ai_download_and_extract_pacman() {
     local -r __documentation__='
         Downloads all packages from arch linux needed to run pacman.
+
+        >>> local source_path="$(ai_bl_doctest_mktemp --directory)"
+        >>> local AI_CACHE_PATH="$(ai_bl_doctest_mktemp --directory)/"
+        >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+        >>> mkdir --parents \
+        >>>     "${source_path}/database/"{filesystem-1.0-1,pacman-7.0-1} \
+        >>>     "${source_path}/filesystem/etc" \
+        >>>     "${source_path}/pacman/usr/bin"
+        >>> printf "%%NAME%%\nfilesystem\n" \
+        >>>     >"${source_path}/database/filesystem-1.0-1/desc"
+        >>> printf "%%NAME%%\npacman\n\n%%DEPENDS%%\nfilesystem\n" \
+        >>>     >"${source_path}/database/pacman-7.0-1/desc"
+        >>> tar \
+        >>>     --create \
+        >>>     --directory "${source_path}/database" \
+        >>>     --file "${source_path}/core.db" \
+        >>>     --gzip \
+        >>>     .
+        >>> touch "${source_path}/filesystem/etc/hostname"
+        >>> touch "${source_path}/pacman/usr/bin/pacman"
+        >>> local name
+        >>> for name in filesystem-1.0-1 pacman-7.0-1; do
+        >>>     tar \
+        >>>         --create \
+        >>>         --directory "${source_path}/${name%%-*}" \
+        >>>         --file "${source_path}/${name}-any.pkg.tar.xz" \
+        >>>         --xz \
+        >>>         .
+        >>> done
+        >>> ai.download_and_extract_pacman " $(
+        >>>     printf "file://${source_path}/%s " \
+        >>>         core.db \
+        >>>         filesystem-1.0-1-any.pkg.tar.xz \
+        >>>         pacman-6.0-1-any.pkg.tar.xz \
+        >>>         pacman-7.0-1-any.pkg.tar.xz
+        >>> )" 2>/dev/null
+        >>> echo $?
+        >>> find "$AI_MOUNTPOINT_PATH" -type f | \
+        >>>     sed "s:${AI_MOUNTPOINT_PATH}::" | \
+        >>>         sort
+        0
+        etc/hostname
+        usr/bin/pacman
     '
     local serialized_needed_packages
     serialized_needed_packages="$(
@@ -1273,78 +1497,66 @@ ai_download_and_extract_pacman() {
         )\"."
         bl.logging.info \
             "Retrieve and extract each package into our new system located in \"$AI_MOUNTPOINT_PATH\"."
+        local -a urls
+        read -r -a urls <<<"$1"
+        # NOTE: Decode all urls at once to avoid spawning sub processes for
+        # each of the (many thousand) urls per needed package.
+        local -a decoded_urls
+        read -r -a decoded_urls <<<"$(ai.decode_url "$1")"
         local package_name
         for package_name in "${needed_packages[@]}"; do
+            local escaped_package_name="$(
+                ai.escape_regular_expression "$package_name")"
             local file_name=''
             if [[ "$1" != '' ]]; then
-                local package_url="$(
-                    echo "$1" | \
-                        tr ' ' '\n' | \
-                            command grep "/${package_name}-[0-9]")"
-                local number_of_results="$(echo "$package_url" | wc --words)"
-                if (( number_of_results > 1 )); then
-                    # NOTE: We want to use newer package if their are two
-                    # results.
-                    local url
-                    local highest_raw_version=0
-                    for url in $package_url; do
-                        local raw_version="$(
-                            bl.number.normalize_version "$url")"
-                        if (( raw_version > highest_raw_version )); then
-                            package_url="$url"
+                # NOTE: We want to use the newest package if there are
+                # multiple candidates. Only the (url decoded) file name should
+                # be considered since mirror urls may contain digits.
+                local package_url=''
+                local -i highest_raw_version=0
+                local -i index
+                for index in "${!urls[@]}"; do
+                    local name="${decoded_urls[index]##*/}"
+                    if [[ "$name" =~ ^${escaped_package_name}-[0-9] ]]; then
+                        local -i raw_version="$(
+                            bl.number.normalize_version "$name")"
+                        if [[
+                            "$package_url" = '' ||
+                            raw_version -gt highest_raw_version
+                        ]]; then
+                            package_url="${urls[index]}"
                             highest_raw_version=$raw_version
                         fi
-                    done
+                    fi
+                done
+                if [[ "$package_url" != '' ]]; then
+                    bl.exception.try
+                    {
+                        file_name="$(
+                            ai.decode_url "$(basename "$package_url")")"
+                        command curl \
+                            "$package_url" \
+                            --location \
+                            --continue-at - \
+                            --max-time "$AI_NETWORK_TIMEOUT_IN_SECONDS" \
+                            --output "${AI_CACHE_PATH}${file_name}" \
+                            --retry 3 \
+                            --retry-all-errors \
+                            --retry-delay 1
+                    }
+                    bl.exception.catch_single
+                    {
+                        file_name=''
+                        bl.logging.warn \
+                            "Could not retrieve package \"$package_name\" from url \"$package_url\"."
+                    }
                 fi
-                bl.exception.try
-                {
-                    command curl \
-                        "$package_url" \
-                        --continue-at - \
-                        --max-time "$AI_NETWORK_TIMEOUT_IN_SECONDS" \
-                        --netrc-file "$(basename "$package_url")" \
-                        --retry 3 \
-                        --retry-all-errors \
-                        --retry-delay 1 \
-                            >"${AI_CACHE_PATH}$(basename "$package_url")"
-                    file_name="$(
-                        echo "$package_url" | \
-                            command sed 's/.*\/\([^\/][^\/]*\)$/\1/')"
-                    # NOTE: We have to decode given url.
-                    file_name="$(printf '%b' "${file_name//%/\\x}")"
-                }
-                bl.exception.catch_single
-                    bl.logging.warn \
-                        "Could not retrieve package \"$package_name\" from url \"$package_url\"."
             fi
             # If "file_name" couldn't be determined via server determine it via
             # current package cache.
             if [ "$file_name" = '' ]; then
                 file_name="$(
-                    command find \
-                        "$AI_CACHE_PATH" \
-                        -maxdepth 1 \
-                        -regex ".*/$package_name-[0-9].*" | \
-                            sed --regexp-extended 's:^.*/([^/]+)$:\1:')"
-                local number_of_results="$(echo "$file_name" | wc --words)"
-                if (( number_of_results > 1 )); then
-                    # NOTE: We want to use newer package if their are two
-                    # results.
-                    local name
-                    local highest_raw_version=0
-                    for name in $file_name; do
-                        bl.exception.try
-                            bl.number.normalize_version "$name" 6
-                        bl.exception.catch_single
-                            true
-                        local raw_version="$(
-                            bl.number.normalize_version "$name")"
-                        if (( raw_version > highest_raw_version )); then
-                            file_name="$name"
-                            highest_raw_version=$raw_version
-                        fi
-                    done
-                fi
+                    ai.determine_cached_package_file_name "$package_name")"
             fi
             if [[
                 "$file_name" = '' || \
@@ -1354,14 +1566,13 @@ ai_download_and_extract_pacman() {
                     "A suitable file for package \"$package_name\" could not be determined."
             fi
             bl.logging.info "Install package \"$file_name\" manually."
-            xz \
-                --decompress \
-                --to-stdout \
-                "${AI_CACHE_PATH}$file_name" | \
-                    tar \
-                        --directory "$AI_MOUNTPOINT_PATH" \
-                        --extract || \
-                            return $?
+            # NOTE: "tar" determines needed decompression (e.g. "xz" or "zstd")
+            # by itself.
+            tar \
+                --directory "$AI_MOUNTPOINT_PATH" \
+                --extract \
+                --file "${AI_CACHE_PATH}${file_name}" || \
+                    return $?
         done
     else
         return 1
@@ -1440,6 +1651,15 @@ alias ai.generate_fstab_configuration_file=ai_generate_fstab_configuration_file
 ai_generate_fstab_configuration_file() {
     local -r __documentation__='
         Writes the fstab configuration file.
+
+        >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+        >>> local AI_ENCRYPT=true
+        >>> mkdir "${AI_MOUNTPOINT_PATH}etc"
+        >>> ai.generate_fstab_configuration_file
+        >>> command grep --invert-match "^#" "${AI_MOUNTPOINT_PATH}etc/fstab" | \
+        >>>     cut --delimiter " " --fields 1
+        /dev/mapper/cryptroot
+        PARTLABEL=uefiBoot
     '
     bl.logging.info Generate fstab config.
     if ! $AI_ENCRYPT && hash genfstab 2>/dev/null; then
@@ -1462,6 +1682,22 @@ alias ai.load_cache=ai_load_cache
 ai_load_cache() {
     local -r __documentation__='
         Load previous downloaded packages and database.
+
+        >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+        >>> local AI_CACHE_PATH="$(ai_bl_doctest_mktemp --directory)/"
+        >>> touch "${AI_CACHE_PATH}"{core.db,a.pkg.tar.xz,b.pkg.tar.zst}
+        >>> ai.load_cache
+        >>> ls "${AI_MOUNTPOINT_PATH}var/lib/pacman/sync"
+        >>> ls "${AI_MOUNTPOINT_PATH}var/cache/pacman/pkg"
+        core.db
+        a.pkg.tar.xz
+        b.pkg.tar.zst
+
+        >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+        >>> local AI_CACHE_PATH="$(ai_bl_doctest_mktemp --directory)/"
+        >>> ai.load_cache
+        >>> ls "${AI_MOUNTPOINT_PATH}var/lib/pacman/sync"; echo $?
+        0
     '
     bl.logging.info Load cached databases.
     mkdir --parents "${AI_MOUNTPOINT_PATH}var/lib/pacman/sync"
@@ -1480,7 +1716,7 @@ ai_load_cache() {
         cp \
             --no-clobber \
             --preserve \
-            "$AI_CACHE_PATH"*.pkg.tar.xz \
+            "$AI_CACHE_PATH"*.pkg.tar.* \
             "${AI_MOUNTPOINT_PATH}var/cache/pacman/pkg/" \
                 2>/dev/null
     bl.exception.catch_single
@@ -1678,6 +1914,17 @@ alias ai.tidy_up_system=ai_tidy_up_system
 ai_tidy_up_system() {
     local -r __documentation__='
         Deletes some unneeded locations in new installs operating system.
+
+        >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+        >>> mkdir --parents "${AI_MOUNTPOINT_PATH}"{etc,var/cache/pacman/pkg}
+        >>> touch "${AI_MOUNTPOINT_PATH}"{.INSTALL,.PKGINFO}
+        >>> ai.tidy_up_system
+        >>> find "$AI_MOUNTPOINT_PATH" -mindepth 1 | \
+        >>>     sed "s:${AI_MOUNTPOINT_PATH}::" | \
+        >>>         sort
+        etc
+        var
+        var/cache
     '
     bl.logging.info Tidy up new build system.
     local file_path
@@ -1692,6 +1939,20 @@ alias ai.make_pacman_portable=ai_make_pacman_portable
 ai_make_pacman_portable() {
     local -r __documentation__='
         Disables signature checks and registers temporary download mirrors.
+
+        >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+        >>> mkdir --parents "${AI_MOUNTPOINT_PATH}etc/pacman.d"
+        >>> printf "%s\n" \
+        >>>     CheckSpace \
+        >>>     "SigLevel    = Required DatabaseOptional" \
+        >>>     "LocalFileSigLevel = Optional" \
+        >>>         >"${AI_MOUNTPOINT_PATH}etc/pacman.conf"
+        >>> ai.make_pacman_portable https://a.tld
+        >>> cat "${AI_MOUNTPOINT_PATH}etc/pacman.conf"
+        >>> cat "${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
+        SigLevel = Never TrustAll
+        LocalFileSigLevel = Never TrustAll
+        Server = https://a.tld/$repo/os/$arch
     '
     # Copy systems resolv.conf to new installed system.
     cp /etc/resolv.conf "${AI_MOUNTPOINT_PATH}etc/"

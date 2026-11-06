@@ -1,0 +1,426 @@
+## Module archinstall
+This module installs a linux from scratch by the arch way. You will end up
+in ligtweigth linux with pacman as packet manager. You can directly install
+into a given blockdevice, partition or any directory (see command line
+option "--target"). Note that every needed information which is not given
+via command line will be asked interactively on start. This script is as
+unnatted it could be, which means you can relax after providing all needed
+informations in the beginning till your new system is ready to boot.
+
+Start install progress command (Assuming internet is available):
+
+```bash
+curl \
+https://raw.githubusercontent.com/thaibault/archinstall/main/archinstall.sh \
+>archinstall.sh && \
+chmod +x archinstall.sh
+```
+
+Note that you only get very necessary output until you provide "--verbose"
+as commandline option.
+
+Examples:
+
+Start install progress command on first found blockdevice:
+
+```bash
+arch-install --target /dev/sda
+```
+
+Install directly into a given partition with verbose output:
+
+```bash
+arch-install --target /dev/sda1 --verbose
+```
+
+Install directly into a given directory with additional packages included:
+
+```bash
+arch-install --target /dev/sda1 --verbose -f vim net-tools
+```
+### Function ai_add_boot_entries
+Creates an uefi boot entry.
+### Function ai_append_temporary_install_mirrors
+Appends temporary used mirrors to download missing packages during
+installation.
+
+```bash
+>>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+>>> mkdir --parents "${AI_MOUNTPOINT_PATH}etc/pacman.d"
+>>> ai.append_temporary_install_mirrors "https://a.tld https://b.tld"
+>>> cat "${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
+Server = https://a.tld/$repo/os/$arch
+Server = https://b.tld/$repo/os/$arch
+```
+### Function ai_cache
+Cache previous downloaded packages and database.
+
+```bash
+>>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+>>> local AI_CACHE_PATH="$(ai_bl_doctest_mktemp --directory)/"
+>>> mkdir --parents \
+>>>     "${AI_MOUNTPOINT_PATH}var/cache/pacman/pkg" \
+>>>     "${AI_MOUNTPOINT_PATH}var/lib/pacman/sync"
+>>> touch "${AI_MOUNTPOINT_PATH}var/cache/pacman/pkg/"{a.pkg.tar.xz,b.pkg.tar.zst}
+>>> touch "${AI_MOUNTPOINT_PATH}var/lib/pacman/sync/core.db"
+>>> ai.cache
+>>> ls "$AI_CACHE_PATH"
+a.pkg.tar.xz
+b.pkg.tar.zst
+core.db
+```
+### Function ai_changeroot
+This function emulates the arch linux native "arch-chroot" function.
+### Function ai_changeroot_to_mountpoint
+This function performs a changeroot to currently set mountpoint path.
+### Function ai_commandline_interface
+Provides the command line interface and interactive questions.
+
+```bash
+>>> ai.commandline_interface --help
++bl.doctest.contains
++bl.doctest.multiline_ellipsis
+...
+Usage: arch-install [options]
+...
+```
+```bash
+>>> ai.commandline_interface --not-existing; echo $?
++bl.doctest.contains
++bl.doctest.multiline_ellipsis
+Given argument: "--not-existing" is not available.
+...
+Usage: arch-install [options]
+...
+1
+```
+### Function ai_configure
+Provides generic linux configuration mechanism. If new systemd programs
+are used (if first argument is "true") they could have problems in
+change root environment without and exclusive dbus connection.
+### Function ai_configure_pacman
+Enables all mirrors of configured country in mirror list.
+
+```bash
+>>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+>>> mkdir --parents "${AI_MOUNTPOINT_PATH}etc/pacman.d"
+>>> printf "%s\n" \
+>>>     "## Germany" "#Server = https://de.tld" "" \
+>>>     "## France" "#Server = https://fr.tld" \
+>>>         >"${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
+>>> ai.configure_pacman
+>>> command grep --invert-match "^$" \
+>>>     "${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
+## Germany
+Server = https://de.tld
+## France
+#Server = https://fr.tld
+```
+### Function ai_create_url_lists
+Generates all web urls for needed packages.
+### Function ai_decode_url
+Decodes given url encoded string.
+
+```bash
+>>> ai.decode_url libsigc%2B%2B-2.12.1-1-x86_64.pkg.tar.zst
+libsigc++-2.12.1-1-x86_64.pkg.tar.zst
+```
+### Function ai_determine_auto_partitioning
+Determine whether we should perform our auto partitioning mechanism.
+
+```bash
+>>> ai.determine_auto_partitioning <<<YES
+>>> echo " $AI_AUTO_PARTITIONING"
+Do you want auto partioning? [yes|NO]: true
+```
+```bash
+>>> ai.determine_auto_partitioning < <(printf "maybe\n\n")
+>>> echo " $AI_AUTO_PARTITIONING"
+Do you want auto partioning? [yes|NO]:Do you want auto partioning? [yes|NO]: false
+```
+```bash
+>>> local AI_AUTO_PARTITIONING=true
+>>> ai.determine_auto_partitioning
+>>> echo "$AI_AUTO_PARTITIONING"
+true
+```
+### Function ai_determine_cached_package_file_name
+Determines the newest package file name for given package name in
+current package cache.
+
+```bash
+>>> local AI_CACHE_PATH="$(ai_bl_doctest_mktemp --directory)/"
+>>> touch "${AI_CACHE_PATH}"{a-1.0-1-any.pkg.tar.xz,aab-2.0-1-any.pkg.tar.zst}
+>>> touch "${AI_CACHE_PATH}"{a-1.2-1-any.pkg.tar.zst,a-1.2-1-any.pkg.tar.zst.sig}
+>>> touch "${AI_CACHE_PATH}"{a-extra-3.0-1-any.pkg.tar.zst,a+b-3.0-1-any.pkg.tar.zst}
+>>> ai.determine_cached_package_file_name a
+>>> ai.determine_cached_package_file_name a+b
+>>> ai.determine_cached_package_file_name b; echo $?
+a-1.2-1-any.pkg.tar.zst
+a+b-3.0-1-any.pkg.tar.zst
+1
+```
+### Function ai_determine_package_dependencies
+Determines all package dependencies. Returns a list of needed packages
+for given package determined by given database.
+NOTE: We append and prepend always a whitespace to simply identify
+duplicates without using extended regular expression and package name
+escaping.
+
+```
+ai.determine_package_dependencies glibc /path/to/db
+```
+
+```bash
+>>> local database_path="$(ai_bl_doctest_mktemp --directory)"
+>>> mkdir "${database_path}/"{alpha-1.0-1,beta-2.0-1,gamma-1.0-1,z-1.0-1}
+>>> mkdir "${database_path}/"{lib-1.0-1,lib_c-1.0-1}
+>>> printf "%%NAME%%\nalpha\n\n%%DEPENDS%%\nbeta>=2\ngamma\nz\nlib_c>=2\n" \
+>>>     >"${database_path}/alpha-1.0-1/desc"
+>>> printf "%%NAME%%\nbeta\n" >"${database_path}/beta-2.0-1/desc"
+>>> printf "%%NAME%%\nz\n" >"${database_path}/z-1.0-1/desc"
+>>> printf "%%NAME%%\nlib\n" >"${database_path}/lib-1.0-1/desc"
+>>> printf "%%NAME%%\nlib_c\n" >"${database_path}/lib_c-1.0-1/desc"
+>>> printf "%%NAME%%\ngamma\n\n%%DEPENDS%%\nbeta\n" \
+>>>     >"${database_path}/gamma-1.0-1/desc"
+>>> ai.determine_package_dependencies alpha "$database_path"
+alpha
+beta
+gamma
+z
+lib_c
+```
+```bash
+>>> local database_path="$(ai_bl_doctest_mktemp --directory)"
+>>> ai.determine_package_dependencies alpha "$database_path"; echo $?
+1
+```
+### Function ai_determine_package_description_file_path
+Determines the package directory name from given package name in given
+database folder.
+
+```bash
+>>> local database_path="$(ai_bl_doctest_mktemp --directory)"
+>>> mkdir "${database_path}/"{a-1.0-1,a-1.2-1,b-2.0-1,c-1.0-1,aab-1.0-1,a+b-1.0-1}
+>>> printf "%%NAME%%\nb\n\n%%PROVIDES%%\nlibb\n\n" \
+>>>     >"${database_path}/b-2.0-1/desc"
+>>> printf "%%NAME%%\nc\n\n%%PROVIDES%%\nlibfoo++\n\n" \
+>>>     >"${database_path}/c-1.0-1/desc"
+>>> ai.determine_package_description_file_path a "$database_path" | \
+>>>     sed "s:${database_path}/::"
+>>> ai.determine_package_description_file_path libb "$database_path" | \
+>>>     sed "s:${database_path}/::"
+>>> ai.determine_package_description_file_path libfoo++ "$database_path" | \
+>>>     sed "s:${database_path}/::"
+>>> ai.determine_package_description_file_path a+b "$database_path" | \
+>>>     sed "s:${database_path}/::"
+>>> ai.determine_package_description_file_path xyz "$database_path"; \
+>>>     echo $?
+a-1.2-1/desc
+b-2.0-1/desc
+c-1.0-1/desc
+a+b-1.0-1/desc
+1
+```
+### Function ai_determine_pacmans_needed_packages
+Reads pacmans database and determine pacmans dependencies.
+### Function ai_determine_partition_uuid
+Determines uuid by given identifier.
+### Function ai_download
+Simply downloads missing modules.
+
+```bash
+>>> ai.download --silent https://domain.tld/path/to/file.ext; echo $?
+6
+```
+### Function ai_download_and_extract_pacman
+Downloads all packages from arch linux needed to run pacman.
+
+```bash
+>>> local source_path="$(ai_bl_doctest_mktemp --directory)"
+>>> local AI_CACHE_PATH="$(ai_bl_doctest_mktemp --directory)/"
+>>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+>>> mkdir --parents \
+>>>     "${source_path}/database/"{filesystem-1.0-1,pacman-7.0-1} \
+>>>     "${source_path}/filesystem/etc" \
+>>>     "${source_path}/pacman/usr/bin"
+>>> printf "%%NAME%%\nfilesystem\n" \
+>>>     >"${source_path}/database/filesystem-1.0-1/desc"
+>>> printf "%%NAME%%\npacman\n\n%%DEPENDS%%\nfilesystem\n" \
+>>>     >"${source_path}/database/pacman-7.0-1/desc"
+>>> tar \
+>>>     --create \
+>>>     --directory "${source_path}/database" \
+>>>     --file "${source_path}/core.db" \
+>>>     --gzip \
+>>>     .
+>>> touch "${source_path}/filesystem/etc/hostname"
+>>> touch "${source_path}/pacman/usr/bin/pacman"
+>>> local name
+>>> for name in filesystem-1.0-1 pacman-7.0-1; do
+>>>     tar \
+>>>         --create \
+>>>         --directory "${source_path}/${name%%-*}" \
+>>>         --file "${source_path}/${name}-any.pkg.tar.xz" \
+>>>         --xz \
+>>>         .
+>>> done
+>>> ai.download_and_extract_pacman " $(
+>>>     printf "file://${source_path}/%s " \
+>>>         core.db \
+>>>         filesystem-1.0-1-any.pkg.tar.xz \
+>>>         pacman-6.0-1-any.pkg.tar.xz \
+>>>         pacman-7.0-1-any.pkg.tar.xz
+>>> )" 2>/dev/null
+>>> echo $?
+>>> find "$AI_MOUNTPOINT_PATH" -type f | \
+>>>     sed "s:${AI_MOUNTPOINT_PATH}::" | \
+>>>         sort
+0
+etc/hostname
+usr/bin/pacman
+```
+### Function ai_enable_services
+Enable all needed services.
+### Function ai_escape_regular_expression
+Escapes all characters with special meaning in regular expressions.
+Needed since package names may contain characters like "." or "+"
+(e.g. "libsigc++").
+
+```bash
+>>> ai.escape_regular_expression libsigc++-2.12
+libsigc\+\+-2\.12
+```
+### Function ai_format_boot_partition
+Prepares the boot partition.
+### Function ai_format_partitions
+Performs formating part.
+### Function ai_format_system_partition
+Prepares the system partition.
+### Function ai_generate_fstab_configuration_file
+Writes the fstab configuration file.
+
+```bash
+>>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+>>> local AI_ENCRYPT=true
+>>> mkdir "${AI_MOUNTPOINT_PATH}etc"
+>>> ai.generate_fstab_configuration_file
+>>> command grep --invert-match "^#" "${AI_MOUNTPOINT_PATH}etc/fstab" | \
+>>>     cut --delimiter " " --fields 1
+/dev/mapper/cryptroot
+PARTLABEL=uefiBoot
+```
+### Function ai_generic_linux_steps
+This functions performs creating an arch linux system from any linux
+system base.
+### Function ai_get_commandline_option_description
+Prints descriptions about each available command line option.
+NOTE: All letters are used for short options.
+NOTE: "-k" and "--key-map-configuration" is not needed in the future.
+
+```bash
+>>> ai.get_commandline_option_description
++bl.doctest.contains
++bl.doctest.multiline_ellipsis
+-h --help Shows this help message.
+...
+```
+### Function ai_get_help_message
+Provides a help message for this module.
+
+```bash
+>>> ai.get_help_message
++bl.doctest.contains
++bl.doctest.multiline_ellipsis
+...
+Usage: arch-install [options]
+...
+```
+### Function ai_get_hosts_content
+Provides the file content for the "/etc/hosts".
+
+```bash
+>>> ai.get_hosts_content my-host
+#<IP-Adress> <computername.workgroup> <computernames>
+127.0.0.1    localhost.localdomain    localhost my-host
+::1          ipv6-localhost           ipv6-localhost ipv6-my-host
+```
+### Function ai_load_cache
+Load previous downloaded packages and database.
+
+```bash
+>>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+>>> local AI_CACHE_PATH="$(ai_bl_doctest_mktemp --directory)/"
+>>> touch "${AI_CACHE_PATH}"{core.db,a.pkg.tar.xz,b.pkg.tar.zst}
+>>> ai.load_cache
+>>> ls "${AI_MOUNTPOINT_PATH}var/lib/pacman/sync"
+>>> ls "${AI_MOUNTPOINT_PATH}var/cache/pacman/pkg"
+core.db
+a.pkg.tar.xz
+b.pkg.tar.zst
+```
+```bash
+>>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+>>> local AI_CACHE_PATH="$(ai_bl_doctest_mktemp --directory)/"
+>>> ai.load_cache
+>>> ls "${AI_MOUNTPOINT_PATH}var/lib/pacman/sync"; echo $?
+0
+```
+### Function ai_main
+Provides the main module scope.
+
+```bash
+>>> ai.main --help
++bl.doctest.multiline_ellipsis
+...
+Usage: arch-install [options]
+...
+```
+### Function ai_make_pacman_portable
+Disables signature checks and registers temporary download mirrors.
+
+```bash
+>>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+>>> mkdir --parents "${AI_MOUNTPOINT_PATH}etc/pacman.d"
+>>> printf "%s\n" \
+>>>     CheckSpace \
+>>>     "SigLevel    = Required DatabaseOptional" \
+>>>     "LocalFileSigLevel = Optional" \
+>>>         >"${AI_MOUNTPOINT_PATH}etc/pacman.conf"
+>>> ai.make_pacman_portable https://a.tld
+>>> cat "${AI_MOUNTPOINT_PATH}etc/pacman.conf"
+>>> cat "${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
+SigLevel = Never TrustAll
+LocalFileSigLevel = Never TrustAll
+Server = https://a.tld/$repo/os/$arch
+```
+### Function ai_make_partitions
+Performs the auto partitioning.
+### Function ai_pack_result
+Packs the resulting system to provide files owned by root without
+root permissions.
+### Function ai_prepare_blockdevices
+Prepares given block devices to make it ready for fresh installation.
+### Function ai_prepare_installation
+Deletes previous installed things in given output target. And creates a
+package cache directory.
+### Function ai_prepare_next_boot
+Reboots into fresh installed system if previous defined.
+### Function ai_tidy_up_system
+Deletes some unneeded locations in new installs operating system.
+
+```bash
+>>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
+>>> mkdir --parents "${AI_MOUNTPOINT_PATH}"{etc,var/cache/pacman/pkg}
+>>> touch "${AI_MOUNTPOINT_PATH}"{.INSTALL,.PKGINFO}
+>>> ai.tidy_up_system
+>>> find "$AI_MOUNTPOINT_PATH" -mindepth 1 | \
+>>>     sed "s:${AI_MOUNTPOINT_PATH}::" | \
+>>>         sort
+etc
+var
+var/cache
+```
+### Function ai_with_existing_pacman
+Installs arch linux via patched (to be able to operate offline)
+pacstrap of pacman directly.
