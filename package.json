@@ -11,7 +11,7 @@
     "automatic"
   ],
   "homepage": "https://tsickert.com/archinstall",
-  "license": "CC-BY-3.0",
+  "license": "CC-BY-4.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/thaibault/archinstall.git"
