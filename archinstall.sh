@@ -404,6 +404,11 @@ ai_commandline_interface() {
             -i|--keyboard-layout)
                 shift
                 AI_KEYBOARD_LAYOUT="$1"
+                # NOTE: Keep the key map configuration in sync.
+                AI_KEY_MAP_CONFIGURATION_FILE_CONTENT="$(
+                    echo "$AI_KEY_MAP_CONFIGURATION_FILE_CONTENT" | \
+                        command sed "s/^KEYMAP=.*$/KEYMAP=${1}/"
+                )"
                 shift
                 ;;
             -k|--key-map-configuration)

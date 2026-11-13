@@ -32,7 +32,7 @@ bl.module.import bashlink.tools
 declare -gr PIA__DOCUMENTATION__='
     This module modifies a given arch linux iso image.
 
-    Packs the current pack-into-archiso.bash script into the archiso image.
+    Packs archinstall into the live system of the given archiso image.
 
     Remaster archiso file.
 
@@ -54,19 +54,16 @@ declare -gr PIA__DOCUMENTATION__='
 '
 declare -agr PIA__DEPENDENCIES__=(
     bash
-    cdrkit
     grep
     mktemp
-    mount
+    libisoburn
     readlink
     rm
+    sed
     squashfs-tools
-    touch
-    umount
 )
 declare -agr PIA__OPTIONAL_DEPENDENCIES__=(
     'sudo: Perform action as another user.'
-    'arch-install-scripts: Supports to perform an arch-chroot.'
 )
 ## region commandline arguments
 declare -g PIA_SQUASH_FILESYSTEM_COMPRESSOR=gzip
@@ -75,21 +72,14 @@ declare -g PIA_KEY_MAP_CONFIGURATION_FILE_CONTENT="KEYMAP=${PIA_KEYBOARD_LAYOUT}
 ## endregion
 declare -g PIA_SOURCE_PATH=''
 declare -g PIA_TARGET_PATH=''
-declare -g PIA_MOUNTPOINT_PATH="$(mktemp --directory)"
 declare -g PIA_TEMPORARY_REMASTERING_PATH="$(mktemp --directory)"
-declare -g PIA_TEMPORARY_FILESYSTEM_REMASTERING_PATH="$(
-    mktemp --directory
-)/mnt"
 declare -g PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH="$(
     mktemp --directory
 )"
-declare -ag PIA_RELATIVE_PATHS_TO_SQUASH_FILESYSTEM=(
-    arch/i686/root-image.fs.sfs
-    arch/x86_64/root-image.fs.sfs
-)
+declare -g PIA_RELATIVE_SQUASH_FILESYSTEM_PATH=arch/x86_64/airootfs.sfs
 declare -g PIA_RELATIVE_SOURCE_FILE_PATH=archinstall.sh
 declare -g PIA_RELATIVE_TARGET_FILE_PATH=usr/bin/
-declare -g PIA_BASHRC_CODE=$'\nalias getInstallScript='"'wget https://raw.githubusercontent.com/thaibault/archinstall/main/archinstall.sh --output-document archinstall.sh && chmod +x archinstall.sh'"$'\nalias install='"'([ -f ./archinstall.sh ] || getInstallScript);./archinstall.sh'"
+declare -g PIA_SHELL_CONFIGURATION=$'\nalias install=archinstall.sh\nalias getInstallScript='"'curl --output archinstall.sh https://raw.githubusercontent.com/thaibault/archinstall/main/archinstall.sh && chmod +x archinstall.sh'"
 
 BL_MODULE_FUNCTION_SCOPE_REWRITES+=('^pack\.into\.archiso([._][a-zA-Z_-]+)?$/pia\1/')
 BL_MODULE_GLOBAL_SCOPE_REWRITES+=('^PACK_INTO_ARCHISO(_[a-zA-Z_-]+)?$/PIA\1/')
@@ -155,8 +145,10 @@ pia_commandline_interface() {
         >>>     --keyboard-layout us --squash-filesystem-compressor xz
         >>> echo "$PIA_SOURCE_PATH $PIA_TARGET_PATH"
         >>> echo "$PIA_KEYBOARD_LAYOUT $PIA_SQUASH_FILESYSTEM_COMPRESSOR"
+        >>> echo "$PIA_KEY_MAP_CONFIGURATION_FILE_CONTENT" | head --lines 1
         source.iso target.iso
         us xz
+        KEYMAP=us
 
         >>> local target_path="$(pia_bl_doctest_mktemp --directory)"
         >>> pia.commandline_interface path/to/source.iso "$target_path"
@@ -190,6 +182,11 @@ pia_commandline_interface() {
             -k|--keyboard-layout)
                 shift
                 PIA_KEYBOARD_LAYOUT="$1"
+                # NOTE: Keep the key map configuration in sync.
+                PIA_KEY_MAP_CONFIGURATION_FILE_CONTENT="$(
+                    echo "$PIA_KEY_MAP_CONFIGURATION_FILE_CONTENT" | \
+                        command sed "s/^KEYMAP=.*$/KEYMAP=${1}/"
+                )"
                 shift
                 ;;
             -m|--key-map-configuration)
@@ -234,142 +231,125 @@ pia_commandline_interface() {
 alias pia.remaster_iso=pia_remaster_iso
 pia_remaster_iso() {
     local -r __documentation__='
-        Remasters given iso into new iso. If new systemd programs are used (if
-        first argument is "true") they could have problems in change root
-        environment without and exclusive dbus connection.
+        Remasters given iso into new iso: Adds archinstall (and bashlink if
+        available) to the live root file system, configures its keyboard
+        layout and replays the original boot configuration.
     '
+    local -r source_directory_path="$(
+        dirname "$(readlink --canonicalize "$0")"
+    )"
+    local -r squash_file_system_path="${PIA_TEMPORARY_REMASTERING_PATH}/airootfs.sfs"
+    local -r checksum_file_path="${PIA_TEMPORARY_REMASTERING_PATH}/airootfs.sha512"
+    local -r root_path="$PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH"
     bl.logging.info \
-        "Mount \"$PIA_SOURCE_PATH\" to \"$PIA_MOUNTPOINT_PATH\"."
-    mount -t iso9660 -o loop "$PIA_SOURCE_PATH" "$PIA_MOUNTPOINT_PATH"
-    bl.logging.info \
-        "Copy content in \"$PIA_MOUNTPOINT_PATH\" to \"$PIA_TEMPORARY_REMASTERING_PATH\"."
-    cp --archiv "${PIA_MOUNTPOINT_PATH}/"* "$PIA_TEMPORARY_REMASTERING_PATH"
-    local path
-    local -i return_code=0
-    for path in "${PIA_RELATIVE_PATHS_TO_SQUASH_FILESYSTEM[@]}"; do
-        bl.logging.info "Extract squash file system in \"${PIA_TEMPORARY_REMASTERING_PATH}/${path}\" to \"${PIA_TEMPORARY_REMASTERING_PATH}\"."
-        unsquashfs \
-            -d "${PIA_TEMPORARY_FILESYSTEM_REMASTERING_PATH}" \
-            "${PIA_TEMPORARY_REMASTERING_PATH}/${path}"
-        rm --force "${PIA_TEMPORARY_REMASTERING_PATH}/${path}"
-        bl.logging.info "Mount root file system in \"${PIA_TEMPORARY_FILESYSTEM_REMASTERING_PATH}\" to \"${PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}\"."
-        mount \
-            "${PIA_TEMPORARY_FILESYSTEM_REMASTERING_PATH}/"* \
-            "$PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH"
-        bl.logging.info "Copy \"$(
-            dirname "$(readlink --canonicalize "$0")"
-        )/${PIA_RELATIVE_SOURCE_FILE_PATH}\" to \"${PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}/${PIA_RELATIVE_TARGET_FILE_PATH}\"."
-        cp \
-            "$(dirname "$(readlink --canonicalize "$0")")/$PIA_RELATIVE_SOURCE_FILE_PATH" \
-            "${PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}/${PIA_RELATIVE_TARGET_FILE_PATH}"
-        bl.logging.info "Set key map to \"$PIA_KEYBOARD_LAYOUT\"."
-        if [ "$1" = true ]; then
-            arch-chroot \
-                "$PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH" \
-                localectl set-keymap "$PIA_KEYBOARD_LAYOUT"
-            arch-chroot \
-                "$PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH" \
-                set-locale LANG=en_US.utf8
-        else
-            bl.logging.plain \
-                "$PIA_KEY_MAP_CONFIGURATION_FILE_CONTENT" \
-                    1>"${PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}/etc/vconsole.conf"
-        fi
-        bl.logging.info Set root symbolic link for root user.
-        local file_name
-        for file_name in .bashrc .cshrc .kshrc .zshrc; do
-            if [ -f "${PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}/root/$file_name" ]; then
-                bl.logging.plain \
-                    "$PIA_BASHRC_CODE" \
-                        1>>"${PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}/root/$file_name"
-            else
-                bl.logging.plain \
-                    "$PIA_BASHRC_CODE" \
-                        1>"${PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}/root/$file_name"
-            fi
-        done
-        bl.logging.info "Unmount \"${PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}\"."
-        umount "$PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH"
-        bl.logging.info "Make new squash file system from \"${PIA_TEMPORARY_REMASTERING_PATH}\" to \"${PIA_TEMPORARY_REMASTERING_PATH}/${path}\"."
-        mksquashfs \
-            "${PIA_TEMPORARY_FILESYSTEM_REMASTERING_PATH}" \
-            "${PIA_TEMPORARY_REMASTERING_PATH}/${path}" \
-            -noappend \
-            -comp \
-            "$PIA_SQUASH_FILESYSTEM_COMPRESSOR"
-        rm \
-            --force \
-            --recursive \
-            "${PIA_TEMPORARY_FILESYSTEM_REMASTERING_PATH}"
-        return_code=$?
-        if (( return_code != 0 )); then
-            bl.logging.info "Unmount \"$PIA_MOUNTPOINT_PATH\"."
-            umount "$PIA_MOUNTPOINT_PATH"
+        "Extract \"/${PIA_RELATIVE_SQUASH_FILESYSTEM_PATH}\" from \"${PIA_SOURCE_PATH}\"."
+    xorriso \
+        -osirrox on \
+        -indev "$PIA_SOURCE_PATH" \
+        -extract \
+            "/$PIA_RELATIVE_SQUASH_FILESYSTEM_PATH" \
+            "$squash_file_system_path" \
+                2>/dev/null || \
+                    return $?
+    bl.logging.info "Unpack root file system to \"${root_path}\"."
+    rm --force --recursive "$root_path"
+    unsquashfs -quiet -dest "$root_path" "$squash_file_system_path" \
+        1>/dev/null || \
             return $?
+    bl.logging.info \
+        "Copy \"${PIA_RELATIVE_SOURCE_FILE_PATH}\" to \"/${PIA_RELATIVE_TARGET_FILE_PATH}\"."
+    install \
+        -D \
+        --mode 755 \
+        "${source_directory_path}/${PIA_RELATIVE_SOURCE_FILE_PATH}" \
+        "${root_path}/${PIA_RELATIVE_TARGET_FILE_PATH}${PIA_RELATIVE_SOURCE_FILE_PATH}"
+    local bashlink_path
+    for bashlink_path in \
+        "${source_directory_path}/node_modules/bashlink" \
+        /usr/lib/bashlink
+    do
+        if [ -f "${bashlink_path}/module.sh" ]; then
+            bl.logging.info \
+                "Copy bashlink from \"${bashlink_path}\" to provide it offline."
+            mkdir --parents "${root_path}/usr/lib/bashlink"
+            cp \
+                --dereference \
+                --recursive \
+                "${bashlink_path}/"* \
+                "${root_path}/usr/lib/bashlink/"
+            break
         fi
     done
-    local -r volume_id="$(
-        isoinfo -i "$PIA_SOURCE_PATH" -d | \
-            command grep --extended-regexp 'Volume id:' | \
-                command grep --extended-regexp --only-matching '[^ ]+$'
+    bl.logging.info "Set key map to \"$PIA_KEYBOARD_LAYOUT\"."
+    echo -e "$PIA_KEY_MAP_CONFIGURATION_FILE_CONTENT" \
+        1>"${root_path}/etc/vconsole.conf"
+    bl.logging.info Register shortcuts for root user.
+    local file_name
+    for file_name in .bashrc .zshrc; do
+        echo "$PIA_SHELL_CONFIGURATION" \
+            1>>"${root_path}/root/$file_name"
+    done
+    bl.logging.info Pack new root file system.
+    mksquashfs \
+        "$root_path" \
+        "$squash_file_system_path" \
+        -noappend \
+        -comp "$PIA_SQUASH_FILESYSTEM_COMPRESSOR" \
+            1>/dev/null || \
+                return $?
+    (
+        cd "$PIA_TEMPORARY_REMASTERING_PATH" && \
+        sha512sum airootfs.sfs 1>"$checksum_file_path"
+    )
+    # NOTE: Archiso finds its boot medium via the volume date as uuid.
+    local -r volume_date="$(
+        xorriso -indev "$PIA_SOURCE_PATH" -pvd_info 2>/dev/null | \
+            command sed \
+                --quiet \
+                --regexp-extended \
+                's/^Modif\. Time *: *([0-9]{16}).*$/\1/p'
     )"
-    bl.logging.info "Create new iso file from \"$PIA_TEMPORARY_REMASTERING_PATH\" in \"${PIA_TARGET_PATH}\" with old detected volume id \"${volume_id}\"."
-    pushd "${PIA_MOUNTPOINT_PATH}" && \
-    genisoimage \
-        -boot-info-table \
-        -boot-load-size 4 \
-        -eltorito-boot isolinux/isolinux.bin \
-        -eltorito-catalog isolinux/boot.cat \
-        -full-iso9660-filenames \
-        -joliet \
-        -no-emul-boot \
-        -output "$PIA_TARGET_PATH" \
-        -rational-rock \
-        -verbose \
-        --volid "$volume_id" \
-        "$PIA_TEMPORARY_REMASTERING_PATH"
-    popd && \
-    bl.logging.info "Unmount \"$PIA_MOUNTPOINT_PATH\"."
-    umount "$PIA_MOUNTPOINT_PATH"
+    bl.logging.info \
+        "Create new iso file \"${PIA_TARGET_PATH}\" with original boot configuration and volume date \"${volume_date}\"."
+    rm --force "$PIA_TARGET_PATH"
+    xorriso \
+        -indev "$PIA_SOURCE_PATH" \
+        -outdev "$PIA_TARGET_PATH" \
+        -map \
+            "$squash_file_system_path" \
+            "/$PIA_RELATIVE_SQUASH_FILESYSTEM_PATH" \
+        -map \
+            "$checksum_file_path" \
+            "/${PIA_RELATIVE_SQUASH_FILESYSTEM_PATH%.sfs}.sha512" \
+        -rm_r "/${PIA_RELATIVE_SQUASH_FILESYSTEM_PATH}.cms.sig" -- \
+        -volume_date uuid "$volume_date" \
+        -boot_image any replay \
+            2>/dev/null
 }
 alias pia.tidy_up=pia_tidy_up
 pia_tidy_up() {
     local -r __documentation__='
         Removes temporary created files.
 
-        >>> local PIA_MOUNTPOINT_PATH="$(pia_bl_doctest_mktemp --directory)"
         >>> local PIA_TEMPORARY_REMASTERING_PATH="$(
-        >>>     pia_bl_doctest_mktemp --directory)"
-        >>> local PIA_TEMPORARY_FILESYSTEM_REMASTERING_PATH="$(
         >>>     pia_bl_doctest_mktemp --directory)"
         >>> local PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH="$(
         >>>     pia_bl_doctest_mktemp --directory)"
-        >>> touch "${PIA_MOUNTPOINT_PATH}/file"
+        >>> touch "${PIA_TEMPORARY_REMASTERING_PATH}/file"
         >>> pia.tidy_up
         >>> ls --directory \
-        >>>     "$PIA_MOUNTPOINT_PATH" \
         >>>     "$PIA_TEMPORARY_REMASTERING_PATH" \
-        >>>     "$PIA_TEMPORARY_FILESYSTEM_REMASTERING_PATH" \
         >>>     "$PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH" \
         >>>         2>/dev/null
         >>> echo $?
         2
     '
     bl.logging.info \
-        "Remove temporary created location \"${PIA_MOUNTPOINT_PATH}\"."
-    rm --force --recursive "$PIA_MOUNTPOINT_PATH"
-    bl.logging.info \
         "Remove temporary created location \"${PIA_TEMPORARY_REMASTERING_PATH}\"."
     rm \
         --force \
         --recursive \
         "$PIA_TEMPORARY_REMASTERING_PATH"
-    bl.logging.info \
-        "Remove temporary created location \"${PIA_TEMPORARY_FILESYSTEM_REMASTERING_PATH}\"."
-    rm \
-        --force \
-        --recursive \
-        "$PIA_TEMPORARY_FILESYSTEM_REMASTERING_PATH"
     bl.logging.info \
         "Remove temporary created location \"${PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH}\"."
     rm \
@@ -394,7 +374,7 @@ pia_main() {
     pia.commandline_interface "$@" || \
         return $?
     # Switch user if necessary and possible.
-    if [[ "$USER" != root ]] && command grep root /etc/passwd &>/dev/null; then
+    if (( UID != 0 )) && command grep root /etc/passwd &>/dev/null; then
         sudo -u root "$0" "$@"
         return $?
     fi
@@ -402,9 +382,8 @@ pia_main() {
         bl.logging.critical Remastering given iso failed.
     pia.tidy_up || \
         bl.logging.critical Tidying up failed.
-    bl.logging.info
-        Remastering given image \""$PIA_SOURCE_PATH"\" to \
-        \""$PIA_TARGET_PATH"\" has successfully finished.
+    bl.logging.info \
+        "Remastering given image \"${PIA_SOURCE_PATH}\" to \"${PIA_TARGET_PATH}\" has successfully finished."
 }
 ## endregion
 # endregion

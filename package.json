@@ -22,6 +22,7 @@
     "pack-into-archiso": "pack-into-archiso.sh"
   },
   "files": [
+    "archinstall.sh",
     "pack-into-archiso.sh"
   ],
   "scripts": {
