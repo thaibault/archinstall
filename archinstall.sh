@@ -188,7 +188,6 @@ declare -g AI_BOOT_ENTRY_LABEL=archLinux
 declare -g AI_BOOT_PARTITION_LABEL=uefiBoot
 # NOTE: A FAT32 partition has to be at least 2048 MB large.
 declare -gi AI_BOOT_SPACE_IN_MEGA_BYTE=2048
-declare -g AI_FALLBACK_BOOT_ENTRY_LABEL=archLinuxFallback
 
 declare -gi AI_NEEDED_SYSTEM_SPACE_IN_MEGA_BYTE=512
 declare -g AI_SYSTEM_PARTITION_LABEL=system
@@ -280,8 +279,6 @@ ai_get_commandline_option_description() {
 
 
 -e --boot-entry-label LABEL Boot entry label (default: "$AI_BOOT_ENTRY_LABEL").
-
--f --fallback-boot-entry-label LABEL Fallback boot entry label (default: "$AI_FALLBACK_BOOT_ENTRY_LABEL").
 
 
 -w --boot-space-in-mega-byte NUMBER In case if selected auto partitioning you can define the minimum space needed for your boot partition (default: "$AI_BOOT_SPACE_IN_MEGA_BYTE megabyte"). This partition is used for kernel and initramfs only.
@@ -453,11 +450,6 @@ ai_commandline_interface() {
             -e|--boot-entry-label)
                 shift
                 AI_BOOT_ENTRY_LABEL="$1"
-                shift
-                ;;
-            -f|--fallback-boot-entry-label)
-                shift
-                AI_FALLBACK_BOOT_ENTRY_LABEL="$1"
                 shift
                 ;;
 
@@ -636,17 +628,6 @@ ai_add_boot_entries() {
 
         # Version to skip boot loader and register linux kernel as boot entry
         # directly:
-        #
-        #ai.changeroot_to_mountpoint efibootmgr \
-        #    --create \
-        #    --disk "$AI_TARGET" \
-        #    --label "$AI_FALLBACK_BOOT_ENTRY_LABEL" \
-        #    --loader '\vmlinuz-linux' \
-        #    --part 1 \
-        #    --unicode \
-        #    "initrd=\\initramfs-linux-fallback.img ${root_boot_selector} break=premount break=postmount" || \
-        #        bl.logging.warn \
-        #            "Adding boot entry \"${AI_FALLBACK_BOOT_ENTRY_LABEL}\" failed."
         # NOTE: Boot entry to boot on next reboot should be added at last.
         #ai.changeroot_to_mountpoint efibootmgr \
         #    --create \
