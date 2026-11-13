@@ -39,8 +39,10 @@ optdepends=(
     'fakeroot: to support install into a folder without root access'
     'gptfdisk: for automatic partition creation'
     'iproute2: for automatic network configuration'
+    'libisoburn: to remaster iso images via pack-into-archiso'
     'os-prober: for automatic boot option creation for other found distributions'
     'pacman: if not provided a simple lite pacman version will be used to retrieve pacman first'
+    'squashfs-tools: to remaster iso images via pack-into-archiso'
 )
 provides=(arch-install pack-into-archiso)
 source=(archinstall.sh pack-into-archiso.sh)
