@@ -37,7 +37,7 @@
     "update:documentation": "web-documentation"
   },
   "dependencies": {
-    "bashlink": "1.0.293"
+    "bashlink": "1.0.295"
   },
   "devDependencies": {
     "shellcheck": "^4.1.0",
