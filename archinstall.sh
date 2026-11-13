@@ -181,6 +181,8 @@ declare -gi AI_NETWORK_TIMEOUT_IN_SECONDS=6
 
 declare -ag AI_UNNEEDED_FILE_LOCATIONS=(.INSTALL .PKGINFO var/cache/pacman)
 ## region command line arguments
+# NOTE: Already determined if bashlink had to be retrieved remotely.
+declare -g AI_CACHE_PATH="${AI_CACHE_PATH:-archInstallCache/}"
 declare -g AI_AUTO_PARTITIONING=false
 declare -g AI_BOOT_ENTRY_LABEL=archLinux
 declare -g AI_BOOT_PARTITION_LABEL=uefiBoot
@@ -269,7 +271,7 @@ ai_get_commandline_option_description() {
 
 -y --prevent-using-native-arch-chroot Ignores presence of "arch-chroot" to use it for chroot into newly created operating system (default: "$AI_PREVENT_USING_NATIVE_ARCH_CHANGEROOT").
 
--a --auto-partioning Defines to do partitioning on founded block device automatic.
+-a --auto-partitioning Defines to do partitioning on founded block device automatic.
 
 
 -b --boot-partition-label LABEL Partition label for uefi boot partition (default: "$AI_BOOT_PARTITION_LABEL").
@@ -287,7 +289,7 @@ ai_get_commandline_option_description() {
 -q --needed-system-space-in-mega-byte NUMBER In case if selected auto partitioning you can define the minimum space needed for your system partition (default: "$AI_NEEDED_SYSTEM_SPACE_IN_MEGA_BYTE megabyte"). This partition is used for the whole operating system.
 
 
--z --install-common-additional-packages, (default: "$AI_ADD_COMMON_ADDITIONAL_PACKAGES") If present the following packages will be installed: "${AI_COMMON_ADDITIONAL_PACKAGES[*]}".
+-z --add-common-additional-packages (default: "$AI_ADD_COMMON_ADDITIONAL_PACKAGES") If present the following packages will be installed: "${AI_COMMON_ADDITIONAL_PACKAGES[*]}".
 
 -g --additional-packages [PACKAGES [PACKAGES ...]], You can give a list with additional available packages (default: "${AI_ADDITIONAL_PACKAGES[@]}").
 
@@ -404,7 +406,7 @@ ai_commandline_interface() {
                 AI_KEYBOARD_LAYOUT="$1"
                 shift
                 ;;
-            -k|--key-map-configuation)
+            -k|--key-map-configuration)
                 shift
                 AI_KEY_MAP_CONFIGURATION_FILE_CONTENT="$1"
                 shift
@@ -887,7 +889,8 @@ ai_configure() {
     fi
 
     bl.logging.info Activate date time synchronization.
-    ai.changeroot_to_mountpoint timedatectl set-ntp true
+    # NOTE: "timedatectl" needs a running systemd, so enable the service.
+    ai.changeroot_to_mountpoint systemctl enable systemd-timesyncd.service
 
     bl.logging.info "Set hostname to \"$AI_HOST_NAME\"."
     if [ "$1" = true ]; then
@@ -2031,7 +2034,7 @@ ai_generic_linux_steps() {
         --arch "$AI_CPU_ARCHITECTURE" \
         --needed \
         --noconfirm \
-        --overwrite \
+        --overwrite '*' \
         --sync \
         "${AI_PACKAGES[@]}"
 
@@ -2059,9 +2062,11 @@ ai_with_existing_pacman() {
     )\" to \"$AI_TARGET\"."
     if hash pacstrap &>/dev/null; then
         bl.logging.info Patch pacstrap to handle offline installations.
+        # NOTE: Newer pacstrap versions hold the pacman mode in a variable.
         command sed \
             --regexp-extended \
-            's/(pacman.+-(S|-sync))(y|--refresh)/\1/g' \
+            --expression 's/(pacman.+-(S|-sync))(y|--refresh)/\1/g' \
+            --expression 's/^pacmode=-Sy$/pacmode=-S/' \
                 <"$(command -v pacstrap)" \
                 1>"${AI_CACHE_PATH}patchedOfflinePacstrap.sh"
         chmod +x "${AI_CACHE_PATH}patchedOfflinePacstrap.sh"
@@ -2073,7 +2078,7 @@ ai_with_existing_pacman() {
         return $return_code
     fi
     pacman \
-        --overwrite \
+        --overwrite '*' \
         --root "$AI_MOUNTPOINT_PATH" \
         --sync \
         --noconfirm \
@@ -2084,7 +2089,7 @@ ai_with_existing_pacman() {
         --arch "$AI_CPU_ARCHITECTURE" \
         --needed \
         --noconfirm \
-        --overwrite \
+        --overwrite '*' \
         --sync \
         "${AI_PACKAGES[@]}"
     return $?

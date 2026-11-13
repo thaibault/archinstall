@@ -192,7 +192,7 @@ pia_commandline_interface() {
                 PIA_KEYBOARD_LAYOUT="$1"
                 shift
                 ;;
-            -m|--key-map-configuation)
+            -m|--key-map-configuration)
                 shift
                 PIA_KEY_MAP_CONFIGURATION_FILE_CONTENT="$1"
                 shift
