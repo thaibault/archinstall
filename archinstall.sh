@@ -661,6 +661,27 @@ ai_add_boot_entries() {
 
         # Add boot entry via systemds bootloader.
         ai.changeroot_to_mountpoint bootctl install
+        # NOTE: "bootctl" can not determine the boot partition in a change
+        # root, so we register the boot loader in the firmware from here.
+        if \
+            ! $AI_SYSTEM_PARTITION_INSTALLATION_ONLY && \
+            hash efibootmgr 2>/dev/null && \
+            [ -d /sys/firmware/efi/efivars ]
+        then
+            efibootmgr \
+                --create \
+                --disk "$AI_TARGET" \
+                --label "$AI_BOOT_ENTRY_LABEL" \
+                --loader '\EFI\systemd\systemd-bootx64.efi' \
+                --part 1 \
+                --unicode \
+                    1>/dev/null || \
+                        bl.logging.warn \
+                            "Adding boot entry \"${AI_BOOT_ENTRY_LABEL}\" failed."
+        else
+            bl.logging.info \
+                Boot via the firmware\'s fallback boot loader location.
+        fi
         cat << EOF 1>>"${AI_MOUNTPOINT_PATH}boot/loader/loader.conf"
 # Added during installation by "archinstall".
 
