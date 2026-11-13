@@ -12,6 +12,7 @@ See https://creativecommons.org/licenses/by/4.0/deed.de
 endregion -->
 
 <!--|deDE:Projektstatus-->
+<!--|frFR:Statut du projet-->
 Project Status
 --------------
 
@@ -26,382 +27,340 @@ Project Status
 [![deploy web documentation](https://img.shields.io/github/actions/workflow/status/thaibault/archinstall/deploy-web-documentation.yaml?label=deploy%20web%20documentation&style=for-the-badge)](https://github.com/thaibault/archinstall/actions/workflows/deploy-web-documentation.yaml)
 [![web documentation](https://img.shields.io/website-up-down-green-red/https/tsickert.com/archinstall.svg?label=web-documentation&style=for-the-badge)](https://tsickert.com/archinstall)
 
-<!--|deDE:Verwendung-->
+<!--|deDE:Einsatzmöglichkeiten-->
+<!--|frFR:Cas d'utilisation-->
 Use case
 --------
 
-This script provides a full unattended way to install ArchLinux from any live
-environment. You can create your own linux distribution based on the rolling
-released ArchLinux. A rock solid decorator pattern allows to automate a fully
-unattended individual installation process.
+Install Arch Linux unattended with a single Bash script: into a folder, onto
+a partition or onto a whole disk including partitioning, from any Linux
+system. Everything the script needs and does not get via command line is
+asked for once at the start, afterwards the installation runs on its own.
+Downloaded packages are cached, so further installations also work offline.
+Sourced as a library, its functions are the base for own installers.
+<!--deDE:
+    Installieren Sie Arch Linux unbeaufsichtigt mit einem einzigen
+    Bash-Skript: in einen Ordner, auf eine Partition oder auf eine ganze
+    Festplatte einschließlich Partitionierung, von jedem Linux-System aus.
+    Alles, was das Skript braucht und nicht über die Kommandozeile erhält,
+    wird einmal zu Beginn abgefragt, danach läuft die Installation
+    selbstständig. Heruntergeladene Pakete werden zwischengespeichert, sodass
+    weitere Installationen auch offline funktionieren. Als Bibliothek
+    eingebunden, bilden seine Funktionen die Basis für eigene Installer.
+-->
+<!--frFR:
+    Installez Arch Linux sans surveillance avec un seul script Bash: dans un
+    dossier, sur une partition ou sur un disque entier partitionnement
+    compris, depuis n'importe quel système Linux. Tout ce dont le script a
+    besoin et qu'il ne reçoit pas en ligne de commande est demandé une seule
+    fois au début, ensuite l'installation se déroule seule. Les paquets
+    téléchargés sont mis en cache, de sorte que les installations suivantes
+    fonctionnent aussi hors ligne. Chargé comme bibliothèque, ses fonctions
+    servent de base à vos propres installateurs.
+-->
+
+Not to be confused with the guided installer "archinstall" shipped by Arch
+Linux itself.
+<!--deDE:
+    Nicht zu verwechseln mit dem geführten Installer "archinstall", den Arch
+    Linux selbst mitliefert.
+-->
+<!--frFR:
+    À ne pas confondre avec l'installateur guidé "archinstall" fourni par
+    Arch Linux lui-même.
+-->
 
 <div class="wd-table-of-contents">
     <h2 id="content">Content<!--deDE:Inhalt--><!--frFR:Contenu--></h2>
     <!--wd-table-of-contents-->
 </div>
 
-Installation
-------------
-
-You can install via package manager, simply download the compiled version as
-zip file here and inject or request via CDN in HTML:
-<!--deDE:
-    Sie können das Paket über den Paketmanager installieren oder einfach die
-    kompilierte Version als ZIP-Datei hier herunterladen und in HTML einbinden
-    oder über ein CDN abrufen:
--->
-<!--frFR:
-    Vous pouvez installer le paquet via le gestionnaire de paquets ou
-    simplement télécharger ici la version compilée sous forme de fichier ZIP,
-    puis l'intégrer dans une page HTML ou la récupérer via un CDN:
--->
-
-```bash
-npm install archinstall
-```
-
-<!--|deDE:Einstieg-->
-Quick-Start
+<!--|deDE:Schnellstart-->
+<!--|frFR:Démarrage rapide-->
+Quick start
 -----------
 
-Simply load the newest version from:
+Download the script, it fetches its only library
+[bashlink](https://tsickert.com/bashlink) by itself:
 <!--deDE:
-    Um die neueste Version zuerhalten sollte man das Bash-Script runterladen:
+    Laden Sie das Skript herunter, seine einzige Bibliothek
+    [bashlink](https://tsickert.com/bashlink) holt es sich selbst:
 -->
-[archinstall](https://tsickert.com/archinstall/data/distributionBundle/archinstall.sh)
+<!--frFR:
+    Téléchargez le script, il récupère lui-même sa seule bibliothèque
+    [bashlink](https://tsickert.com/bashlink):
+-->
 
 ```bash
->>> curl \
-    https://raw.githubusercontent.com/thaibault/archinstall/main/archinstall.sh \
-        >archinstall.sh && \
-    chmod +x archinstall.sh
+curl \
+    --output archinstall.sh \
+    https://raw.githubusercontent.com/thaibault/archinstall/main/archinstall.sh
+chmod +x archinstall.sh
 ```
 
-archinstall ist das zentrale Modul um eine Reihe von Aufgaben im Zuge der
-Vorbereitung, Installation, Konfiguration oder Manipulieren eines
-"Linux from Scratch" durchzuführen.
-
-Das Modul kann im einfachsten Fall (z.B. von einer beliebigen
-Live-Linux-Umgebung) gestartet werden. Zu beachten ist, dass die Installation
-von einem UEFI-System empfohlen wird, da dadurch entsprechende Boot-Einträge
-automatisch gesetzt werden können. Ein Bootloader wird nicht mit installiert
-und ist nicht notwendig, um das System zu booten.
+Alternatively install it via "npm install archinstall". Then run it as
+root, e.g. from the Arch Linux live system:
+<!--deDE:
+    Alternativ installieren Sie es über "npm install archinstall". Führen Sie
+    es dann als root aus, z. B. aus dem Live-System von Arch Linux:
+-->
+<!--frFR:
+    Vous pouvez aussi l'installer via "npm install archinstall". Exécutez-le
+    ensuite en tant que root, par exemple depuis le système live d'Arch
+    Linux:
+-->
 
 ```bash
->>> ./archinstall.sh
+./archinstall.sh --host-name my-system --target /dev/sdb --auto-partitioning
 ```
 
-In diesem Fall werden alle benötigten Informationen zur Einrichtung
-(nur Hostname) des Systems vor Beginn des Installations Prozesses interaktiv
-abgefragt. Zu Beachten ist: ohne zusätzliche Parameter gibt das Modul keinen
-Feedback über den aktuellen Zustand des Installations Vorgangs. Mit:
+Without "--verbose" only problems are reported, "--debug" additionally shows
+the output of all used tools. "--help" lists all options with their current
+defaults.
+<!--deDE:
+    Ohne "--verbose" werden nur Probleme gemeldet, "--debug" zeigt zusätzlich
+    die Ausgaben aller verwendeten Werkzeuge. "--help" listet alle Optionen
+    mit ihren aktuellen Standardwerten.
+-->
+<!--frFR:
+    Sans "--verbose", seuls les problèmes sont signalés, "--debug" affiche en
+    plus la sortie de tous les outils utilisés. "--help" liste toutes les
+    options avec leurs valeurs par défaut actuelles.
+-->
 
-```bash
->>> ./archinstall.sh --verbose
-```
-
-bekommt man einen etwas geschwätzigeren Installationsvorgang.
-Mit:
-
-```bash
->>> ./archinstall.sh --verbose --debug
-```
-
-werden alle Ausgaben jeglicher verwendeten Subprogramme mit ausgegeben.
-
-Alle Parameter wie Installations haben Standardwerte. So wird im obigen Fall
-einfach in das aktuelle Verzeichnis ein Ordner mit dem Programmnamen erstellt
-und darin das Betriebssystem installiert (./archinstall/). Möchte man eine
-unbeaufsichtigte Installation:
-
-```bash
->>> ./archinstall.sh --auto-partitioning --host-name testSystem
-```
-
-<!--|deDE:Installation auf Blockgeräte-->
-Install to blockdevice
-----------------------
-
-Im typischen Fall will man von einer Live-CD booten um das System auf einer
-Festplatte oder Partition zu installieren. Hierbei müssen folgende Aufgaben
-erfüllt werden.
-
-* Einrichtung einer Internet Verbindung (siehe auch Abschnitt "Offline Installation")
-* Partitionierung der Ziel Festplatte
-* Formatierung der Ziel Partitionen
-* Aufbauen der Dateisystemstruktur
-* Konfiguration des Betriebssystems
-* Installation und Einrichtung eines Boot-Loaders
-
-Alle Aufgaben bis auf die Einrichtung der Internet Verbindung (wird in der
-Regel von der Host Umgebung geregelt) könne mit archinstall automatisiert
-durchgeführt werden. Will man z.B auf das Block Device "/dev/sdb" installieren
-und sich nicht selber um die Partitionierung kümmern und den kompletten
-verfügbaren Platz für das Haupt System verwenden (es soll also keine Swap- oder
-Daten Partition erstellt werden).
-sieht das z.B. so aus:
-
-```bash
->>> ./archinstall.sh --auto-partitioning --target /dev/sdb
-```
-
-Auf diese Weise wird eine uefi Boot-Partition mit 2 GigaByte eingerichtet.
-Der restliche Platz wird für die Systempartition eingesetzt. Sind noch weitere
-Partitionen gewünscht kann man diese während der Installation durch weglassen
-des entsprechenden Parameters selber konfigurieren. Die erste Partition wird
-dann als Boot-Partition und die Zweite als Systempartition betrachtet. Weitere
-Partitionen werden ignoriert. Manuelle Partitionierung:
-
-```bash
->>> ./archinstall.sh --target /dev/sdb
-```
-
-Archinstall erstellt alle Partition mit Labels sowohl in der Partitionstabelle
-als auf der Partition selbst. Um dieses Verhalten zu individualisieren, können
-folgende Optionen genutzt werden:
-
-```bash
->>> ./archinstall.sh \
-    --boot-partition-label uefiBoot \
-    --system-partition-label system
-```
-
-<!--|deDE:Installation auf eine Partition-->
-Install to partition
---------------------
-
-Um z.B. aus einem Produktivsystem heraus eine alternative Linux Distribution
-auf eine weitere Partition zu installieren kann einfach folgender Befehl
-verwendet werden:
-
-```bash
->>> ./archinstall.sh --target /dev/sdb2
-```
-
-Hier wird auf die zweite Partition des zweiten Block Devices installiert.
-archinstall versucht bei der Installation auf ein Blockdevice stets einen
-entsprechenden Uefi-Boot-Eintrag für den Kernel mit einem Standard Initramfs
-und einem Ausweich-Initiramfs zu konfigurieren. Die folgenden Parameter
-definieren dessen Label:
-
-```bash
->>> ./archinstall.sh \
-    --boot-entry-label archLinux \
-    --fallback-boot-entry-label archLinuxFallback \
-    --target /dev/sdb2
-```
-
-<!--|deDE:Installation in Ordner-->
-Install to folder
------------------
-
-Um archinstall für komplexere Szenarien zu verwenden oder nachträgliche
-Manipulationen vorzunehmen ist es sinnvoll zunächst in einen Ordner zu
-installieren. Siehe hierzu "archinstall with Decorator Pattern",
-"makeXBMCLinux", "makeRamOnlyLinux" oder "makeSquashLinux" bzw. das Projekt
-"archinstallWrapperTemplate".
-
-Dieser Befehl installiert ein vollständiges System in den eigenen Home-Ordner
-"test" (siehe auch Installation ohne root Rechte).
-
-```bash
->>> ./archinstall.sh --target ~/test
-```
-
-<!--|deDE:Automatische Konfiguration-->
-Automatic configuration
------------------------
-
-archinstall konfiguriert das neu eingerichtete System vollautomatisch.
-Folgende Tasks wurden automatisiert:
-
-* Tastaturlayout einstellen
-* Einrichten der richtigen Zeit Zone
-* Setzen des Hostnames
-* Setzen des default root Passworts nach "root"
-* Erstellen eines Benutzers bzw. Benutzerordner. Das Passwort wird initial wie
-  der Name des Benutzers gesetzt.
-* dhcp Dienst für alle Netzwerk-Interfaces einrichten (siehe automatisches
-  Einrichten von Diensten)
-* Installation der Basis Programme (siehe automatische Installation von
-  Programmen)
-* Einrichten der Signaturen für den Paketmanager "Pacman", um vertrauenswürdige
-  Pakete erhalten zu können.
-* Einrichten aller in der nähe liegenden Server um schnelle Packet Updates und
-  Paketinstallationen zu gewährleisten.
-* Einrichten der richtigen Paketquellen abhängig von der aktuellen CPU
-  Architektur.
-
-Will man hierauf selber Einfluss nehmen, gibt es folgende Möglichkeiten:
-
-```bash
->>> ./archinstall.sh \
-    --additional-packages python vim \
-    --country-with-mirrors Germany \
-    --cpu-architecture x86_64 \
-    --host-name test \
-    --keyboard-layout de-latin1 \
-    --local-time /Europe/London \
-    --needed-services sshd dhcpcd apache \
-    --prevent-using-pacstrap \
-    --user-names test
-```
-
-Um die einzelnen Konfigurationsparameter zu verstehen empfiehlt sich ein Blick
-auf:
-
-```bash
->>> ./archinstall.sh --help
-```
-
-zu werfen.
-
-<!--|deDE:Applikations-Interface-->
-Application Interface
----------------------
-
-Viele nützlich Umgebungsvariablen und Funktionen können mit
-
-```bash
->>> source archinstall.sh --load-environment
-```
-
-geladen werden. Um eine Übersicht zu erhalten sollte man sie die
-API-Dokumentation anschauen.
-
-<!--|deDE:Optionen-->
-Options
+<!--|deDE:Ziele-->
+<!--|frFR:Cibles-->
+Targets
 -------
 
-archinstall stellt ein Alphabet voller Optionen zur Verfügung. Während bisher
-zum einfachen Verständnis immer Long-Options verwendet wurden, gibt es für jede
-Option auch einen Shortcut.
+"--target" decides where the new system goes, "archInstall" in the current
+folder by default:
+<!--deDE:
+    "--target" bestimmt, wohin das neue System kommt, standardmäßig
+    "archInstall" im aktuellen Ordner:
+-->
+<!--frFR:
+    "--target" détermine où va le nouveau système, par défaut "archInstall"
+    dans le dossier courant:
+-->
+
+- A folder, e.g. "--target /tmp/system": Installs a complete system into it,
+  useful to prepare or modify an image before using it.<!--deDE:Ein Ordner, z. B. "--target /tmp/system": Installiert ein vollständiges System hinein, nützlich, um ein Abbild vorzubereiten oder anzupassen, bevor es verwendet wird.--><!--frFR:Un dossier, par exemple "--target /tmp/system": Y installe un système complet, utile pour préparer ou modifier une image avant de l'utiliser.-->
+- A whole disk, e.g. "--target /dev/sdb": With "--auto-partitioning" a 2
+  GB UEFI boot partition and a system partition using the rest are created.
+  Without, you partition yourself: the first partition becomes boot, the
+  second the system.<!--deDE:Eine ganze Festplatte, z. B. "--target /dev/sdb": Mit "--auto-partitioning" werden eine 2 GB große UEFI-Boot-Partition und eine Systempartition mit dem restlichen Platz angelegt. Ohne partitionieren Sie selbst: Die erste Partition wird zur Boot-, die zweite zur Systempartition.--><!--frFR:Un disque entier, par exemple "--target /dev/sdb": Avec "--auto-partitioning", une partition de démarrage UEFI de 2 Go et une partition système utilisant le reste sont créées. Sans, vous partitionnez vous-même: la première partition devient la partition de démarrage, la seconde la partition système.-->
+- A single partition, e.g. "--target /dev/sdb2": Installs only the system,
+  e.g. next to an existing one.<!--deDE:Eine einzelne Partition, z. B. "--target /dev/sdb2": Installiert nur das System, z. B. neben ein bestehendes.--><!--frFR:Une seule partition, par exemple "--target /dev/sdb2": N'installe que le système, par exemple à côté d'un système existant.-->
+
+The system partition is formatted with Btrfs (subvolume "root"), the boot
+partition with FAT32. systemd-boot is installed and registered in the
+firmware as boot entry "archLinux" (see "--boot-entry-label"), so the new
+system boots without further steps. "--boot-partition-label" and
+"--system-partition-label" change the partition labels. "--encrypt" encrypts
+the system partition with the password given via "--password". It is
+unlocked automatically on boot via a key file on the boot partition.
+<!--deDE:
+    Die Systempartition wird mit Btrfs formatiert (Subvolume "root"), die
+    Bootpartition mit FAT32. systemd-boot wird installiert und in der
+    Firmware als Booteintrag "archLinux" eingetragen (siehe
+    "--boot-entry-label"), sodass das neue System ohne weitere Schritte
+    startet. "--boot-partition-label" und
+    "--system-partition-label" ändern die Partitionsbezeichnungen.
+    "--encrypt" verschlüsselt die Systempartition mit dem über "--password"
+    angegebenen Passwort. Sie wird beim Start automatisch über eine
+    Schlüsseldatei auf der Bootpartition entsperrt.
+-->
+<!--frFR:
+    La partition système est formatée en Btrfs (sous-volume "root"), la
+    partition de démarrage en FAT32. systemd-boot est installé et inscrit
+    dans le firmware comme entrée de démarrage "archLinux" (voir
+    "--boot-entry-label"), de sorte que le nouveau système démarre sans autre
+    étape. "--boot-partition-label" et
+    "--system-partition-label" modifient les libellés des partitions.
+    "--encrypt" chiffre la partition système avec le mot de passe indiqué via
+    "--password". Elle est déverrouillée automatiquement au démarrage via un
+    fichier de clé sur la partition de démarrage.
+-->
+
+<!--|deDE:Konfiguration-->
+<!--|frFR:Configuration-->
+Configuration
+-------------
+
+The new system is configured completely: keyboard layout, time zone, time
+synchronization, host name, users, network services, package signatures and
+mirrors. Every option also has a short form, e.g. "-n" for "--host-name":
+<!--deDE:
+    Das neue System wird vollständig eingerichtet: Tastaturlayout, Zeitzone,
+    Zeitsynchronisation, Hostname, Benutzer, Netzwerkdienste,
+    Paketsignaturen und Mirrors. Jede Option hat auch eine Kurzform, z. B.
+    "-n" für "--host-name":
+-->
+<!--frFR:
+    Le nouveau système est entièrement configuré: disposition du clavier,
+    fuseau horaire, synchronisation de l'heure, nom d'hôte, utilisateurs,
+    services réseau, signatures des paquets et miroirs. Chaque option a aussi
+    une forme courte, par exemple "-n" pour "--host-name":
+-->
 
 ```bash
->>> ./archinstall.sh --user-names mustermann --host-name lfs
+./archinstall.sh \
+    --additional-packages vim openssh \
+    --country-with-mirrors Germany \
+    --host-name my-system \
+    --keyboard-layout de-latin1 \
+    --local-time Europe/Berlin \
+    --needed-services sshd \
+    --target /dev/sdb \
+    --auto-partitioning \
+    --user-names alice bob
 ```
 
-ist äquivalent zu:
+- Users get their name as initial password, root gets "root" or the value
+  of "--password". Change them after the first login.<!--deDE:Benutzer erhalten ihren Namen als Anfangspasswort, root erhält "root" bzw. den Wert von "--password". Ändern Sie sie nach der ersten Anmeldung.--><!--frFR:Les utilisateurs reçoivent leur nom comme mot de passe initial, root reçoit "root" ou la valeur de "--password". Changez-les après la première connexion.-->
+- "--add-common-additional-packages" adds "base-devel", "python" and
+  "sudo". Options with several values can also be repeated.<!--deDE:"--add-common-additional-packages" ergänzt "base-devel", "python" und "sudo". Optionen mit mehreren Werten lassen sich auch wiederholen.--><!--frFR:"--add-common-additional-packages" ajoute "base-devel", "python" et "sudo". Les options à plusieurs valeurs peuvent aussi être répétées.-->
+- "--prevent-using-existing-pacman" installs with a freshly downloaded pacman
+  instead of the host's one, e.g. if the host uses custom repositories.<!--deDE:"--prevent-using-existing-pacman" installiert mit einem frisch heruntergeladenen pacman statt dem des Hosts, z. B. wenn der Host eigene Repositories nutzt.--><!--frFR:"--prevent-using-existing-pacman" installe avec un pacman fraîchement téléchargé au lieu de celui de l'hôte, par exemple si l'hôte utilise ses propres dépôts.-->
+- "-A /dev/sdb" is short for "--auto-partitioning --debug --host-name
+  archlinux --target /dev/sdb".<!--deDE:"-A /dev/sdb" ist die Kurzform von "--auto-partitioning --debug --host-name archlinux --target /dev/sdb".--><!--frFR:"-A /dev/sdb" est la forme courte de "--auto-partitioning --debug --host-name archlinux --target /dev/sdb".-->
+
+<!--|deDE:Offline installieren-->
+<!--|frFR:Installer hors ligne-->
+### Installing offline
+
+Every installation stores the downloaded packages in "archInstallCache"
+(or the folder given via "--cache-path"). Further installations with this
+cache work without network, e.g. from a USB stick carrying script and cache.
+Additional packages have to be in the cache as well. On a live system the
+current folder lives in memory, so point "--cache-path" to real storage.
+<!--deDE:
+    Jede Installation legt die heruntergeladenen Pakete in
+    "archInstallCache" ab (oder in dem über "--cache-path" angegebenen
+    Ordner). Weitere Installationen mit diesem Cache funktionieren ohne
+    Netzwerk, z. B. von einem USB-Stick mit Skript und Cache. Zusätzliche
+    Pakete müssen ebenfalls im Cache liegen. Auf einem Live-System liegt der
+    aktuelle Ordner im Arbeitsspeicher, richten Sie "--cache-path" daher auf
+    echten Speicher.
+-->
+<!--frFR:
+    Chaque installation enregistre les paquets téléchargés dans
+    "archInstallCache" (ou dans le dossier indiqué via "--cache-path"). Les
+    installations suivantes avec ce cache fonctionnent sans réseau, par
+    exemple depuis une clé USB contenant script et cache. Les paquets
+    supplémentaires doivent aussi se trouver dans le cache. Sur un système
+    live, le dossier courant réside en mémoire, faites donc pointer
+    "--cache-path" vers un vrai support de stockage.
+-->
+
+<!--|deDE:Ohne root-Rechte-->
+<!--|frFR:Sans droits root-->
+### Without root permissions
+
+With "fakeroot" and "fakechroot" installed, an existing folder can be used
+as target without root permissions. File ownership can not be set this way,
+so the result is packed into a tar archive which has to be extracted as root
+before use.
+<!--deDE:
+    Sind "fakeroot" und "fakechroot" installiert, kann ein bestehender Ordner
+    ohne root-Rechte als Ziel dienen. Dateibesitzer lassen sich so nicht
+    setzen, daher wird das Ergebnis in ein tar-Archiv gepackt, das vor der
+    Verwendung als root entpackt werden muss.
+-->
+<!--frFR:
+    Si "fakeroot" et "fakechroot" sont installés, un dossier existant peut
+    servir de cible sans droits root. Les propriétaires des fichiers ne
+    peuvent pas être définis ainsi, le résultat est donc empaqueté dans une
+    archive tar qui doit être extraite en tant que root avant utilisation.
+-->
+
+<!--|deDE:Als Bibliothek-->
+<!--|frFR:Comme bibliothèque-->
+Use as library
+--------------
+
+Sourced instead of executed, the script only defines its variables and
+functions (prefixed with "ai_" and "AI_"). Own installers can adjust them
+and run the installation via "ai_main":
+<!--deDE:
+    Eingebunden statt ausgeführt, definiert das Skript nur seine Variablen
+    und Funktionen (mit den Präfixen "ai_" und "AI_"). Eigene Installer
+    können diese anpassen und die Installation über "ai_main" starten:
+-->
+<!--frFR:
+    Chargé au lieu d'être exécuté, le script ne définit que ses variables et
+    fonctions (préfixées par "ai_" et "AI_"). Vos propres installateurs
+    peuvent les adapter et lancer l'installation via "ai_main":
+-->
 
 ```bash
->>> ./archinstall.sh -u mustermann -n lfs
+#!/usr/bin/env bash
+source archinstall.sh
+
+AI_NEEDED_SERVICES+=(sshd)
+ai_main --additional-packages openssh "$@"
 ```
 
-Alle Optionen bis auf "--host-name" und "--auto-partitioning" haben
-Standardwerte. Diese beiden werden sofern nicht von vorne herein angegeben
-interaktiv abgefragt. Alle Standardwert können mit Hilfe von:
+The API documentation describes all functions.
+<!--deDE:Die API-Dokumentation beschreibt alle Funktionen.-->
+<!--frFR:La documentation de l'API décrit toutes les fonctions.-->
+
+<!--|deDE:Eigene Installationsmedien-->
+<!--|frFR:Supports d'installation personnalisés-->
+Custom installation media
+-------------------------
+
+"pack-into-archiso" builds an Arch Linux ISO image which contains
+archinstall (and bashlink if installed) in its live system, so it is
+available offline right after booting as "archinstall.sh" or via the
+shortcut "install". The boot configuration of the original image is kept. It
+needs root permissions, "xorriso" ("libisoburn") and "squashfs-tools":
+<!--deDE:
+    "pack-into-archiso" erstellt ein Arch-Linux-ISO-Abbild, das archinstall
+    (und bashlink, falls installiert) in seinem Live-System enthält, sodass
+    es direkt nach dem Booten auch offline als "archinstall.sh" oder über die
+    Abkürzung "install" verfügbar ist. Die Bootkonfiguration des
+    ursprünglichen Abbilds bleibt erhalten. Es benötigt root-Rechte,
+    "xorriso" ("libisoburn") und "squashfs-tools":
+-->
+<!--frFR:
+    "pack-into-archiso" construit une image ISO d'Arch Linux qui contient
+    archinstall (et bashlink s'il est installé) dans son système live, de
+    sorte qu'il est disponible hors ligne dès le démarrage sous
+    "archinstall.sh" ou via le raccourci "install". La configuration de
+    démarrage de l'image d'origine est conservée. Il nécessite les droits
+    root, "xorriso" ("libisoburn") et "squashfs-tools":
+-->
 
 ```bash
->>> ./archinstall.sh -h
+./pack-into-archiso.sh \
+    ./archlinux-x86_64.iso \
+    ./archlinux-with-archinstall.iso \
+    --keyboard-layout us
 ```
 
-oder
+"--keyboard-layout" sets the console keyboard layout of the live system,
+"--squash-filesystem-compressor" the compression of its file system ("gzip"
+by default).
+<!--deDE:
+    "--keyboard-layout" setzt das Konsolen-Tastaturlayout des Live-Systems,
+    "--squash-filesystem-compressor" die Kompression seines Dateisystems
+    (standardmäßig "gzip").
+-->
+<!--frFR:
+    "--keyboard-layout" définit la disposition du clavier de la console du
+    système live, "--squash-filesystem-compressor" la compression de son
+    système de fichiers ("gzip" par défaut).
+-->
+
+<!--|deDE:Entwicklung-->
+<!--|frFR:Développement-->
+Development
+-----------
 
 ```bash
->>> ./archinstall.sh --help
-```
-
-oder
-
-```bash
->>> ./archinstall.sh --keyboard-layout de-latin1 -h
-```
-
-eingesehen werden. Letzteres macht Sinn, da sich Standardwerte aufgrund schon
-ermittelten Informationen verändern können. So wird der Standardwert von
-"--key-map-configuration="KEYMAP=de-latin1\nFONT=Lat2-Terminus16\nFONT_MAP="
-nach Eingabe von
-
-```bash
->>> ./archinstall.sh --keyboard-layout us
-```
-
-zu: "--key-map-configuration="KEYMAP=us\nFONT=Lat2-Terminus16\nFONT_MAP=".
-
-Der Standardwert von "--cpu-architecture" entspricht beispielsweise immer der
-Architektur des aktuellen Systems, um Konfigurationsaufwand zu minimieren.
-
-Man kann Optionen die mehrere Werte annehmen auch mehrfach referenzieren.
-So hat:
-
-```bash
->>> ./archinstall.sh \
-    --additional-packages ssh \
-    --additional-packages vim \
-    -g python
-```
-
-den gleichen Effekt wie:
-
-```bash
->>> ./archinstall.sh --additional-packages ssh vim python
-```
-
-<!--|deDE:Offline Installieren-->
-Install offline
----------------
-
-archinstall erstellt bei jeder Installation automatisch einen Paket-Cache, um
-weitere Installationen zu beschleunigen. Ist dieser einmal erstellt oder wird
-dieser zusammen mit dem archinstall (z.b. auf einem usb-stick) ausgeliefert
-kann Offline installiert werden.
-
-Selbst wenn mit einem bereits vorhandenem pacstrap installiert wird, wird
-dieser temporär kopiert, gepatched und anschließend offlinefähig ausgeführt!
-
-Bei Offline Installation müssen natürlich alle zusätzlich ausgewählten
-Pakete im Package Cache vorhanden sein. Ist dies nicht der Fall wird
-archinstall versuchen diese nach zu laden und im Offline-Fall einen Fehler
-zurückgeben.
-
-<!--|deDE:Installieren ohne root Rechte-->
-Install without having root permissions
----------------------------------------
-
-Prinzipiell ist es möglich auch ohne root Rechte ein System aufzusetzen.
-Hierbei werden jedoch folgende Einschnitte gemacht:
-
-* Die Programm "fakeroot" und "fakechroot" müssen zusätzlich installiert sein.
-* Ein bereits installiertes Pacstrap kann nicht eingesetzt werden
-* Zusätzlich erstellten Benutzer kann während der Installation kein automatisch
-  erstellter Home-Ordner geliefert werden, da die Rechte oder root nicht
-  richtig gesetzt werden könnten.
-* Es kann nur in "Ordner" (bzw. siehe nächsten Punkt) installiert werden.
-* Das System wird in ein tar-Archiv ohne Speicherung entsprechender Datei
-  Rechte Attribute gepackt.
-* Das Tar Archiv muss als "root" entpackt werden bevor das Ergebnis verwendet
-  oder fehlerfrei gebootet werden kann.
-
-<!--|deDE:Nützliche Tipps und Fehlerbehebung-->
-Useful tips and debugging informations
---------------------------------------
-
-Während der Entwicklung haben sich eine Reihe von Optionen bewährt um Fehler
-bei der Entwicklung von Wrappern zu finden.
-
-Die Option "--prevent-using-pacstrap" oder "-p" verhindert ein bereits
-installierten Pacman für die Installation zu verwenden. Dies ist notwendig wenn
-man sein Pacman so konfiguriert hat, das z.B. Pakete wie der Kernel oder Pacman
-von manipulierten User Repositories abhängen. Mit "--prevent-using-pacstrap"
-wird eine neue Version von Pacman in einer Change-Root-Umgebung ausgeführt.
-
-Möchte man die Pakete "base-devel", "sudo" und "python" haben, geht das mit
-dem Shortcut: "--install-common-additional-packages" oder "-z".
-
-Will man eine beliebige Liste von Paketen integrieren:
-
-```bash
->>> ./archinstall.sh --additional-packages ssh python2 vim
-```
-
-Sollen Dienste schon beim ersten Start automatisch gestartet werden:
-
-```bash
->>> ./archinstall.sh --needed-services sshd dhcpcd
-```
-
-Um die Installation zu beschleunigen kann auf ein Cache verwiesen werden:
-
-```bash
->>> ./archinstall.sh --cache-path /var/cache/archinstall/
+yarn install
+yarn lint
+yarn test
 ```
