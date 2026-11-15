@@ -99,19 +99,19 @@ declare -gr AI__DOCUMENTATION__='
     Start install progress command on first found blockdevice:
 
     ```bash
-        arch-install --target /dev/sda
+        archinstall --target /dev/sda
     ```
 
     Install directly into a given partition with verbose output:
 
     ```bash
-        arch-install --target /dev/sda1 --verbose
+        archinstall --target /dev/sda1 --verbose
     ```
 
     Install directly into a given directory with additional packages included:
 
     ```bash
-        arch-install --target /dev/sda1 --verbose -f vim net-tools
+        archinstall --target /dev/sda1 --verbose -f vim net-tools
     ```
 '
 declare -agr AI__DEPENDENCIES__=(
@@ -318,10 +318,10 @@ ai_get_help_message() {
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         ...
-        Usage: arch-install [options]
+        Usage: archinstall [options]
         ...
     '
-    echo -e $'\nUsage: arch-install [options]\n'
+    echo -e $'\nUsage: archinstall [options]\n'
     echo -e "$AI__DOCUMENTATION__"
     echo -e $'\nOption descriptions:\n'
     ai.get_commandline_option_description "$@"
@@ -338,7 +338,7 @@ ai_commandline_interface() {
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         ...
-        Usage: arch-install [options]
+        Usage: archinstall [options]
         ...
 
         >>> ai.commandline_interface --not-existing; echo $?
@@ -346,7 +346,7 @@ ai_commandline_interface() {
         +bl.doctest.multiline_ellipsis
         Given argument: "--not-existing" is not available.
         ...
-        Usage: arch-install [options]
+        Usage: archinstall [options]
         ...
         1
     '
@@ -2111,7 +2111,7 @@ ai_main() {
         >>> ai.main --help
         +bl.doctest.multiline_ellipsis
         ...
-        Usage: arch-install [options]
+        Usage: archinstall [options]
         ...
     '
     bl.exception.activate

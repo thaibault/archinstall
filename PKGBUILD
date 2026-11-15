@@ -10,7 +10,7 @@
 # 4.0 international license.
 # See https://creativecommons.org/licenses/by/4.0/deed.de
 # endregion
-pkgname=arch-install
+pkgname=archinstall
 pkgver=1.0.19
 pkgrel=25
 pkgdesc='Automate your installation process.'
@@ -44,7 +44,7 @@ optdepends=(
     'pacman: if not provided a simple lite pacman version will be used to retrieve pacman first'
     'squashfs-tools: to remaster iso images via pack-into-archiso'
 )
-provides=(arch-install pack-into-archiso)
+provides=(archinstall pack-into-archiso)
 source=(archinstall.sh pack-into-archiso.sh)
 md5sums=(SKIP SKIP)
 copy_to_aur=true
@@ -54,7 +54,7 @@ package() {
         -D \
         --mode 755 \
         "${srcdir}/archinstall.sh" \
-        "${pkgdir}/usr/bin/arch-install"
+        "${pkgdir}/usr/bin/archinstall"
     install \
         -D \
         --mode 755 \
