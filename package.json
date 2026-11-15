@@ -18,7 +18,7 @@
   },
   "main": "archinstall.sh",
   "bin": {
-    "archinstall": "archinstall.sh",
+    "arch-install": "archinstall.sh",
     "pack-into-archiso": "pack-into-archiso.sh"
   },
   "files": [

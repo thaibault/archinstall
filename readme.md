@@ -98,16 +98,23 @@ curl \
 chmod +x archinstall.sh
 ```
 
-Alternatively install it via "npm install archinstall". Then run it as
-root, e.g. from the Arch Linux live system:
+Alternatively install it via "npm install archinstall" or on Arch Linux from
+the AUR as package "arch-install". Both provide it as command "arch-install"
+to not conflict with the official "archinstall" package. Then run it as root,
+e.g. from the Arch Linux live system:
 <!--deDE:
-    Alternativ installieren Sie es über "npm install archinstall". Führen Sie
-    es dann als root aus, z. B. aus dem Live-System von Arch Linux:
+    Alternativ installieren Sie es über "npm install archinstall" oder unter
+    Arch Linux aus dem AUR als Paket "arch-install". Beide stellen es als
+    Befehl "arch-install" bereit, um nicht mit dem offiziellen Paket
+    "archinstall" zu kollidieren. Führen Sie es dann als root aus, z. B. aus
+    dem Live-System von Arch Linux:
 -->
 <!--frFR:
-    Vous pouvez aussi l'installer via "npm install archinstall". Exécutez-le
-    ensuite en tant que root, par exemple depuis le système live d'Arch
-    Linux:
+    Vous pouvez aussi l'installer via "npm install archinstall" ou, sous Arch
+    Linux, depuis l'AUR en tant que paquet "arch-install". Les deux le
+    fournissent sous la commande "arch-install" pour ne pas entrer en conflit
+    avec le paquet officiel "archinstall". Exécutez-le ensuite en tant que
+    root, par exemple depuis le système live d'Arch Linux:
 -->
 
 ```bash
