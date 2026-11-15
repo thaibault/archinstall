@@ -9,7 +9,8 @@
 # -------
 
 # This library written by Torben Sickert stands under a creative commons naming
-# 3.0 unported license. See https://creativecommons.org/licenses/by/3.0/deed.de
+# 4.0 international license.
+# See https://creativecommons.org/licenses/by/4.0/deed.de
 # endregion
 # shellcheck disable=SC1004,SC2016,SC2034,SC2155
 shopt -s expand_aliases
@@ -180,12 +181,13 @@ declare -gi AI_NETWORK_TIMEOUT_IN_SECONDS=6
 
 declare -ag AI_UNNEEDED_FILE_LOCATIONS=(.INSTALL .PKGINFO var/cache/pacman)
 ## region command line arguments
+# NOTE: Already determined if bashlink had to be retrieved remotely.
+declare -g AI_CACHE_PATH="${AI_CACHE_PATH:-archInstallCache/}"
 declare -g AI_AUTO_PARTITIONING=false
 declare -g AI_BOOT_ENTRY_LABEL=archLinux
 declare -g AI_BOOT_PARTITION_LABEL=uefiBoot
 # NOTE: A FAT32 partition has to be at least 2048 MB large.
 declare -gi AI_BOOT_SPACE_IN_MEGA_BYTE=2048
-declare -g AI_FALLBACK_BOOT_ENTRY_LABEL=archLinuxFallback
 
 declare -gi AI_NEEDED_SYSTEM_SPACE_IN_MEGA_BYTE=512
 declare -g AI_SYSTEM_PARTITION_LABEL=system
@@ -268,7 +270,7 @@ ai_get_commandline_option_description() {
 
 -y --prevent-using-native-arch-chroot Ignores presence of "arch-chroot" to use it for chroot into newly created operating system (default: "$AI_PREVENT_USING_NATIVE_ARCH_CHANGEROOT").
 
--a --auto-partioning Defines to do partitioning on founded block device automatic.
+-a --auto-partitioning Defines to do partitioning on founded block device automatic.
 
 
 -b --boot-partition-label LABEL Partition label for uefi boot partition (default: "$AI_BOOT_PARTITION_LABEL").
@@ -278,15 +280,13 @@ ai_get_commandline_option_description() {
 
 -e --boot-entry-label LABEL Boot entry label (default: "$AI_BOOT_ENTRY_LABEL").
 
--f --fallback-boot-entry-label LABEL Fallback boot entry label (default: "$AI_FALLBACK_BOOT_ENTRY_LABEL").
-
 
 -w --boot-space-in-mega-byte NUMBER In case if selected auto partitioning you can define the minimum space needed for your boot partition (default: "$AI_BOOT_SPACE_IN_MEGA_BYTE megabyte"). This partition is used for kernel and initramfs only.
 
 -q --needed-system-space-in-mega-byte NUMBER In case if selected auto partitioning you can define the minimum space needed for your system partition (default: "$AI_NEEDED_SYSTEM_SPACE_IN_MEGA_BYTE megabyte"). This partition is used for the whole operating system.
 
 
--z --install-common-additional-packages, (default: "$AI_ADD_COMMON_ADDITIONAL_PACKAGES") If present the following packages will be installed: "${AI_COMMON_ADDITIONAL_PACKAGES[*]}".
+-z --add-common-additional-packages (default: "$AI_ADD_COMMON_ADDITIONAL_PACKAGES") If present the following packages will be installed: "${AI_COMMON_ADDITIONAL_PACKAGES[*]}".
 
 -g --additional-packages [PACKAGES [PACKAGES ...]], You can give a list with additional available packages (default: "${AI_ADDITIONAL_PACKAGES[@]}").
 
@@ -401,9 +401,14 @@ ai_commandline_interface() {
             -i|--keyboard-layout)
                 shift
                 AI_KEYBOARD_LAYOUT="$1"
+                # NOTE: Keep the key map configuration in sync.
+                AI_KEY_MAP_CONFIGURATION_FILE_CONTENT="$(
+                    echo "$AI_KEY_MAP_CONFIGURATION_FILE_CONTENT" | \
+                        command sed "s/^KEYMAP=.*$/KEYMAP=${1}/"
+                )"
                 shift
                 ;;
-            -k|--key-map-configuation)
+            -k|--key-map-configuration)
                 shift
                 AI_KEY_MAP_CONFIGURATION_FILE_CONTENT="$1"
                 shift
@@ -445,11 +450,6 @@ ai_commandline_interface() {
             -e|--boot-entry-label)
                 shift
                 AI_BOOT_ENTRY_LABEL="$1"
-                shift
-                ;;
-            -f|--fallback-boot-entry-label)
-                shift
-                AI_FALLBACK_BOOT_ENTRY_LABEL="$1"
                 shift
                 ;;
 
@@ -628,17 +628,6 @@ ai_add_boot_entries() {
 
         # Version to skip boot loader and register linux kernel as boot entry
         # directly:
-        #
-        #ai.changeroot_to_mountpoint efibootmgr \
-        #    --create \
-        #    --disk "$AI_TARGET" \
-        #    --label "$AI_FALLBACK_BOOT_ENTRY_LABEL" \
-        #    --loader '\vmlinuz-linux' \
-        #    --part 1 \
-        #    --unicode \
-        #    "initrd=\\initramfs-linux-fallback.img ${root_boot_selector} break=premount break=postmount" || \
-        #        bl.logging.warn \
-        #            "Adding boot entry \"${AI_FALLBACK_BOOT_ENTRY_LABEL}\" failed."
         # NOTE: Boot entry to boot on next reboot should be added at last.
         #ai.changeroot_to_mountpoint efibootmgr \
         #    --create \
@@ -653,6 +642,27 @@ ai_add_boot_entries() {
 
         # Add boot entry via systemds bootloader.
         ai.changeroot_to_mountpoint bootctl install
+        # NOTE: "bootctl" can not determine the boot partition in a change
+        # root, so we register the boot loader in the firmware from here.
+        if \
+            ! $AI_SYSTEM_PARTITION_INSTALLATION_ONLY && \
+            hash efibootmgr 2>/dev/null && \
+            [ -d /sys/firmware/efi/efivars ]
+        then
+            efibootmgr \
+                --create \
+                --disk "$AI_TARGET" \
+                --label "$AI_BOOT_ENTRY_LABEL" \
+                --loader '\EFI\systemd\systemd-bootx64.efi' \
+                --part 1 \
+                --unicode \
+                    1>/dev/null || \
+                        bl.logging.warn \
+                            "Adding boot entry \"${AI_BOOT_ENTRY_LABEL}\" failed."
+        else
+            bl.logging.info \
+                Boot via the firmware\'s fallback boot loader location.
+        fi
         cat << EOF 1>>"${AI_MOUNTPOINT_PATH}boot/loader/loader.conf"
 # Added during installation by "archinstall".
 
@@ -886,7 +896,8 @@ ai_configure() {
     fi
 
     bl.logging.info Activate date time synchronization.
-    ai.changeroot_to_mountpoint timedatectl set-ntp true
+    # NOTE: "timedatectl" needs a running systemd, so enable the service.
+    ai.changeroot_to_mountpoint systemctl enable systemd-timesyncd.service
 
     bl.logging.info "Set hostname to \"$AI_HOST_NAME\"."
     if [ "$1" = true ]; then
@@ -2030,7 +2041,7 @@ ai_generic_linux_steps() {
         --arch "$AI_CPU_ARCHITECTURE" \
         --needed \
         --noconfirm \
-        --overwrite \
+        --overwrite '*' \
         --sync \
         "${AI_PACKAGES[@]}"
 
@@ -2058,9 +2069,11 @@ ai_with_existing_pacman() {
     )\" to \"$AI_TARGET\"."
     if hash pacstrap &>/dev/null; then
         bl.logging.info Patch pacstrap to handle offline installations.
+        # NOTE: Newer pacstrap versions hold the pacman mode in a variable.
         command sed \
             --regexp-extended \
-            's/(pacman.+-(S|-sync))(y|--refresh)/\1/g' \
+            --expression 's/(pacman.+-(S|-sync))(y|--refresh)/\1/g' \
+            --expression 's/^pacmode=-Sy$/pacmode=-S/' \
                 <"$(command -v pacstrap)" \
                 1>"${AI_CACHE_PATH}patchedOfflinePacstrap.sh"
         chmod +x "${AI_CACHE_PATH}patchedOfflinePacstrap.sh"
@@ -2072,7 +2085,7 @@ ai_with_existing_pacman() {
         return $return_code
     fi
     pacman \
-        --overwrite \
+        --overwrite '*' \
         --root "$AI_MOUNTPOINT_PATH" \
         --sync \
         --noconfirm \
@@ -2083,7 +2096,7 @@ ai_with_existing_pacman() {
         --arch "$AI_CPU_ARCHITECTURE" \
         --needed \
         --noconfirm \
-        --overwrite \
+        --overwrite '*' \
         --sync \
         "${AI_PACKAGES[@]}"
     return $?
