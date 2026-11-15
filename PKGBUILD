@@ -46,7 +46,7 @@ optdepends=(
 )
 provides=(archinstall pack-into-archiso)
 source=(archinstall.sh pack-into-archiso.sh)
-md5sums=(SKIP SKIP)
+sha256sums=(SKIP SKIP)
 copy_to_aur=true
 
 package() {
