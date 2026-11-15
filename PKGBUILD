@@ -11,8 +11,8 @@
 # See https://creativecommons.org/licenses/by/4.0/deed.de
 # endregion
 pkgname=arch-install
-pkgver=1.0.19
-pkgrel=25
+pkgver=1.0.221
+pkgrel=1
 pkgdesc='Automate your installation process.'
 arch=(any)
 url=https://tsickert.com/archinstall
