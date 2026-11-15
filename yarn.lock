@@ -68,11 +68,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "archinstall@workspace:."
   dependencies:
-    bashlink: "npm:1.0.295"
+    bashlink: "npm:1.0.297"
     shellcheck: "npm:^4.1.0"
     web-documentation: "npm:^1.0.74"
   bin:
-    archinstall: archinstall.sh
+    arch-install: archinstall.sh
     pack-into-archiso: pack-into-archiso.sh
   languageName: unknown
   linkType: soft
@@ -108,13 +108,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bashlink@npm:1.0.295":
-  version: 1.0.295
-  resolution: "bashlink@npm:1.0.295"
+"bashlink@npm:1.0.297":
+  version: 1.0.297
+  resolution: "bashlink@npm:1.0.297"
   bin:
     bashlink-doctest: doctest.sh
     bashlink-document: documentation.sh
-  checksum: 10c0/45c5dcbaf99bd9b68c7cbdaa4e2d2b444b29e56e03edf180cfd446cc31e8fe6f48a91ef3edb17d21e45896143c2791fe1abf264fcf30a0ba8c1c212b0ff7f7e3
+  checksum: 10c0/a9d4537abd67f28be031f9ab8a38b9159d01ef6dadd020ffe854395d8ff44ff83395b33e9502b043ad5e4a008a4bc55f74cb53f6dc8b2d96b23ecaaabed5c9ac
   languageName: node
   linkType: hard
 
