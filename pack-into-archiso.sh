@@ -86,12 +86,12 @@ BL_MODULE_GLOBAL_SCOPE_REWRITES+=('^PACK_INTO_ARCHISO(_[a-zA-Z_-]+)?$/PIA\1/')
 # endregion
 # region functions
 ## region command line interface
-alias pia.get_commandline_option_description=pia_get_commandline_option_description
+alias pia.get-commandline-option-description=pia_get_commandline_option_description
 pia_get_commandline_option_description() {
     local -r __documentation__='
         Prints descriptions about each available command line option.
 
-        >>> pia.get_commandline_option_description
+        >>> pia.get-commandline-option-description
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         -h --help Shows this help message.
@@ -112,12 +112,12 @@ pia_get_commandline_option_description() {
 -m --key-map-configuration FILE_CONTENT Keyboard map configuration (default: "$PIA_KEY_MAP_CONFIGURATION_FILE_CONTENT").
 EOF
 }
-alias pia.get_help_message=pia_get_help_message
+alias pia.get-help-message=pia_get_help_message
 pia_get_help_message() {
     local -r __documentation__='
         Provides a help message for this module.
 
-        >>> pia.get_help_message
+        >>> pia.get-help-message
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         ...
@@ -127,21 +127,21 @@ pia_get_help_message() {
     echo -e $'\nUsage: pack-into-archiso /path/to/archiso/file.iso /path/to/newly/packed/archiso/file.iso [options]\n'
     echo -e "$PIA__DOCUMENTATION__"
     echo -e $'\nOption descriptions:\n'
-    pia.get_commandline_option_description "$@"
+    pia.get-commandline-option-description "$@"
     echo
 }
-alias pia.commandline_interface=pia_commandline_interface
+alias pia.commandline-interface=pia_commandline_interface
 pia_commandline_interface() {
     local -r __documentation__='
         Provides the command line interface and interactive questions.
 
-        >>> pia.commandline_interface
+        >>> pia.commandline-interface
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         You have to provide source and target file path.
         ...
 
-        >>> pia.commandline_interface source.iso target.iso \
+        >>> pia.commandline-interface source.iso target.iso \
         >>>     --keyboard-layout us --squash-filesystem-compressor xz
         >>> echo "$PIA_SOURCE_PATH $PIA_TARGET_PATH"
         >>> echo "$PIA_KEYBOARD_LAYOUT $PIA_SQUASH_FILESYSTEM_COMPRESSOR"
@@ -151,7 +151,7 @@ pia_commandline_interface() {
         KEYMAP=us
 
         >>> local target_path="$(pia_bl_doctest_mktemp --directory)"
-        >>> pia.commandline_interface path/to/source.iso "$target_path"
+        >>> pia.commandline-interface path/to/source.iso "$target_path"
         >>> [ "$PIA_TARGET_PATH" = \
         >>>     "$(readlink --canonicalize "$target_path")/source.iso" ] && \
         >>>         echo yes
@@ -161,18 +161,18 @@ pia_commandline_interface() {
         case "$1" in
             -h|--help)
                 shift
-                bl.logging.plain "$(pia.get_help_message "$0")"
+                bl.logging.plain "$(pia.get-help-message "$0")"
                 exit 0
                 ;;
             -v|--verbose)
                 shift
-                if ! bl.logging.is_enabled info; then
-                    bl.logging.set_level info
+                if ! bl.logging.is-enabled info; then
+                    bl.logging.set-level info
                 fi
                 ;;
             -d|--debug)
                 shift
-                bl.logging.set_level debug
+                bl.logging.set-level debug
                 ;;
             -c|--squash-filesystem-compressor)
                 shift
@@ -214,7 +214,7 @@ pia_commandline_interface() {
                 else
                     bl.logging.critical \
                         "Given argument: \"$1\" is not available." '\n'
-                    bl.logging.plain "$(pia.get_help_message "$0")"
+                    bl.logging.plain "$(pia.get-help-message "$0")"
                 fi
                 shift
         esac
@@ -222,13 +222,13 @@ pia_commandline_interface() {
     if [[ ! "$PIA_SOURCE_PATH" ]] || [[ ! "$PIA_TARGET_PATH" ]]; then
         bl.logging.critical \
             You have to provide source and target file path. $'\n'
-        bl.logging.plain "$(pia.get_help_message "$0")"
+        bl.logging.plain "$(pia.get-help-message "$0")"
         return 1
     fi
 }
 ## endregion
 ## region helper
-alias pia.remaster_iso=pia_remaster_iso
+alias pia.remaster-iso=pia_remaster_iso
 pia_remaster_iso() {
     local -r __documentation__='
         Remasters given iso into new iso: Adds archinstall (and bashlink if
@@ -326,7 +326,7 @@ pia_remaster_iso() {
         -boot_image any replay \
             2>/dev/null
 }
-alias pia.tidy_up=pia_tidy_up
+alias pia.tidy-up=pia_tidy_up
 pia_tidy_up() {
     local -r __documentation__='
         Removes temporary created files.
@@ -336,7 +336,7 @@ pia_tidy_up() {
         >>> local PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH="$(
         >>>     pia_bl_doctest_mktemp --directory)"
         >>> touch "${PIA_TEMPORARY_REMASTERING_PATH}/file"
-        >>> pia.tidy_up
+        >>> pia.tidy-up
         >>> ls --directory \
         >>>     "$PIA_TEMPORARY_REMASTERING_PATH" \
         >>>     "$PIA_TEMPORARY_ROOT_FILESYSTEM_REMASTERING_PATH" \
@@ -371,23 +371,23 @@ pia_main() {
         Usage: pack-into-archiso /path/to/archiso/file.iso /path/to/newly/packe
         ...
     '
-    pia.commandline_interface "$@" || \
+    pia.commandline-interface "$@" || \
         return $?
     # Switch user if necessary and possible.
     if (( UID != 0 )) && command grep root /etc/passwd &>/dev/null; then
         sudo -u root "$0" "$@"
         return $?
     fi
-    pia.remaster_iso || \
+    pia.remaster-iso || \
         bl.logging.critical Remastering given iso failed.
-    pia.tidy_up || \
+    pia.tidy-up || \
         bl.logging.critical Tidying up failed.
     bl.logging.info \
         "Remastering given image \"${PIA_SOURCE_PATH}\" to \"${PIA_TARGET_PATH}\" has successfully finished."
 }
 ## endregion
 # endregion
-if bl.tools.is_main; then
+if bl.tools.is-main; then
     pia.main "$@"
 fi
 # region vim modline

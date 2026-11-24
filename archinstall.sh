@@ -224,14 +224,14 @@ BL_MODULE_GLOBAL_SCOPE_REWRITES+=('^ARCHINSTALL(_[a-zA-Z_-]+)?$/AI\1/')
 # endregion
 # region functions
 ## region command line interface
-alias ai.get_commandline_option_description=ai_get_commandline_option_description
+alias ai.get-commandline-option-description=ai_get_commandline_option_description
 ai_get_commandline_option_description() {
     local -r __documentation__='
         Prints descriptions about each available command line option.
         NOTE: All letters are used for short options.
         NOTE: "-k" and "--key-map-configuration" is not needed in the future.
 
-        >>> ai.get_commandline_option_description
+        >>> ai.get-commandline-option-description
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         -h --help Shows this help message.
@@ -309,12 +309,12 @@ Presets:
 -A TARGET Is the same as "--auto-partitioning --debug --host-name archlinux --target TARGET".
 EOF
 }
-alias ai.get_help_message=ai_get_help_message
+alias ai.get-help-message=ai_get_help_message
 ai_get_help_message() {
     local -r __documentation__='
         Provides a help message for this module.
 
-        >>> ai.get_help_message
+        >>> ai.get-help-message
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         ...
@@ -324,24 +324,24 @@ ai_get_help_message() {
     echo -e $'\nUsage: arch-install [options]\n'
     echo -e "$AI__DOCUMENTATION__"
     echo -e $'\nOption descriptions:\n'
-    ai.get_commandline_option_description "$@"
+    ai.get-commandline-option-description "$@"
     echo
 }
-# NOTE: Depends on "ai.get_commandline_option_description" and
-# "ai.get_help_message".
-alias ai.commandline_interface=ai_commandline_interface
+# NOTE: Depends on "ai.get-commandline-option-description" and
+# "ai.get-help-message".
+alias ai.commandline-interface=ai_commandline_interface
 ai_commandline_interface() {
     local -r __documentation__='
         Provides the command line interface and interactive questions.
 
-        >>> ai.commandline_interface --help
+        >>> ai.commandline-interface --help
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         ...
         Usage: arch-install [options]
         ...
 
-        >>> ai.commandline_interface --not-existing; echo $?
+        >>> ai.commandline-interface --not-existing; echo $?
         +bl.doctest.contains
         +bl.doctest.multiline_ellipsis
         Given argument: "--not-existing" is not available.
@@ -350,23 +350,23 @@ ai_commandline_interface() {
         ...
         1
     '
-    bl.logging.set_command_level debug
+    bl.logging.set-command-level debug
     while true; do
         case "$1" in
             -h|--help)
                 shift
-                bl.logging.plain "$(ai.get_help_message "$0")"
+                bl.logging.plain "$(ai.get-help-message "$0")"
                 exit 0
                 ;;
             -v|--verbose)
                 shift
-                if ! bl.logging.is_enabled info; then
-                    bl.logging.set_level info
+                if ! bl.logging.is-enabled info; then
+                    bl.logging.set-level info
                 fi
                 ;;
             -d|--debug)
                 shift
-                bl.logging.set_level debug
+                bl.logging.set-level debug
                 ;;
 
             -u|--user-names)
@@ -516,7 +516,7 @@ ai_commandline_interface() {
                 AI_HOST_NAME=archlinux
                 AI_TARGET="$1"
 
-                bl.logging.set_level debug
+                bl.logging.set-level debug
 
                 shift
                 ;;
@@ -528,7 +528,7 @@ ai_commandline_interface() {
                 ;;
             *)
                 bl.logging.error "Given argument: \"${1}\" is not available."
-                bl.logging.plain "$(ai.get_help_message)"
+                bl.logging.plain "$(ai.get-help-message)"
 
                 return 1
         esac
@@ -541,10 +541,10 @@ ai_commandline_interface() {
             { [ -e "$AI_TARGET" ] && [ -d "$AI_TARGET" ]; }
         }
     then
-        bl.logging.error_exception \
+        bl.logging.error-exception \
             "You have to run this script as \"root\" not as \"$USER\". You can alternatively install \"fakeroot\", \"fakechroot\" and install into a directory."
     fi
-    if bl.tools.is_main; then
+    if bl.tools.is-main; then
         if [ "$AI_HOST_NAME" = '' ]; then
             while true; do
                 bl.logging.plain -n 'Please set hostname for new system: '
@@ -594,7 +594,7 @@ ai_changeroot() {
     bl.changeroot "$@"
     return $?
 }
-alias ai.changeroot_to_mountpoint=ai_changeroot_to_mountpoint
+alias ai.changeroot-to-mountpoint=ai_changeroot_to_mountpoint
 ai_changeroot_to_mountpoint() {
     local -r __documentation__='
         This function performs a changeroot to currently set mountpoint path.
@@ -603,13 +603,13 @@ ai_changeroot_to_mountpoint() {
     return $?
 }
 ### endregion
-alias ai.add_boot_entries=ai_add_boot_entries
+alias ai.add-boot-entries=ai_add_boot_entries
 ai_add_boot_entries() {
     local -r __documentation__='
         Creates an uefi boot entry.
     '
     # NOTE: See boot without boot loader down here:
-    #if ai.changeroot_to_mountpoint bash -c 'hash efibootmgr' \
+    #if ai.changeroot-to-mountpoint bash -c 'hash efibootmgr' \
     #    2>/dev/null
     #then
         bl.logging.info Configure efi boot manager.
@@ -618,7 +618,7 @@ ai_add_boot_entries() {
             mkdir --parents "${AI_MOUNTPOINT_PATH}boot/keys"
             echo -n "$AI_PASSWORD" \
                 >"${AI_MOUNTPOINT_PATH}boot/keys/boot.luks.password.txt"
-            root_boot_selector="rd.luks.key=$(ai.determine_partition_uuid "$AI_SYSTEM_PARTITION_LABEL")=/keys/boot.luks.password.txt:UUID=$(ai.determine_partition_uuid "$AI_BOOT_PARTITION_LABEL") rd.luks.name=$(ai.determine_partition_uuid "$AI_SYSTEM_PARTITION_LABEL")=cryptroot rd.luks.options=timeout=36000 rd.luks.options=$(ai.determine_partition_uuid "$AI_SYSTEM_PARTITION_LABEL")=keyfile-timeout=2s root=/dev/mapper/cryptroot rw rootflags=subvol=root rootflags=x-systemd.device-timeout=36030"
+            root_boot_selector="rd.luks.key=$(ai.determine-partition-uuid "$AI_SYSTEM_PARTITION_LABEL")=/keys/boot.luks.password.txt:UUID=$(ai.determine-partition-uuid "$AI_BOOT_PARTITION_LABEL") rd.luks.name=$(ai.determine-partition-uuid "$AI_SYSTEM_PARTITION_LABEL")=cryptroot rd.luks.options=timeout=36000 rd.luks.options=$(ai.determine-partition-uuid "$AI_SYSTEM_PARTITION_LABEL")=keyfile-timeout=2s root=/dev/mapper/cryptroot rw rootflags=subvol=root rootflags=x-systemd.device-timeout=36030"
         fi
         local -r kernel_command_line_options="${root_boot_selector} quiet loglevel=2"
         local -r kernel_command_line="initrd=\\initramfs-linux.img ${kernel_command_line_options}"
@@ -629,7 +629,7 @@ ai_add_boot_entries() {
         # Version to skip boot loader and register linux kernel as boot entry
         # directly:
         # NOTE: Boot entry to boot on next reboot should be added at last.
-        #ai.changeroot_to_mountpoint efibootmgr \
+        #ai.changeroot-to-mountpoint efibootmgr \
         #    --create \
         #    --disk "$AI_TARGET" \
         #    --label "$AI_BOOT_ENTRY_LABEL" \
@@ -641,7 +641,7 @@ ai_add_boot_entries() {
         #            "Adding boot entry \"${AI_BOOT_ENTRY_LABEL}\" failed."
 
         # Add boot entry via systemds bootloader.
-        ai.changeroot_to_mountpoint bootctl install
+        ai.changeroot-to-mountpoint bootctl install
         # NOTE: "bootctl" can not determine the boot partition in a change
         # root, so we register the boot loader in the firmware from here.
         if \
@@ -687,7 +687,7 @@ EOF
     #        entry failed.
     #fi
 }
-alias ai.append_temporary_install_mirrors=ai_append_temporary_install_mirrors
+alias ai.append-temporary-install-mirrors=ai_append_temporary_install_mirrors
 ai_append_temporary_install_mirrors() {
     local -r __documentation__='
         Appends temporary used mirrors to download missing packages during
@@ -695,7 +695,7 @@ ai_append_temporary_install_mirrors() {
 
         >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
         >>> mkdir --parents "${AI_MOUNTPOINT_PATH}etc/pacman.d"
-        >>> ai.append_temporary_install_mirrors "https://a.tld https://b.tld"
+        >>> ai.append-temporary-install-mirrors "https://a.tld https://b.tld"
         >>> cat "${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
         Server = https://a.tld/$repo/os/$arch
         Server = https://b.tld/$repo/os/$arch
@@ -738,7 +738,7 @@ ai_cache() {
         "$AI_CACHE_PATH"
     return $?
 }
-alias ai.enable_services=ai_enable_services
+alias ai.enable-services=ai_enable_services
 ai_enable_services() {
     local -r __documentation__='
         Enable all needed services.
@@ -820,13 +820,13 @@ EOF
     local service_name
     for service_name in "${AI_NEEDED_SERVICES[@]}"; do
         bl.logging.info "Enable \"$service_name\" service."
-        ai.changeroot_to_mountpoint \
+        ai.changeroot-to-mountpoint \
             systemctl \
             enable \
             "${service_name}.service"
     done
 }
-alias ai.determine_partition_uuid=ai_determine_partition_uuid
+alias ai.determine-partition-uuid=ai_determine_partition_uuid
 ai_determine_partition_uuid() {
     local -r __documentation__='
         Determines uuid by given identifier.
@@ -835,12 +835,12 @@ ai_determine_partition_uuid() {
         command grep "$1" | \
             command sed --regexp-extended 's/.+ (.+)$/\1/'
 }
-alias ai.get_hosts_content=ai_get_hosts_content
+alias ai.get-hosts-content=ai_get_hosts_content
 ai_get_hosts_content() {
     local -r __documentation__='
         Provides the file content for the "/etc/hosts".
 
-        >>> ai.get_hosts_content my-host
+        >>> ai.get-hosts-content my-host
         #<IP-Adress> <computername.workgroup> <computernames>
         127.0.0.1    localhost.localdomain    localhost my-host
         ::1          ipv6-localhost           ipv6-localhost ipv6-my-host
@@ -851,7 +851,7 @@ ai_get_hosts_content() {
 ::1          ipv6-localhost           ipv6-localhost ipv6-$1
 EOF
 }
-# NOTE: Depends on "ai.get_hosts_content", "ai.enable_services"
+# NOTE: Depends on "ai.get-hosts-content", "ai.enable-services"
 alias ai.configure=ai_configure
 ai_configure() {
     local -r __documentation__='
@@ -877,9 +877,9 @@ ai_configure() {
     bl.logging.info \
         "Make keyboard layout permanent to \"${AI_KEYBOARD_LAYOUT}\"."
     if [ "$1" = true ]; then
-        ai.changeroot_to_mountpoint localectl set-keymap "$AI_KEYBOARD_LAYOUT"
-        ai.changeroot_to_mountpoint localectl set-locale LANG=en_US.utf8
-        ai.changeroot_to_mountpoint locale-gen set-keymap "$AI_KEYBOARD_LAYOUT"
+        ai.changeroot-to-mountpoint localectl set-keymap "$AI_KEYBOARD_LAYOUT"
+        ai.changeroot-to-mountpoint localectl set-locale LANG=en_US.utf8
+        ai.changeroot-to-mountpoint locale-gen set-keymap "$AI_KEYBOARD_LAYOUT"
     else
         echo -e "$AI_KEY_MAP_CONFIGURATION_FILE_CONTENT" \
             1>"${AI_MOUNTPOINT_PATH}etc/vconsole.conf"
@@ -887,7 +887,7 @@ ai_configure() {
 
     bl.logging.info "Set localtime \"${AI_LOCAL_TIME}\"."
     if [ "$1" = true ]; then
-        ai.changeroot_to_mountpoint timedatectl set-timezone "$AI_LOCAL_TIME"
+        ai.changeroot-to-mountpoint timedatectl set-timezone "$AI_LOCAL_TIME"
     else
         ln \
             --symbolic \
@@ -897,30 +897,30 @@ ai_configure() {
 
     bl.logging.info Activate date time synchronization.
     # NOTE: "timedatectl" needs a running systemd, so enable the service.
-    ai.changeroot_to_mountpoint systemctl enable systemd-timesyncd.service
+    ai.changeroot-to-mountpoint systemctl enable systemd-timesyncd.service
 
     bl.logging.info "Set hostname to \"$AI_HOST_NAME\"."
     if [ "$1" = true ]; then
-        ai.changeroot_to_mountpoint hostnamectl set-hostname "$AI_HOST_NAME"
+        ai.changeroot-to-mountpoint hostnamectl set-hostname "$AI_HOST_NAME"
     else
         echo "$AI_HOST_NAME" \
             1>"${AI_MOUNTPOINT_PATH}etc/hostname"
     fi
 
     bl.logging.info Set hosts.
-    ai.get_hosts_content "$AI_HOST_NAME" \
+    ai.get-hosts-content "$AI_HOST_NAME" \
         1>"${AI_MOUNTPOINT_PATH}etc/hosts"
 
     if [[ "$1" != true ]]; then
         bl.logging.info "Set root password to \"root\"."
-        ai.changeroot_to_mountpoint \
+        ai.changeroot-to-mountpoint \
             /usr/bin/env bash -c \
                 "echo root:${AI_PASSWORD} | \$(which chpasswd)"
     fi
 
     bl.exception.try
-        ai.enable_services
-    bl.exception.catch_single
+        ai.enable-services
+    bl.exception.catch-single
         bl.logging.warn Enabling services has failed.
 
     local user_name
@@ -929,7 +929,7 @@ ai_configure() {
         # NOTE: We could only create a home directory with right rights if we
         # are root.
         bl.exception.try
-            ai.changeroot_to_mountpoint \
+            ai.changeroot-to-mountpoint \
                 useradd \
                 "$(
                     if (( UID == 0 )); then
@@ -942,18 +942,18 @@ ai_configure() {
                 --shell \
                 /usr/bin/bash \
                 "$user_name"
-        bl.exception.catch_single
+        bl.exception.catch-single
             bl.logging.warn "Adding user \"${user_name}\" failed."
         bl.logging.info \
             "Set password for \"${user_name}\" to \"${user_name}\"."
-        ai.changeroot_to_mountpoint \
+        ai.changeroot-to-mountpoint \
             /usr/bin/env bash -c \
                 "echo '${user_name}:${user_name}' | \$(which chpasswd)"
     done
 
     return $?
 }
-alias ai.configure_pacman=ai_configure_pacman
+alias ai.configure-pacman=ai_configure_pacman
 ai_configure_pacman() {
     local -r __documentation__='
         Enables all mirrors of configured country in mirror list.
@@ -964,7 +964,7 @@ ai_configure_pacman() {
         >>>     "## Germany" "#Server = https://de.tld" "" \
         >>>     "## France" "#Server = https://fr.tld" \
         >>>         >"${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
-        >>> ai.configure_pacman
+        >>> ai.configure-pacman
         >>> command grep --invert-match "^$" \
         >>>     "${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
         ## Germany
@@ -994,29 +994,29 @@ ai_configure_pacman() {
         cat "$buffer_file" \
             1>"${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
     }
-    bl.exception.catch_single
+    bl.exception.catch-single
     {
         rm --force "$buffer_file"
         # shellcheck disable=SC2154
-        bl.logging.error_exception "$BL_EXCEPTION_LAST_TRACEBACK"
+        bl.logging.error-exception "$BL_EXCEPTION_LAST_TRACEBACK"
     }
     rm --force "$buffer_file"
 }
-alias ai.determine_auto_partitioning=ai_determine_auto_partitioning
+alias ai.determine-auto-partitioning=ai_determine_auto_partitioning
 ai_determine_auto_partitioning() {
     local -r __documentation__='
         Determine whether we should perform our auto partitioning mechanism.
 
-        >>> ai.determine_auto_partitioning <<<YES
+        >>> ai.determine-auto-partitioning <<<YES
         >>> echo " $AI_AUTO_PARTITIONING"
         Do you want auto partioning? [yes|NO]: true
 
-        >>> ai.determine_auto_partitioning < <(printf "maybe\n\n")
+        >>> ai.determine-auto-partitioning < <(printf "maybe\n\n")
         >>> echo " $AI_AUTO_PARTITIONING"
         Do you want auto partioning? [yes|NO]:Do you want auto partioning? [yes|NO]: false
 
         >>> local AI_AUTO_PARTITIONING=true
-        >>> ai.determine_auto_partitioning
+        >>> ai.determine-auto-partitioning
         >>> echo "$AI_AUTO_PARTITIONING"
         true
     '
@@ -1044,7 +1044,7 @@ ai_determine_auto_partitioning() {
         done
     fi
 }
-alias ai.create_url_lists=ai_create_url_lists
+alias ai.create-url-lists=ai_create_url_lists
 ai_create_url_lists() {
     local -r __documentation__='
         Generates all web urls for needed packages.
@@ -1119,17 +1119,17 @@ ai_create_url_lists() {
     echo "${package_urls[@]}"
     return $return_code
 }
-alias ai.decode_url=ai_decode_url
+alias ai.decode-url=ai_decode_url
 ai_decode_url() {
     local -r __documentation__='
         Decodes given url encoded string.
 
-        >>> ai.decode_url libsigc%2B%2B-2.12.1-1-x86_64.pkg.tar.zst
+        >>> ai.decode-url libsigc%2B%2B-2.12.1-1-x86_64.pkg.tar.zst
         libsigc++-2.12.1-1-x86_64.pkg.tar.zst
     '
     printf '%b' "${1//%/\\x}"
 }
-alias ai.determine_cached_package_file_name=ai_determine_cached_package_file_name
+alias ai.determine-cached-package-file-name=ai_determine_cached_package_file_name
 ai_determine_cached_package_file_name() {
     local -r __documentation__='
         Determines the newest package file name for given package name in
@@ -1139,9 +1139,9 @@ ai_determine_cached_package_file_name() {
         >>> touch "${AI_CACHE_PATH}"{a-1.0-1-any.pkg.tar.xz,aab-2.0-1-any.pkg.tar.zst}
         >>> touch "${AI_CACHE_PATH}"{a-1.2-1-any.pkg.tar.zst,a-1.2-1-any.pkg.tar.zst.sig}
         >>> touch "${AI_CACHE_PATH}"{a-extra-3.0-1-any.pkg.tar.zst,a+b-3.0-1-any.pkg.tar.zst}
-        >>> ai.determine_cached_package_file_name a
-        >>> ai.determine_cached_package_file_name a+b
-        >>> ai.determine_cached_package_file_name b; echo $?
+        >>> ai.determine-cached-package-file-name a
+        >>> ai.determine-cached-package-file-name a+b
+        >>> ai.determine-cached-package-file-name b; echo $?
         a-1.2-1-any.pkg.tar.zst
         a+b-3.0-1-any.pkg.tar.zst
         1
@@ -1153,14 +1153,14 @@ ai_determine_cached_package_file_name() {
             -mindepth 1 \
             -maxdepth 1 \
             -regex ".*/$(
-                ai.escape_regular_expression "$package_name"
+                ai.escape-regular-expression "$package_name"
             )-[0-9][^/]*\.pkg\.tar\.[^/.]+" | \
                 command sed --regexp-extended 's:^.*/([^/]+)$:\1:')"
     local file_name=''
     local -i highest_raw_version=0
     local name
     for name in $file_names; do
-        local -i raw_version="$(bl.number.normalize_version "$name")"
+        local -i raw_version="$(bl.number.normalize-version "$name")"
         if [[ "$file_name" = '' ]] || (( raw_version > highest_raw_version ))
         then
             file_name="$name"
@@ -1170,20 +1170,20 @@ ai_determine_cached_package_file_name() {
     [[ "$file_name" = '' ]] && return 1
     echo "$file_name"
 }
-alias ai.escape_regular_expression=ai_escape_regular_expression
+alias ai.escape-regular-expression=ai_escape_regular_expression
 ai_escape_regular_expression() {
     local -r __documentation__='
         Escapes all characters with special meaning in regular expressions.
         Needed since package names may contain characters like "." or "+"
         (e.g. "libsigc++").
 
-        >>> ai.escape_regular_expression libsigc++-2.12
+        >>> ai.escape-regular-expression libsigc++-2.12
         libsigc\+\+-2\.12
     '
     echo "$1" | \
         command sed 's/[][\.*^$+?]/\\&/g'
 }
-alias ai.determine_package_dependencies=ai_determine_package_dependencies
+alias ai.determine-package-dependencies=ai_determine_package_dependencies
 ai_determine_package_dependencies() {
     local -r __documentation__='
         Determines all package dependencies. Returns a list of needed packages
@@ -1193,7 +1193,7 @@ ai_determine_package_dependencies() {
         escaping.
 
         ```
-            ai.determine_package_dependencies glibc /path/to/db
+            ai.determine-package-dependencies glibc /path/to/db
         ```
 
         >>> local database_path="$(ai_bl_doctest_mktemp --directory)"
@@ -1207,7 +1207,7 @@ ai_determine_package_dependencies() {
         >>> printf "%%NAME%%\nlib_c\n" >"${database_path}/lib_c-1.0-1/desc"
         >>> printf "%%NAME%%\ngamma\n\n%%DEPENDS%%\nbeta\n" \
         >>>     >"${database_path}/gamma-1.0-1/desc"
-        >>> ai.determine_package_dependencies alpha "$database_path"
+        >>> ai.determine-package-dependencies alpha "$database_path"
         alpha
         beta
         gamma
@@ -1215,7 +1215,7 @@ ai_determine_package_dependencies() {
         lib_c
 
         >>> local database_path="$(ai_bl_doctest_mktemp --directory)"
-        >>> ai.determine_package_dependencies alpha "$database_path"; echo $?
+        >>> ai.determine-package-dependencies alpha "$database_path"; echo $?
         1
     '
     local -r given_package_name="$1"
@@ -1223,7 +1223,7 @@ ai_determine_package_dependencies() {
     local package_names_to_ignore=" $3 "
     local package_description_file_path
     if package_description_file_path="$(
-        ai.determine_package_description_file_path \
+        ai.determine-package-description-file-path \
             "$given_package_name" \
             "$database_directory_path"
     )"; then
@@ -1277,11 +1277,11 @@ ai_determine_package_dependencies() {
         package_names_to_ignore+=" ${dependent_package_names[*]}"
         for package_name in "${dependent_package_names[@]}"; do
             bl.exception.try
-                ai.determine_package_dependencies \
+                ai.determine-package-dependencies \
                     "$package_name" \
                     "$database_directory_path" \
                     "$package_names_to_ignore"
-            bl.exception.catch_single
+            bl.exception.catch-single
                 bl.logging.warn \
                     "Needed package \"$package_name\" for \"$given_package_name\" couldn't be found in database \"$database_directory_path\"."
         done
@@ -1290,7 +1290,7 @@ ai_determine_package_dependencies() {
     fi
     return 0
 }
-alias ai.determine_package_description_file_path=ai_determine_package_description_file_path
+alias ai.determine-package-description-file-path=ai_determine_package_description_file_path
 ai_determine_package_description_file_path() {
     local -r __documentation__='
         Determines the package directory name from given package name in given
@@ -1302,15 +1302,15 @@ ai_determine_package_description_file_path() {
         >>>     >"${database_path}/b-2.0-1/desc"
         >>> printf "%%NAME%%\nc\n\n%%PROVIDES%%\nlibfoo++\n\n" \
         >>>     >"${database_path}/c-1.0-1/desc"
-        >>> ai.determine_package_description_file_path a "$database_path" | \
+        >>> ai.determine-package-description-file-path a "$database_path" | \
         >>>     sed "s:${database_path}/::"
-        >>> ai.determine_package_description_file_path libb "$database_path" | \
+        >>> ai.determine-package-description-file-path libb "$database_path" | \
         >>>     sed "s:${database_path}/::"
-        >>> ai.determine_package_description_file_path libfoo++ "$database_path" | \
+        >>> ai.determine-package-description-file-path libfoo++ "$database_path" | \
         >>>     sed "s:${database_path}/::"
-        >>> ai.determine_package_description_file_path a+b "$database_path" | \
+        >>> ai.determine-package-description-file-path a+b "$database_path" | \
         >>>     sed "s:${database_path}/::"
-        >>> ai.determine_package_description_file_path xyz "$database_path"; \
+        >>> ai.determine-package-description-file-path xyz "$database_path"; \
         >>>     echo $?
         a-1.2-1/desc
         b-2.0-1/desc
@@ -1323,7 +1323,7 @@ ai_determine_package_description_file_path() {
     # NOTE: Package names may contain regular expression special characters
     # like "+" (e.g. "libsigc++").
     local -r escaped_package_name="$(
-        ai.escape_regular_expression "$package_name")"
+        ai.escape-regular-expression "$package_name")"
     local package_description_file_path="$(
         command grep \
             "%PROVIDES%\\n(.+\\n)*\\Q${package_name}\\E\\n(.+\\n)*\\n" \
@@ -1369,7 +1369,7 @@ ai_determine_package_description_file_path() {
                         # NOTE: Only the package directory name should be
                         # considered since database paths may contain digits.
                         local raw_version="$(
-                            bl.number.normalize_version \
+                            bl.number.normalize-version \
                                 "$(basename "$description_file_path")")"
                         if (( raw_version > highest_raw_version )); then
                             package_description_file_path="$description_file_path"
@@ -1387,7 +1387,7 @@ ai_determine_package_description_file_path() {
     fi
     return 1
 }
-alias ai.determine_pacmans_needed_packages=ai_determine_pacmans_needed_packages
+alias ai.determine-pacmans-needed-packages=ai_determine_pacmans_needed_packages
 ai_determine_pacmans_needed_packages() {
     local -r __documentation__='
         Reads pacmans database and determine pacmans dependencies.
@@ -1409,7 +1409,7 @@ ai_determine_pacmans_needed_packages() {
                 --retry-delay 1 \
                 --max-time "$AI_NETWORK_TIMEOUT_IN_SECONDS" \
                     >"${AI_CACHE_PATH}$(basename "$core_database_url")"
-        bl.exception.catch_single
+        bl.exception.catch-single
             bl.logging.warn \
                 "Could not retrieve latest database file from determined url \"$core_database_url\"."
     fi
@@ -1428,7 +1428,7 @@ ai_determine_pacmans_needed_packages() {
             for package_name in "${AI_NEEDED_PACKAGES[@]}"; do
                 local needed_packages
                 mapfile -t needed_packages <<<"$(
-                    ai.determine_package_dependencies \
+                    ai.determine-package-dependencies \
                         "$package_name" \
                         "$database_directory_path" | \
                             sort --unique
@@ -1438,11 +1438,11 @@ ai_determine_pacmans_needed_packages() {
             rm --force --recursive "$database_directory_path"
             bl.array.unique "${packages[*]}"
         }
-        bl.exception.catch_single
+        bl.exception.catch-single
         {
             rm --force --recursive "$database_directory_path"
             # shellcheck disable=SC2154
-            bl.logging.error_exception "$BL_EXCEPTION_LAST_TRACEBACK"
+            bl.logging.error-exception "$BL_EXCEPTION_LAST_TRACEBACK"
         }
         return 0
     fi
@@ -1450,7 +1450,7 @@ ai_determine_pacmans_needed_packages() {
         "No database file (\"${AI_CACHE_PATH}core.db\") could be found."
     return 1
 }
-alias ai.download_and_extract_pacman=ai_download_and_extract_pacman
+alias ai.download-and-extract-pacman=ai_download_and_extract_pacman
 ai_download_and_extract_pacman() {
     local -r __documentation__='
         Downloads all packages from arch linux needed to run pacman.
@@ -1483,7 +1483,7 @@ ai_download_and_extract_pacman() {
         >>>         --xz \
         >>>         .
         >>> done
-        >>> ai.download_and_extract_pacman " $(
+        >>> ai.download-and-extract-pacman " $(
         >>>     printf "file://${source_path}/%s " \
         >>>         core.db \
         >>>         filesystem-1.0-1-any.pkg.tar.xz \
@@ -1500,7 +1500,7 @@ ai_download_and_extract_pacman() {
     '
     local serialized_needed_packages
     serialized_needed_packages="$(
-        ai.determine_pacmans_needed_packages "$1")"
+        ai.determine-pacmans-needed-packages "$1")"
     # shellcheck disable=SC2181
     if [ $? = 0 ]; then
         local needed_packages
@@ -1516,11 +1516,11 @@ ai_download_and_extract_pacman() {
         # NOTE: Decode all urls at once to avoid spawning sub processes for
         # each of the (many thousand) urls per needed package.
         local -a decoded_urls
-        read -r -a decoded_urls <<<"$(ai.decode_url "$1")"
+        read -r -a decoded_urls <<<"$(ai.decode-url "$1")"
         local package_name
         for package_name in "${needed_packages[@]}"; do
             local escaped_package_name="$(
-                ai.escape_regular_expression "$package_name")"
+                ai.escape-regular-expression "$package_name")"
             local file_name=''
             if [[ "$1" != '' ]]; then
                 # NOTE: We want to use the newest package if there are
@@ -1533,7 +1533,7 @@ ai_download_and_extract_pacman() {
                     local name="${decoded_urls[index]##*/}"
                     if [[ "$name" =~ ^${escaped_package_name}-[0-9] ]]; then
                         local -i raw_version="$(
-                            bl.number.normalize_version "$name")"
+                            bl.number.normalize-version "$name")"
                         if [[
                             "$package_url" = '' ||
                             raw_version -gt highest_raw_version
@@ -1547,7 +1547,7 @@ ai_download_and_extract_pacman() {
                     bl.exception.try
                     {
                         file_name="$(
-                            ai.decode_url "$(basename "$package_url")")"
+                            ai.decode-url "$(basename "$package_url")")"
                         command curl \
                             "$package_url" \
                             --location \
@@ -1558,7 +1558,7 @@ ai_download_and_extract_pacman() {
                             --retry-all-errors \
                             --retry-delay 1
                     }
-                    bl.exception.catch_single
+                    bl.exception.catch-single
                     {
                         file_name=''
                         bl.logging.warn \
@@ -1570,13 +1570,13 @@ ai_download_and_extract_pacman() {
             # current package cache.
             if [ "$file_name" = '' ]; then
                 file_name="$(
-                    ai.determine_cached_package_file_name "$package_name")"
+                    ai.determine-cached-package-file-name "$package_name")"
             fi
             if [[
                 "$file_name" = '' || \
                 ! -f "${AI_CACHE_PATH}${file_name}"
             ]]; then
-                bl.logging.error_exception \
+                bl.logging.error-exception \
                     "A suitable file for package \"$package_name\" could not be determined."
             fi
             bl.logging.info "Install package \"$file_name\" manually."
@@ -1592,7 +1592,7 @@ ai_download_and_extract_pacman() {
         return 1
     fi
 }
-alias ai.format_boot_partition=ai_format_boot_partition
+alias ai.format-boot-partition=ai_format_boot_partition
 ai_format_boot_partition() {
     local -r __documentation__='
         Prepares the boot partition.
@@ -1610,7 +1610,7 @@ ai_format_boot_partition() {
             "\"dosfslabel\" doesn't seem to be installed. Creating a boot partition label failed."
     fi
 }
-alias ai.format_system_partition=ai_format_system_partition
+alias ai.format-system-partition=ai_format_system_partition
 ai_format_system_partition() {
     local -r __documentation__='
         Prepares the system partition.
@@ -1652,16 +1652,16 @@ ai_format_system_partition() {
         cryptsetup close cryptroot
     fi
 }
-# NOTE: Depends on "ai.format_system_partition"
-alias ai.format_partitions=ai_format_partitions
+# NOTE: Depends on "ai.format-system-partition"
+alias ai.format-partitions=ai_format_partitions
 ai_format_partitions() {
     local -r __documentation__='
         Performs formating part.
     '
-    ai.format_boot_partition
-    ai.format_system_partition
+    ai.format-boot-partition
+    ai.format-system-partition
 }
-alias ai.generate_fstab_configuration_file=ai_generate_fstab_configuration_file
+alias ai.generate-fstab-configuration-file=ai_generate_fstab_configuration_file
 ai_generate_fstab_configuration_file() {
     local -r __documentation__='
         Writes the fstab configuration file.
@@ -1669,7 +1669,7 @@ ai_generate_fstab_configuration_file() {
         >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
         >>> local AI_ENCRYPT=true
         >>> mkdir "${AI_MOUNTPOINT_PATH}etc"
-        >>> ai.generate_fstab_configuration_file
+        >>> ai.generate-fstab-configuration-file
         >>> command grep --invert-match "^#" "${AI_MOUNTPOINT_PATH}etc/fstab" | \
         >>>     cut --delimiter " " --fields 1
         /dev/mapper/cryptroot
@@ -1692,7 +1692,7 @@ PARTLABEL=$AI_BOOT_PARTITION_LABEL   /boot/        vfat   codepage=437,dmask=007
 EOF
     fi
 }
-alias ai.load_cache=ai_load_cache
+alias ai.load-cache=ai_load_cache
 ai_load_cache() {
     local -r __documentation__='
         Load previous downloaded packages and database.
@@ -1700,7 +1700,7 @@ ai_load_cache() {
         >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
         >>> local AI_CACHE_PATH="$(ai_bl_doctest_mktemp --directory)/"
         >>> touch "${AI_CACHE_PATH}"{core.db,a.pkg.tar.xz,b.pkg.tar.zst}
-        >>> ai.load_cache
+        >>> ai.load-cache
         >>> ls "${AI_MOUNTPOINT_PATH}var/lib/pacman/sync"
         >>> ls "${AI_MOUNTPOINT_PATH}var/cache/pacman/pkg"
         core.db
@@ -1709,7 +1709,7 @@ ai_load_cache() {
 
         >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
         >>> local AI_CACHE_PATH="$(ai_bl_doctest_mktemp --directory)/"
-        >>> ai.load_cache
+        >>> ai.load-cache
         >>> ls "${AI_MOUNTPOINT_PATH}var/lib/pacman/sync"; echo $?
         0
     '
@@ -1722,7 +1722,7 @@ ai_load_cache() {
             "$AI_CACHE_PATH"*.db \
             "${AI_MOUNTPOINT_PATH}var/lib/pacman/sync/" \
                 2>/dev/null
-    bl.exception.catch_single
+    bl.exception.catch-single
         bl.logging.info No local database available to load from cache.
     bl.logging.info Load cached packages.
     mkdir --parents "${AI_MOUNTPOINT_PATH}var/cache/pacman/pkg"
@@ -1733,10 +1733,10 @@ ai_load_cache() {
             "$AI_CACHE_PATH"*.pkg.tar.* \
             "${AI_MOUNTPOINT_PATH}var/cache/pacman/pkg/" \
                 2>/dev/null
-    bl.exception.catch_single
+    bl.exception.catch-single
         bl.logging.info No local packages available to load from cache.
 }
-alias ai.make_partitions=ai_make_partitions
+alias ai.make-partitions=ai_make_partitions
 ai_make_partitions() {
     local -r __documentation__='
         Performs the auto partitioning.
@@ -1808,7 +1808,7 @@ EOF
         gdisk "$AI_TARGET"
     fi
 }
-alias ai.pack_result=ai_pack_result
+alias ai.pack-result=ai_pack_result
 ai_pack_result() {
     local -r __documentation__='
         Packs the resulting system to provide files owned by root without
@@ -1829,7 +1829,7 @@ ai_pack_result() {
         return $?
     fi
 }
-alias ai.prepare_blockdevices=ai_prepare_blockdevices
+alias ai.prepare-blockdevices=ai_prepare_blockdevices
 ai_prepare_blockdevices() {
     local -r __documentation__='
         Prepares given block devices to make it ready for fresh installation.
@@ -1843,7 +1843,7 @@ ai_prepare_blockdevices() {
     swapoff "${AI_TARGET}"* 2>/dev/null || \
         true
 }
-alias ai.prepare_installation=ai_prepare_installation
+alias ai.prepare-installation=ai_prepare_installation
 ai_prepare_installation() {
     local -r __documentation__='
         Deletes previous installed things in given output target. And creates a
@@ -1902,7 +1902,7 @@ ai_prepare_installation() {
     chmod 755 "$AI_MOUNTPOINT_PATH"
     read -r -a AI_PACKAGES <<< "$(bl.array.unique "${AI_PACKAGES[*]}")"
 }
-alias ai.prepare_next_boot=ai_prepare_next_boot
+alias ai.prepare-next-boot=ai_prepare_next_boot
 ai_prepare_next_boot() {
     local -r __documentation__='
         Reboots into fresh installed system if previous defined.
@@ -1912,19 +1912,19 @@ ai_prepare_next_boot() {
         # during boot.
         # NOTE: Because of non matching "btrfs.fsck" binary it results on non
         # zero exit code.
-        ai.changeroot_to_mountpoint mkinitcpio --allpresets || true
+        ai.changeroot-to-mountpoint mkinitcpio --allpresets || true
     fi
     if [ -b "$AI_TARGET" ]; then
-        ai.generate_fstab_configuration_file
-        ai.add_boot_entries
-        ai.prepare_blockdevices
+        ai.generate-fstab-configuration-file
+        ai.add-boot-entries
+        ai.prepare-blockdevices
         if $AI_AUTOMATIC_REBOOT; then
             bl.logging.info Reboot into new operating system.
             systemctl reboot &>/dev/null || reboot
         fi
     fi
 }
-alias ai.tidy_up_system=ai_tidy_up_system
+alias ai.tidy-up-system=ai_tidy_up_system
 ai_tidy_up_system() {
     local -r __documentation__='
         Deletes some unneeded locations in new installs operating system.
@@ -1932,7 +1932,7 @@ ai_tidy_up_system() {
         >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
         >>> mkdir --parents "${AI_MOUNTPOINT_PATH}"{etc,var/cache/pacman/pkg}
         >>> touch "${AI_MOUNTPOINT_PATH}"{.INSTALL,.PKGINFO}
-        >>> ai.tidy_up_system
+        >>> ai.tidy-up-system
         >>> find "$AI_MOUNTPOINT_PATH" -mindepth 1 | \
         >>>     sed "s:${AI_MOUNTPOINT_PATH}::" | \
         >>>         sort
@@ -1949,7 +1949,7 @@ ai_tidy_up_system() {
 }
 ## endregion
 ## region install arch linux steps.
-alias ai.make_pacman_portable=ai_make_pacman_portable
+alias ai.make-pacman-portable=ai_make_pacman_portable
 ai_make_pacman_portable() {
     local -r __documentation__='
         Disables signature checks and registers temporary download mirrors.
@@ -1961,7 +1961,7 @@ ai_make_pacman_portable() {
         >>>     "SigLevel    = Required DatabaseOptional" \
         >>>     "LocalFileSigLevel = Optional" \
         >>>         >"${AI_MOUNTPOINT_PATH}etc/pacman.conf"
-        >>> ai.make_pacman_portable https://a.tld
+        >>> ai.make-pacman-portable https://a.tld
         >>> cat "${AI_MOUNTPOINT_PATH}etc/pacman.conf"
         >>> cat "${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
         SigLevel = Never TrustAll
@@ -1986,11 +1986,11 @@ ai_make_pacman_portable() {
             /etc/pacman.d/mirrorlist \
             "${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
     else
-        ai.append_temporary_install_mirrors "$1"
+        ai.append-temporary-install-mirrors "$1"
     fi
 }
-# NOTE: Depends on "ai.make_pacman_portable"
-alias ai.generic_linux_steps=ai_generic_linux_steps
+# NOTE: Depends on "ai.make-pacman-portable"
+alias ai.generic-linux-steps=ai_generic_linux_steps
 ai_generic_linux_steps() {
     local -r __documentation__='
         This functions performs creating an arch linux system from any linux
@@ -1998,16 +1998,16 @@ ai_generic_linux_steps() {
     '
     bl.logging.info Create a list with urls for existing packages.
     local -a url_lists
-    mapfile -t url_lists <<<"$(ai.create_url_lists)"
-    ai.download_and_extract_pacman "${url_lists[1]}"
-    ai.make_pacman_portable "${url_lists[0]}"
+    mapfile -t url_lists <<<"$(ai.create-url-lists)"
+    ai.download-and-extract-pacman "${url_lists[1]}"
+    ai.make-pacman-portable "${url_lists[0]}"
 
     bl.logging.info Ensure having valid install user available.
-    if ! ai.changeroot_to_mountpoint getent group alpm &>/dev/null; then
-        ai.changeroot_to_mountpoint groupadd --gid 701 alpm
+    if ! ai.changeroot-to-mountpoint getent group alpm &>/dev/null; then
+        ai.changeroot-to-mountpoint groupadd --gid 701 alpm
     fi
-    if ! ai.changeroot_to_mountpoint id alpm &>/dev/null; then
-      ai.changeroot_to_mountpoint useradd \
+    if ! ai.changeroot-to-mountpoint id alpm &>/dev/null; then
+      ai.changeroot-to-mountpoint useradd \
           --uid 701 \
           --gid alpm \
           --home / \
@@ -2018,26 +2018,26 @@ ai_generic_linux_steps() {
     bl.logging.info Initialize keys.
     bl.exception.try
     {
-        ai.changeroot_to_mountpoint /usr/bin/pacman-key --init
-        ai.changeroot_to_mountpoint /usr/bin/pacman-key --refresh-keys
+        ai.changeroot-to-mountpoint /usr/bin/pacman-key --init
+        ai.changeroot-to-mountpoint /usr/bin/pacman-key --refresh-keys
     }
-    bl.exception.catch_single
+    bl.exception.catch-single
         bl.logging.warn Creating keys was not successful.
 
     bl.logging.info Update package databases.
     bl.exception.try
-        ai.changeroot_to_mountpoint /usr/bin/pacman \
+        ai.changeroot-to-mountpoint /usr/bin/pacman \
             --arch "$AI_CPU_ARCHITECTURE" \
             --refresh \
             --sync
-    bl.exception.catch_single
+    bl.exception.catch-single
         bl.logging.info Updating package database failed. Operating offline.
 
     bl.logging.info "Install needed packages \"$(
         echo "${AI_PACKAGES[@]}" | \
             command sed 's/ /", "/g'
     )\" to \"$AI_TARGET\"."
-    ai.changeroot_to_mountpoint /usr/bin/pacman \
+    ai.changeroot-to-mountpoint /usr/bin/pacman \
         --arch "$AI_CPU_ARCHITECTURE" \
         --needed \
         --noconfirm \
@@ -2047,7 +2047,7 @@ ai_generic_linux_steps() {
 
     return $?
 }
-alias ai.with_existing_pacman=ai_with_existing_pacman
+alias ai.with-existing-pacman=ai_with_existing_pacman
 ai_with_existing_pacman() {
     local -r __documentation__='
         Installs arch linux via patched (to be able to operate offline)
@@ -2060,7 +2060,7 @@ ai_with_existing_pacman() {
             --refresh \
             --root "$AI_MOUNTPOINT_PATH" \
             --sync
-    bl.exception.catch_single
+    bl.exception.catch-single
         bl.logging.info \
             Updating package database failed. Operating offline.
     bl.logging.info "Install needed packages \"$(
@@ -2090,8 +2090,8 @@ ai_with_existing_pacman() {
         --sync \
         --noconfirm \
         "${AI_NEEDED_PACKAGES[@]}"
-    ai.make_pacman_portable
-    ai.changeroot_to_mountpoint \
+    ai.make-pacman-portable
+    ai.changeroot-to-mountpoint \
         /usr/bin/pacman \
         --arch "$AI_CPU_ARCHITECTURE" \
         --needed \
@@ -2115,7 +2115,7 @@ ai_main() {
         ...
     '
     bl.exception.activate
-    ai.commandline_interface "$@"
+    ai.commandline-interface "$@"
     AI_PACKAGES+=(
         "${AI_BASIC_PACKAGES[@]}"
         "${AI_ADDITIONAL_PACKAGES[@]}"
@@ -2135,59 +2135,59 @@ ai_main() {
         # NOTE: Only needed for booting without boot loader:
         # AI_PACKAGES+=(efibootmgr)
         AI_PACKAGES+=()
-        ai.prepare_blockdevices
+        ai.prepare-blockdevices
         bl.exception.try
         {
             if $AI_SYSTEM_PARTITION_INSTALLATION_ONLY; then
-                ai.format_system_partition
+                ai.format-system-partition
             else
-                ai.determine_auto_partitioning
+                ai.determine-auto-partitioning
                 bl.logging.info Make partitions: Create a boot and system partition.
-                ai.make_partitions
+                ai.make-partitions
                 bl.logging.info Format partitions.
-                ai.format_partitions
+                ai.format-partitions
             fi
         }
-        bl.exception.catch_single
+        bl.exception.catch-single
         {
-            ai.prepare_blockdevices
-            bl.logging.error_exception "$BL_EXCEPTION_LAST_TRACEBACK"
+            ai.prepare-blockdevices
+            bl.logging.error-exception "$BL_EXCEPTION_LAST_TRACEBACK"
         }
     else
-        bl.logging.error_exception "Could not install into \"$AI_TARGET\"."
+        bl.logging.error-exception "Could not install into \"$AI_TARGET\"."
     fi
-    ai.prepare_installation
+    ai.prepare-installation
     bl.exception.try
-        ai.load_cache
-    bl.exception.catch_single
+        ai.load-cache
+    bl.exception.catch-single
         bl.logging.info No package cache was loaded.
     if (( UID == 0 )) && ! $AI_PREVENT_USING_EXISTING_PACMAN && \
         hash pacman 2>/dev/null
     then
-        ai.with_existing_pacman
+        ai.with-existing-pacman
     else
-        ai.generic_linux_steps
+        ai.generic-linux-steps
     fi
     local -ir return_code=$?
     bl.exception.try
         ai.cache
-    bl.exception.catch_single
+    bl.exception.catch-single
         bl.logging.warn \
             Caching current downloaded packages and generated database \
             failed.
     (( return_code == 0 )) && \
-        ai.configure_pacman
-    ai.tidy_up_system
+        ai.configure-pacman
+    ai.tidy-up-system
     ai.configure
-    ai.prepare_next_boot
-    ai.pack_result
+    ai.prepare-next-boot
+    ai.pack-result
     bl.logging.info \
         "Generating operating system into \"$AI_TARGET\" has successfully finished."
     bl.exception.deactivate
 }
 ## endregion
 # endregion
-if bl.tools.is_main; then
+if bl.tools.is-main; then
     ai.main "$@"
 fi
 # region vim modline
