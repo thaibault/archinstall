@@ -11,7 +11,7 @@
 # See https://creativecommons.org/licenses/by/4.0/deed.de
 # endregion
 pkgname=arch-install
-pkgver=2.0.0
+pkgver=2.0.1
 pkgrel=1
 pkgdesc='Automate your installation process.'
 arch=(any)
