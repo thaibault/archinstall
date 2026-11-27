@@ -47,7 +47,7 @@ installation.
 ```bash
 >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
 >>> mkdir --parents "${AI_MOUNTPOINT_PATH}etc/pacman.d"
->>> ai.append_temporary_install_mirrors "https://a.tld https://b.tld"
+>>> ai.append-temporary-install-mirrors "https://a.tld https://b.tld"
 >>> cat "${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
 Server = https://a.tld/$repo/os/$arch
 Server = https://b.tld/$repo/os/$arch
@@ -77,7 +77,7 @@ This function performs a changeroot to currently set mountpoint path.
 Provides the command line interface and interactive questions.
 
 ```bash
->>> ai.commandline_interface --help
+>>> ai.commandline-interface --help
 +bl.doctest.contains
 +bl.doctest.multiline_ellipsis
 ...
@@ -85,7 +85,7 @@ Usage: arch-install [options]
 ...
 ```
 ```bash
->>> ai.commandline_interface --not-existing; echo $?
+>>> ai.commandline-interface --not-existing; echo $?
 +bl.doctest.contains
 +bl.doctest.multiline_ellipsis
 Given argument: "--not-existing" is not available.
@@ -108,7 +108,7 @@ Enables all mirrors of configured country in mirror list.
 >>>     "## Germany" "#Server = https://de.tld" "" \
 >>>     "## France" "#Server = https://fr.tld" \
 >>>         >"${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
->>> ai.configure_pacman
+>>> ai.configure-pacman
 >>> command grep --invert-match "^$" \
 >>>     "${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
 ## Germany
@@ -122,25 +122,25 @@ Generates all web urls for needed packages.
 Decodes given url encoded string.
 
 ```bash
->>> ai.decode_url libsigc%2B%2B-2.12.1-1-x86_64.pkg.tar.zst
+>>> ai.decode-url libsigc%2B%2B-2.12.1-1-x86_64.pkg.tar.zst
 libsigc++-2.12.1-1-x86_64.pkg.tar.zst
 ```
 ### Function ai_determine_auto_partitioning
 Determine whether we should perform our auto partitioning mechanism.
 
 ```bash
->>> ai.determine_auto_partitioning <<<YES
+>>> ai.determine-auto-partitioning <<<YES
 >>> echo " $AI_AUTO_PARTITIONING"
 Do you want auto partioning? [yes|NO]: true
 ```
 ```bash
->>> ai.determine_auto_partitioning < <(printf "maybe\n\n")
+>>> ai.determine-auto-partitioning < <(printf "maybe\n\n")
 >>> echo " $AI_AUTO_PARTITIONING"
 Do you want auto partioning? [yes|NO]:Do you want auto partioning? [yes|NO]: false
 ```
 ```bash
 >>> local AI_AUTO_PARTITIONING=true
->>> ai.determine_auto_partitioning
+>>> ai.determine-auto-partitioning
 >>> echo "$AI_AUTO_PARTITIONING"
 true
 ```
@@ -153,9 +153,9 @@ current package cache.
 >>> touch "${AI_CACHE_PATH}"{a-1.0-1-any.pkg.tar.xz,aab-2.0-1-any.pkg.tar.zst}
 >>> touch "${AI_CACHE_PATH}"{a-1.2-1-any.pkg.tar.zst,a-1.2-1-any.pkg.tar.zst.sig}
 >>> touch "${AI_CACHE_PATH}"{a-extra-3.0-1-any.pkg.tar.zst,a+b-3.0-1-any.pkg.tar.zst}
->>> ai.determine_cached_package_file_name a
->>> ai.determine_cached_package_file_name a+b
->>> ai.determine_cached_package_file_name b; echo $?
+>>> ai.determine-cached-package-file-name a
+>>> ai.determine-cached-package-file-name a+b
+>>> ai.determine-cached-package-file-name b; echo $?
 a-1.2-1-any.pkg.tar.zst
 a+b-3.0-1-any.pkg.tar.zst
 1
@@ -168,7 +168,7 @@ duplicates without using extended regular expression and package name
 escaping.
 
 ```
-ai.determine_package_dependencies glibc /path/to/db
+ai.determine-package-dependencies glibc /path/to/db
 ```
 
 ```bash
@@ -183,7 +183,7 @@ ai.determine_package_dependencies glibc /path/to/db
 >>> printf "%%NAME%%\nlib_c\n" >"${database_path}/lib_c-1.0-1/desc"
 >>> printf "%%NAME%%\ngamma\n\n%%DEPENDS%%\nbeta\n" \
 >>>     >"${database_path}/gamma-1.0-1/desc"
->>> ai.determine_package_dependencies alpha "$database_path"
+>>> ai.determine-package-dependencies alpha "$database_path"
 alpha
 beta
 gamma
@@ -192,7 +192,7 @@ lib_c
 ```
 ```bash
 >>> local database_path="$(ai_bl_doctest_mktemp --directory)"
->>> ai.determine_package_dependencies alpha "$database_path"; echo $?
+>>> ai.determine-package-dependencies alpha "$database_path"; echo $?
 1
 ```
 ### Function ai_determine_package_description_file_path
@@ -206,15 +206,15 @@ database folder.
 >>>     >"${database_path}/b-2.0-1/desc"
 >>> printf "%%NAME%%\nc\n\n%%PROVIDES%%\nlibfoo++\n\n" \
 >>>     >"${database_path}/c-1.0-1/desc"
->>> ai.determine_package_description_file_path a "$database_path" | \
+>>> ai.determine-package-description-file-path a "$database_path" | \
 >>>     sed "s:${database_path}/::"
->>> ai.determine_package_description_file_path libb "$database_path" | \
+>>> ai.determine-package-description-file-path libb "$database_path" | \
 >>>     sed "s:${database_path}/::"
->>> ai.determine_package_description_file_path libfoo++ "$database_path" | \
+>>> ai.determine-package-description-file-path libfoo++ "$database_path" | \
 >>>     sed "s:${database_path}/::"
->>> ai.determine_package_description_file_path a+b "$database_path" | \
+>>> ai.determine-package-description-file-path a+b "$database_path" | \
 >>>     sed "s:${database_path}/::"
->>> ai.determine_package_description_file_path xyz "$database_path"; \
+>>> ai.determine-package-description-file-path xyz "$database_path"; \
 >>>     echo $?
 a-1.2-1/desc
 b-2.0-1/desc
@@ -265,7 +265,7 @@ Downloads all packages from arch linux needed to run pacman.
 >>>         --xz \
 >>>         .
 >>> done
->>> ai.download_and_extract_pacman " $(
+>>> ai.download-and-extract-pacman " $(
 >>>     printf "file://${source_path}/%s " \
 >>>         core.db \
 >>>         filesystem-1.0-1-any.pkg.tar.xz \
@@ -288,7 +288,7 @@ Needed since package names may contain characters like "." or "+"
 (e.g. "libsigc++").
 
 ```bash
->>> ai.escape_regular_expression libsigc++-2.12
+>>> ai.escape-regular-expression libsigc++-2.12
 libsigc\+\+-2\.12
 ```
 ### Function ai_format_boot_partition
@@ -304,7 +304,7 @@ Writes the fstab configuration file.
 >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
 >>> local AI_ENCRYPT=true
 >>> mkdir "${AI_MOUNTPOINT_PATH}etc"
->>> ai.generate_fstab_configuration_file
+>>> ai.generate-fstab-configuration-file
 >>> command grep --invert-match "^#" "${AI_MOUNTPOINT_PATH}etc/fstab" | \
 >>>     cut --delimiter " " --fields 1
 /dev/mapper/cryptroot
@@ -319,7 +319,7 @@ NOTE: All letters are used for short options.
 NOTE: "-k" and "--key-map-configuration" is not needed in the future.
 
 ```bash
->>> ai.get_commandline_option_description
+>>> ai.get-commandline-option-description
 +bl.doctest.contains
 +bl.doctest.multiline_ellipsis
 -h --help Shows this help message.
@@ -329,7 +329,7 @@ NOTE: "-k" and "--key-map-configuration" is not needed in the future.
 Provides a help message for this module.
 
 ```bash
->>> ai.get_help_message
+>>> ai.get-help-message
 +bl.doctest.contains
 +bl.doctest.multiline_ellipsis
 ...
@@ -340,7 +340,7 @@ Usage: arch-install [options]
 Provides the file content for the "/etc/hosts".
 
 ```bash
->>> ai.get_hosts_content my-host
+>>> ai.get-hosts-content my-host
 #<IP-Adress> <computername.workgroup> <computernames>
 127.0.0.1    localhost.localdomain    localhost my-host
 ::1          ipv6-localhost           ipv6-localhost ipv6-my-host
@@ -352,7 +352,7 @@ Load previous downloaded packages and database.
 >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
 >>> local AI_CACHE_PATH="$(ai_bl_doctest_mktemp --directory)/"
 >>> touch "${AI_CACHE_PATH}"{core.db,a.pkg.tar.xz,b.pkg.tar.zst}
->>> ai.load_cache
+>>> ai.load-cache
 >>> ls "${AI_MOUNTPOINT_PATH}var/lib/pacman/sync"
 >>> ls "${AI_MOUNTPOINT_PATH}var/cache/pacman/pkg"
 core.db
@@ -362,7 +362,7 @@ b.pkg.tar.zst
 ```bash
 >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
 >>> local AI_CACHE_PATH="$(ai_bl_doctest_mktemp --directory)/"
->>> ai.load_cache
+>>> ai.load-cache
 >>> ls "${AI_MOUNTPOINT_PATH}var/lib/pacman/sync"; echo $?
 0
 ```
@@ -387,7 +387,7 @@ Disables signature checks and registers temporary download mirrors.
 >>>     "SigLevel    = Required DatabaseOptional" \
 >>>     "LocalFileSigLevel = Optional" \
 >>>         >"${AI_MOUNTPOINT_PATH}etc/pacman.conf"
->>> ai.make_pacman_portable https://a.tld
+>>> ai.make-pacman-portable https://a.tld
 >>> cat "${AI_MOUNTPOINT_PATH}etc/pacman.conf"
 >>> cat "${AI_MOUNTPOINT_PATH}etc/pacman.d/mirrorlist"
 SigLevel = Never TrustAll
@@ -413,7 +413,7 @@ Deletes some unneeded locations in new installs operating system.
 >>> local AI_MOUNTPOINT_PATH="$(ai_bl_doctest_mktemp --directory)/"
 >>> mkdir --parents "${AI_MOUNTPOINT_PATH}"{etc,var/cache/pacman/pkg}
 >>> touch "${AI_MOUNTPOINT_PATH}"{.INSTALL,.PKGINFO}
->>> ai.tidy_up_system
+>>> ai.tidy-up-system
 >>> find "$AI_MOUNTPOINT_PATH" -mindepth 1 | \
 >>>     sed "s:${AI_MOUNTPOINT_PATH}::" | \
 >>>         sort
